@@ -245,29 +245,39 @@
   #kimchi td:first-child,#kimchi th:first-child{text-align:left;}
   #kimchi .note{padding:3px 8px; color:var(--ink3); font-size:10px;}
 
-  /* ── Signal Engine ─────────────────────────── */
-  #signals .sig-card{padding:6px 8px; border-bottom:1px solid #101010; cursor:pointer;}
-  #signals .sig-card:hover{background:#131313;}
-  #signals .sig-card.hot{background:#1a1205; border-left:2px solid var(--amber);}
-  #signals .sig-card.long{border-left:2px solid var(--up);}
-  #signals .sig-card.short{border-left:2px solid var(--down);}
-  #signals .sig-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;}
-  #signals .sig-name{font-weight:600; font-size:11px;}
-  #signals .sig-badge{font-size:9px; padding:1px 6px; letter-spacing:.5px; font-weight:700;}
-  #signals .sig-badge.buy{background:rgba(0,160,140,.2); color:var(--up-text);}
-  #signals .sig-badge.sell{background:rgba(229,72,77,.2); color:var(--down-text);}
-  #signals .sig-badge.wait{background:rgba(255,160,40,.15); color:var(--amber);}
-  #signals .sig-badge.idle{background:#1a1a1a; color:var(--ink3);}
-  #signals .sig-detail{font-size:10px; color:var(--ink2); line-height:1.5;}
-  #signals .sig-detail b{color:var(--ink); font-variant-numeric:tabular-nums;}
-  #signals .sig-levels{display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; margin-top:4px; font-size:10px;}
-  #signals .sig-levels .lv{padding:2px 4px; text-align:center;}
-  #signals .sig-levels .entry{background:rgba(47,159,208,.1); color:var(--cyan-text);}
-  #signals .sig-levels .sl{background:rgba(229,72,77,.1); color:var(--down-text);}
-  #signals .sig-levels .tp{background:rgba(0,160,140,.1); color:var(--up-text);}
-  #signals .sig-meter{height:4px; background:#1a1a1a; margin-top:4px;}
-  #signals .sig-meter .fill{height:100%; transition:width .3s;}
-  .sig-score{display:inline-block; width:20px; height:20px; line-height:20px; text-align:center; font-weight:700; font-size:11px; border-radius:4px;}
+  /* ── Learn Engine ─────────────────────────── */
+  #signals .le-main{padding:6px 8px;}
+  #signals .le-score{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1a1a1a;}
+  #signals .le-ring{width:52px;height:52px;position:relative;flex-shrink:0;}
+  #signals .le-ring canvas{width:52px;height:52px;}
+  #signals .le-ring .rv{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;}
+  #signals .le-dir{font-size:18px;font-weight:700;letter-spacing:1px;}
+  #signals .le-bar{height:6px;background:#1a1a1a;margin:6px 0 4px;position:relative;}
+  #signals .le-bar .fill{height:100%;transition:width .5s;}
+  #signals .le-bar .thresh{position:absolute;top:-2px;bottom:-2px;width:1px;background:var(--amber);}
+  #signals .le-features{font-size:10px;line-height:1.6;}
+  #signals .le-features .f{display:flex;justify-content:space-between;padding:1px 0;border-bottom:1px dashed #111;}
+  #signals .le-features .f .n{color:var(--ink2);}
+  #signals .le-features .f .v{font-variant-numeric:tabular-nums;}
+  #signals .le-features .f .v.pos{color:var(--up-text);}
+  #signals .le-features .f .v.neg{color:var(--down-text);}
+  #signals .le-features .f .w{color:var(--ink3);font-size:9px;min-width:28px;text-align:right;}
+  #signals .le-levels{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin:6px 0;font-size:10px;}
+  #signals .le-levels .lv{padding:3px 4px;text-align:center;}
+  #signals .le-levels .entry{background:rgba(47,159,208,.1);color:var(--cyan-text);}
+  #signals .le-levels .sl{background:rgba(229,72,77,.1);color:var(--down-text);}
+  #signals .le-levels .tp{background:rgba(0,160,140,.1);color:var(--up-text);}
+  #signals .le-meta{font-size:9px;color:var(--ink3);padding:4px 0;display:flex;justify-content:space-between;}
+  #signals .le-hist{font-size:10px;max-height:100%;overflow-y:auto;}
+  #signals .le-hist .hr{display:grid;grid-template-columns:auto 1fr auto auto;gap:6px;padding:3px 0;border-bottom:1px solid #101010;font-variant-numeric:tabular-nums;align-items:center;}
+  #signals .le-hist .hr .sym{font-weight:600;color:var(--ink);}
+  #signals .le-hist .hr .dir{font-size:9px;padding:1px 4px;font-weight:700;}
+  #signals .le-wt{font-size:10px;}
+  #signals .le-wt .wr{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid #101010;}
+  #signals .le-wt .wr .bar{flex:1;height:4px;background:#1a1a1a;position:relative;}
+  #signals .le-wt .wr .bar .fill{height:100%;position:absolute;left:50%;transition:width .3s;}
+  #signals .le-wt .wr .nm{min-width:56px;color:var(--ink2);}
+  #signals .le-wt .wr .vl{min-width:36px;text-align:right;font-variant-numeric:tabular-nums;}
 
   /* responsive fallback */
   @media (max-width:1380px){ #col4{display:none;} #main{grid-template-columns:280px minmax(0,1fr) 310px;} }
@@ -420,15 +430,14 @@
 
     <!-- RIGHT -->
     <div class="col" id="rightcol">
-      <div class="panel" style="flex:1.2;">
-        <div class="ptitle">SIGNAL ENGINE <small>실시간 전략</small>
-          <span class="ntab on" data-sigtab="all">전체</span>
-          <span class="ntab" data-sigtab="sqz">스퀴즈</span>
-          <span class="ntab" data-sigtab="oid">OI괴리</span>
-          <span class="ntab" data-sigtab="liq">청산역전</span>
+      <div class="panel" style="flex:1.4;">
+        <div class="ptitle">LEARN ENGINE <small>학습형 AI</small>
+          <span class="ntab on" data-sigtab="live">실시간</span>
+          <span class="ntab" data-sigtab="hist">학습기록</span>
+          <span class="ntab" data-sigtab="wt">가중치</span>
           <span class="age" id="age-sig"></span>
         </div>
-        <div class="pbody" id="signals"><div class="sig-card"><div class="sig-detail" style="color:var(--ink3)">분석 중…</div></div></div>
+        <div class="pbody" id="signals"><div style="padding:8px;color:var(--ink3)">엔진 초기화 중…</div></div>
       </div>
       <div class="panel" style="flex:0 0 auto; max-height:120px;">
         <div class="ptitle">POSITION SIZER <small>레버리지 계산</small></div>
@@ -843,381 +852,660 @@ function atrSeries(cs, len){
   return out;
 }
 
-/* ═══════════════ SIGNAL ENGINE — 고레버리지 전략 시스템 ═══════════════ */
-const SIG = {
-  squeeze: [],
-  oiDiv: [],
-  liqCasc: [],
-  tab: "all",
-  liqBuf: {longVol:0, shortVol:0, lastReset:0, events:[]},
+/* ═══════════════ LEARN ENGINE — 자기학습 컨플루언스 시스템 ═══════════════
+   매 봉마다 12개 피처를 추출 → 가중합 스코어링 → 60+ 진입
+   매매 결과를 localStorage에 기록 → 가중치를 승/패 방향으로 조정
+   시간이 지날수록 먹히는 지표 조합을 스스로 학습 */
+
+const LE = {
+  tab: "live",
+  signal: null,       // current signal {score,dir,entry,sl,tp,features,regime}
+  weights: null,      // {featureName: weight} — learned
+  history: [],        // [{t,sym,tf,dir,entry,sl,tp,exit,pnl,features,score}]
+  pending: null,      // open virtual position tracking
+  epoch: 0,           // learning iterations
+  threshold: 60,      // min score to enter
 };
 
-/* ── Strategy 1: Squeeze Momentum ── */
-function squeezeCompute(cs) {
-  if(cs.length < 30) return null;
+// Feature definitions: name, extract function, description
+const FEATURES = [
+  { key:"rsi_ob",   name:"RSI 과매도/과매수", fn: featureRSI },
+  { key:"bb_touch", name:"BB 밴드터치",       fn: featureBB },
+  { key:"macd_cross",name:"MACD 크로스",      fn: featureMACD },
+  { key:"ema_align",name:"EMA 정렬",          fn: featureEMA },
+  { key:"adx_str",  name:"ADX 추세강도",      fn: featureADX },
+  { key:"vol_spike",name:"거래량 급증",        fn: featureVol },
+  { key:"squeeze",  name:"BB 스퀴즈",         fn: featureSqueeze },
+  { key:"stoch_sig",name:"StochRSI 신호",     fn: featureStoch },
+  { key:"funding",  name:"펀딩레이트 극단",    fn: featureFunding },
+  { key:"oi_div",   name:"OI 다이버전스",      fn: featureOI },
+  { key:"ls_extreme",name:"롱숏 비율 극단",   fn: featureLS },
+  { key:"candle",   name:"캔들 패턴",          fn: featureCandle },
+];
+
+const DEFAULT_WEIGHTS = {};
+FEATURES.forEach(f => DEFAULT_WEIGHTS[f.key] = 1.0);
+
+function leInit(){
+  // Load from localStorage
+  try {
+    const saved = localStorage.getItem("le_weights_" + S.sym);
+    LE.weights = saved ? JSON.parse(saved) : {...DEFAULT_WEIGHTS};
+    const hist = localStorage.getItem("le_history");
+    LE.history = hist ? JSON.parse(hist) : [];
+    LE.epoch = LE.history.length;
+    const pend = localStorage.getItem("le_pending");
+    LE.pending = pend ? JSON.parse(pend) : null;
+  } catch(e) {
+    LE.weights = {...DEFAULT_WEIGHTS};
+    LE.history = [];
+    LE.pending = null;
+  }
+}
+
+function leSave(){
+  try {
+    localStorage.setItem("le_weights_" + S.sym, JSON.stringify(LE.weights));
+    localStorage.setItem("le_history", JSON.stringify(LE.history.slice(-200))); // keep last 200
+    if(LE.pending) localStorage.setItem("le_pending", JSON.stringify(LE.pending));
+    else localStorage.removeItem("le_pending");
+  } catch(e){}
+}
+
+// ── Feature extractors (return -1 to +1, direction-agnostic or with direction) ──
+
+function featureRSI(cs){
+  const closes = cs.map(c=>c.c);
+  const r = rsiSeries(closes, 14);
+  const v = r[r.length-1];
+  if(v == null) return {val:0, dir:0};
+  if(v < 25) return {val: (25-v)/25, dir: 1};    // oversold → long signal
+  if(v > 75) return {val: (v-75)/25, dir: -1};   // overbought → short signal
+  if(v < 35) return {val: (35-v)/35 * 0.5, dir: 1};
+  if(v > 65) return {val: (v-65)/35 * 0.5, dir: -1};
+  return {val: 0, dir: 0};
+}
+
+function featureBB(cs){
   const closes = cs.map(c=>c.c);
   const bb = bollinger(closes, 20, 2);
-  const kelt = (()=>{
-    const m = ema(closes, 20), a = atrSeries(cs, 10);
-    return {up:m.map((v,i)=>v!=null?v+1.5*a[i]:null), lo:m.map((v,i)=>v!=null?v-1.5*a[i]:null)};
-  })();
-
-  // Squeeze: BB inside Keltner
-  const sqz = cs.map((_,i) => {
-    if(bb.up[i]==null || kelt.up[i]==null) return false;
-    return bb.up[i] < kelt.up[i] && bb.lo[i] > kelt.lo[i];
-  });
-
-  // BB width (normalized)
-  const bbw = cs.map((_,i) => {
-    if(bb.up[i]==null || bb.mid[i]==null || bb.mid[i]===0) return null;
-    return (bb.up[i] - bb.lo[i]) / bb.mid[i];
-  });
-
-  // Momentum: linear regression of close over 12 bars
-  const mom = new Array(cs.length).fill(null);
-  for(let i=11; i<cs.length; i++){
-    let sx=0,sy=0,sxy=0,sx2=0;
-    for(let j=0;j<12;j++){
-      sx+=j; sy+=closes[i-11+j]; sxy+=j*closes[i-11+j]; sx2+=j*j;
-    }
-    mom[i] = (12*sxy - sx*sy) / (12*sx2 - sx*sx);
-  }
-
-  const n = cs.length;
-  const last = n-1;
-
-  // Find squeeze state
-  let sqzLen = 0;
-  for(let i=last; i>=Math.max(0,last-30); i--){
-    if(sqz[i]) sqzLen++; else break;
-  }
-
-  const wasSqueeze = sqzLen >= 4;
-
-  // Current squeeze range
-  let sqzHi = -Infinity, sqzLo = Infinity;
-  if(sqzLen > 0){
-    for(let i=last-sqzLen+1; i<=last; i++){
-      sqzHi = Math.max(sqzHi, cs[i].h);
-      sqzLo = Math.min(sqzLo, cs[i].l);
-    }
-  }
-
-  // Still in active squeeze
-  if(sqz[last] && sqzLen >= 2){
-    const dir = mom[last] > 0 ? 1 : mom[last] < 0 ? -1 : 0;
-    const range = sqzHi !== -Infinity ? sqzHi - sqzLo : null;
-    return {
-      state: sqzLen >= 4 ? "LOADED" : "BUILDING",
-      dir,
-      sqzLen,
-      range,
-      bbw: bbw[last],
-      entry: null, sl: null, tp: null,
-      score: Math.min(95, 40 + sqzLen * 8 + (bbw[last] < 0.02 ? 15 : 0)),
-      detail: `스퀴즈 ${sqzLen}봉 | BBW ${(bbw[last]*100).toFixed(2)}% | 모멘텀 ${dir>0?"\u25B2":"\u25BC"}`
-    };
-  }
-
-  // Squeeze just released (within last 3 bars)
-  let recentSqzEnd = -1;
-  for(let i=last; i>=Math.max(0,last-5); i--){
-    if(sqz[i]){ recentSqzEnd = i; break; }
-  }
-  if(recentSqzEnd >= last-3 && recentSqzEnd >= 0 && !sqz[last]){
-    // Recalculate squeeze range for the ended squeeze
-    let rSqzLen = 0;
-    for(let i=recentSqzEnd; i>=Math.max(0,recentSqzEnd-30); i--){
-      if(sqz[i]) rSqzLen++; else break;
-    }
-    sqzHi = -Infinity; sqzLo = Infinity;
-    for(let i=recentSqzEnd-rSqzLen+1; i<=recentSqzEnd; i++){
-      if(i>=0){ sqzHi = Math.max(sqzHi, cs[i].h); sqzLo = Math.min(sqzLo, cs[i].l); }
-    }
-
-    const dir = mom[last] > 0 ? 1 : -1;
-    const volAvg = cs.slice(Math.max(0,last-20), last).reduce((s,c)=>s+c.v, 0) / 20;
-    const volRatio = cs[last].v / (volAvg || 1);
-    const range = sqzHi - sqzLo;
-
-    const entry = cs[last].c;
-    const sl = dir === 1 ? sqzLo - range * 0.1 : sqzHi + range * 0.1;
-    const risk = Math.abs(entry - sl);
-    const tp = dir === 1 ? entry + risk * 2.5 : entry - risk * 2.5;
-
-    const score = Math.min(98, 60 + (volRatio > 1.5 ? 15 : 0) + (range/entry < 0.015 ? 10 : 0));
-
-    return {
-      state: "FIRE",
-      dir,
-      sqzLen: rSqzLen,
-      range,
-      bbw: bbw[last],
-      entry, sl, tp,
-      score,
-      rr: (Math.abs(tp - entry) / risk).toFixed(1),
-      volRatio: volRatio.toFixed(1),
-      detail: `스퀴즈 해제! ${dir>0?"LONG":"SHORT"} | R:R ${(Math.abs(tp-entry)/risk).toFixed(1)} | Vol ${volRatio.toFixed(1)}x`
-    };
-  }
-
-  return { state: "IDLE", dir: 0, score: 0, detail: "스퀴즈 미감지" };
+  const i = cs.length - 1;
+  if(bb.up[i]==null) return {val:0, dir:0};
+  const price = cs[i].c;
+  const width = bb.up[i] - bb.lo[i];
+  if(width === 0) return {val:0, dir:0};
+  const pos = (price - bb.lo[i]) / width; // 0=lower band, 1=upper band
+  if(pos <= 0.05) return {val: 0.8 + (0.05-pos)*4, dir: 1};  // at/below lower
+  if(pos >= 0.95) return {val: 0.8 + (pos-0.95)*4, dir: -1}; // at/above upper
+  if(pos <= 0.2) return {val: 0.3, dir: 1};
+  if(pos >= 0.8) return {val: 0.3, dir: -1};
+  return {val: 0, dir: 0};
 }
 
-/* ── Strategy 2: OI Divergence ── */
-function oiDivCompute(cs) {
-  if(!S.oi || S.oi.length < 10 || cs.length < 20) return { state:"IDLE", score:0, detail:"OI 데이터 부족" };
-
-  const n = cs.length;
-  const last = n - 1;
-
-  let priceHH = -Infinity, priceLL = Infinity;
-  let hhIdx = last, llIdx = last;
-  for(let i=Math.max(0,last-12); i<=last; i++){
-    if(cs[i].h > priceHH){ priceHH = cs[i].h; hhIdx = i; }
-    if(cs[i].l < priceLL){ priceLL = cs[i].l; llIdx = i; }
-  }
-
-  const isNewHigh = hhIdx >= last - 2 && priceHH >= cs[Math.max(0,last-20)].h;
-  const isNewLow = llIdx >= last - 2 && priceLL <= cs[Math.max(0,last-20)].l;
-
-  const oiLen = S.oi.length;
-  const oiRecent = S.oi.slice(-3).reduce((s,o)=>s+o.v, 0) / 3;
-  const oiEarlier = S.oi.slice(-8,-3).reduce((s,o)=>s+o.v, 0) / 5;
-  const oiDeclining = oiRecent < oiEarlier * 0.97;
-  const oiChange = ((oiRecent - oiEarlier) / oiEarlier * 100);
-
-  const q = S.quotes[S.sym];
-  const fundingExtreme = q && Math.abs(q.fundingRate) > 0.03;
-  const fundingDir = q ? (q.fundingRate > 0 ? 1 : -1) : 0;
-
-  if(isNewHigh && oiDeclining){
-    const entry = cs[last].c;
-    const sl = priceHH * 1.003;
-    const risk = sl - entry;
-    const tp = entry - risk * 2;
-    const score = 55 + (fundingExtreme && fundingDir > 0 ? 20 : 0) + (Math.abs(oiChange) > 5 ? 15 : 0);
-
-    return {
-      state: "SIGNAL",
-      dir: -1,
-      entry, sl, tp,
-      score: Math.min(95, score),
-      rr: "2.0",
-      oiChange: oiChange.toFixed(1),
-      detail: `신고가 + OI 감소(${oiChange.toFixed(1)}%) \u2192 SHORT${fundingExtreme?" \xB7 펀딩 과열":""}`,
-    };
-  }
-
-  if(isNewLow && oiDeclining){
-    const entry = cs[last].c;
-    const sl = priceLL * 0.997;
-    const risk = entry - sl;
-    const tp = entry + risk * 2;
-    const score = 55 + (fundingExtreme && fundingDir < 0 ? 20 : 0) + (Math.abs(oiChange) > 5 ? 15 : 0);
-
-    return {
-      state: "SIGNAL",
-      dir: 1,
-      entry, sl, tp,
-      score: Math.min(95, score),
-      rr: "2.0",
-      oiChange: oiChange.toFixed(1),
-      detail: `신저가 + OI 감소(${oiChange.toFixed(1)}%) \u2192 LONG${fundingExtreme?" \xB7 펀딩 과냉":""}`,
-    };
-  }
-
-  if(oiDeclining){
-    return { state:"WATCH", dir:0, score:25, detail:`OI 감소 중(${oiChange.toFixed(1)}%) \u2014 신고/저가 대기` };
-  }
-
-  return { state:"IDLE", dir:0, score:0, detail:"OI 정상 흐름" };
-}
-
-/* ── Strategy 3: Liquidation Cascade ── */
-function liqCascCompute(cs) {
-  const buf = SIG.liqBuf;
-  const now = Date.now();
-
-  if(now - buf.lastReset > 300000){
-    buf.longVol = 0;
-    buf.shortVol = 0;
-    buf.lastReset = now;
-    buf.events = buf.events.filter(e => now - e.t < 600000);
-  }
-
-  if(typeof LQ !== 'undefined' && LQ.length > 0){
-    const recent = LQ.filter(l => now - l.t < 300000);
-    buf.longVol = recent.filter(l => l.side === "Buy").reduce((s,l) => s + l.p * l.v, 0);
-    buf.shortVol = recent.filter(l => l.side === "Sell").reduce((s,l) => s + l.p * l.v, 0);
-  }
-
-  if(cs.length < 10) return { state:"IDLE", dir:0, score:0, detail:"데이터 부족" };
-
-  const totalLiq = buf.longVol + buf.shortVol;
-  const threshold = 500000;
-  const massiveThreshold = 2000000;
-
-  const n = cs.length;
-  const last = n - 1;
-  const price = cs[last].c;
+function featureMACD(cs){
   const closes = cs.map(c=>c.c);
-  const ema20 = ema(closes, 20);
-  const vwapVal = vwapSeries(cs);
-
-  if(buf.longVol > threshold && buf.longVol > buf.shortVol * 3){
-    const cascade_low = Math.min(...cs.slice(-5).map(c=>c.l));
-    const reclaimed = price > (ema20[last] || price) || price > (vwapVal[last] || price);
-
-    if(reclaimed){
-      const entry = price;
-      const sl = cascade_low * 0.998;
-      const risk = entry - sl;
-      const tp = entry + risk * 3;
-      const score = Math.min(95, 60 + (totalLiq > massiveThreshold ? 20 : 0) + (reclaimed ? 15 : 0));
-
-      return {
-        state: "FIRE",
-        dir: 1,
-        entry, sl, tp,
-        score,
-        rr: "3.0",
-        liqVol: buf.longVol,
-        detail: `롱 청산 $${(buf.longVol/1000).toFixed(0)}K \u2192 반전 LONG | EMA20 회복`,
-      };
-    }
-
-    return {
-      state: "WATCH",
-      dir: 1,
-      score: 40,
-      liqVol: buf.longVol,
-      detail: `롱 청산 $${(buf.longVol/1000).toFixed(0)}K 발생 \u2014 EMA/VWAP 회복 대기`,
-    };
-  }
-
-  if(buf.shortVol > threshold && buf.shortVol > buf.longVol * 3){
-    const cascade_high = Math.max(...cs.slice(-5).map(c=>c.h));
-    const reclaimed = price < (ema20[last] || price) || price < (vwapVal[last] || price);
-
-    if(reclaimed){
-      const entry = price;
-      const sl = cascade_high * 1.002;
-      const risk = sl - entry;
-      const tp = entry - risk * 3;
-      const score = Math.min(95, 60 + (totalLiq > massiveThreshold ? 20 : 0) + (reclaimed ? 15 : 0));
-
-      return {
-        state: "FIRE",
-        dir: -1,
-        entry, sl, tp,
-        score,
-        rr: "3.0",
-        liqVol: buf.shortVol,
-        detail: `숏 청산 $${(buf.shortVol/1000).toFixed(0)}K \u2192 반전 SHORT | EMA20 하회`,
-      };
-    }
-
-    return {
-      state: "WATCH",
-      dir: -1,
-      score: 40,
-      liqVol: buf.shortVol,
-      detail: `숏 청산 $${(buf.shortVol/1000).toFixed(0)}K 발생 \u2014 EMA/VWAP 이탈 대기`,
-    };
-  }
-
-  if(totalLiq > 100000){
-    return { state:"WATCH", dir:0, score:15, detail:`청산 누적 $${(totalLiq/1000).toFixed(0)}K \u2014 임계치 미달` };
-  }
-
-  return { state:"IDLE", dir:0, score:0, detail:"청산 이벤트 없음" };
+  const m = macdSeries(closes);
+  const i = cs.length - 1;
+  if(m.hist[i]==null || m.hist[i-1]==null) return {val:0, dir:0};
+  const curr = m.hist[i], prev = m.hist[i-1];
+  // histogram flip
+  if(prev < 0 && curr > 0) return {val: 0.8, dir: 1};
+  if(prev > 0 && curr < 0) return {val: 0.8, dir: -1};
+  // momentum increasing
+  if(curr > 0 && curr > prev) return {val: 0.3, dir: 1};
+  if(curr < 0 && curr < prev) return {val: 0.3, dir: -1};
+  return {val: 0.1, dir: curr > 0 ? 1 : -1};
 }
 
-/* ── Signal Engine: compute all & render ── */
+function featureEMA(cs){
+  const closes = cs.map(c=>c.c);
+  const e20 = ema(closes, 20), e50 = ema(closes, 50), e100 = ema(closes, 100);
+  const i = cs.length - 1;
+  if(e100[i]==null) return {val:0, dir:0};
+  const price = cs[i].c;
+  // Perfect alignment: price > ema20 > ema50 > ema100 = strong uptrend
+  const bullish = price > e20[i] && e20[i] > e50[i] && e50[i] > e100[i];
+  const bearish = price < e20[i] && e20[i] < e50[i] && e50[i] < e100[i];
+  if(bullish) return {val: 0.7, dir: 1};
+  if(bearish) return {val: 0.7, dir: -1};
+  // Partial alignment
+  if(price > e50[i] && e20[i] > e50[i]) return {val: 0.3, dir: 1};
+  if(price < e50[i] && e20[i] < e50[i]) return {val: 0.3, dir: -1};
+  return {val: 0, dir: 0};
+}
+
+function featureADX(cs){
+  const a = adxSeries(cs, 14);
+  const i = cs.length - 1;
+  if(a.adx[i]==null) return {val:0, dir:0};
+  const adxVal = a.adx[i];
+  const dir = a.pDI[i] > a.mDI[i] ? 1 : -1;
+  if(adxVal > 35) return {val: 0.9, dir};   // strong trend
+  if(adxVal > 25) return {val: 0.6, dir};   // trending
+  if(adxVal < 15) return {val: 0.2, dir: 0}; // no trend (range)
+  return {val: 0.1, dir: 0};
+}
+
+function featureVol(cs){
+  const i = cs.length - 1;
+  if(i < 20) return {val:0, dir:0};
+  const avg = cs.slice(i-20, i).reduce((s,c)=>s+c.v, 0) / 20;
+  const ratio = cs[i].v / (avg || 1);
+  const dir = cs[i].c >= cs[i].o ? 1 : -1;
+  if(ratio > 3) return {val: 1.0, dir};
+  if(ratio > 2) return {val: 0.7, dir};
+  if(ratio > 1.5) return {val: 0.4, dir};
+  return {val: 0, dir: 0};
+}
+
+function featureSqueeze(cs){
+  const closes = cs.map(c=>c.c);
+  const bb = bollinger(closes, 20, 2);
+  const keltM = ema(closes, 20), keltA = atrSeries(cs, 10);
+  const i = cs.length - 1;
+  if(bb.up[i]==null || keltM[i]==null) return {val:0, dir:0};
+  const keltUp = keltM[i] + 1.5*keltA[i], keltLo = keltM[i] - 1.5*keltA[i];
+  const inSqueeze = bb.up[i] < keltUp && bb.lo[i] > keltLo;
+  // Check if squeeze just released
+  let sqzLen = 0;
+  for(let j=i-1; j>=Math.max(0,i-20); j--){
+    if(bb.up[j]==null || keltM[j]==null) break;
+    const ku = keltM[j]+1.5*keltA[j], kl = keltM[j]-1.5*keltA[j];
+    if(bb.up[j] < ku && bb.lo[j] > kl) sqzLen++; else break;
+  }
+  if(!inSqueeze && sqzLen >= 4){
+    // Squeeze just released!
+    const dir = cs[i].c > cs[i].o ? 1 : -1;
+    return {val: 0.9, dir};
+  }
+  if(inSqueeze && sqzLen >= 3){
+    return {val: 0.4, dir: 0}; // building
+  }
+  return {val: 0, dir: 0};
+}
+
+function featureStoch(cs){
+  const closes = cs.map(c=>c.c);
+  const st = stochRsiSeries(closes);
+  const i = cs.length - 1;
+  if(st.K[i]==null || st.D[i]==null) return {val:0, dir:0};
+  // Oversold cross up
+  if(st.K[i] < 20 && st.K[i] > st.D[i] && (i<1 || st.K[i-1] <= st.D[i-1]))
+    return {val: 0.7, dir: 1};
+  // Overbought cross down
+  if(st.K[i] > 80 && st.K[i] < st.D[i] && (i<1 || st.K[i-1] >= st.D[i-1]))
+    return {val: 0.7, dir: -1};
+  if(st.K[i] < 20) return {val: 0.3, dir: 1};
+  if(st.K[i] > 80) return {val: 0.3, dir: -1};
+  return {val: 0, dir: 0};
+}
+
+function featureFunding(cs){
+  const q = S.quotes[S.sym];
+  if(!q || q.fundingRate == null) return {val:0, dir:0};
+  const rate = q.fundingRate; // in percent
+  if(Math.abs(rate) > 0.05) return {val: 1.0, dir: rate > 0 ? -1 : 1}; // extreme → fade
+  if(Math.abs(rate) > 0.03) return {val: 0.6, dir: rate > 0 ? -1 : 1};
+  if(Math.abs(rate) > 0.015) return {val: 0.2, dir: rate > 0 ? -1 : 1};
+  return {val: 0, dir: 0};
+}
+
+function featureOI(cs){
+  if(!S.oi || S.oi.length < 8) return {val:0, dir:0};
+  const recent = S.oi.slice(-3).reduce((s,o)=>s+o.v,0)/3;
+  const earlier = S.oi.slice(-8,-3).reduce((s,o)=>s+o.v,0)/5;
+  if(!earlier) return {val:0, dir:0};
+  const change = (recent - earlier) / earlier;
+  const i = cs.length - 1;
+  const priceUp = i >= 5 && cs[i].c > cs[i-5].c;
+  const priceDn = i >= 5 && cs[i].c < cs[i-5].c;
+  // Price up + OI down = weak, short signal
+  if(priceUp && change < -0.03) return {val: Math.min(1, Math.abs(change)*10), dir: -1};
+  // Price down + OI down = weak, long signal
+  if(priceDn && change < -0.03) return {val: Math.min(1, Math.abs(change)*10), dir: 1};
+  // Price up + OI up = confirmed trend
+  if(priceUp && change > 0.03) return {val: 0.3, dir: 1};
+  if(priceDn && change > 0.03) return {val: 0.3, dir: -1};
+  return {val: 0, dir: 0};
+}
+
+function featureLS(cs){
+  if(!S.lsr) return {val:0, dir:0};
+  const {long, short} = S.lsr;
+  // Extreme long bias → fade (short signal)
+  if(long > 0.7) return {val: (long-0.5)*2, dir: -1};
+  if(short > 0.7) return {val: (short-0.5)*2, dir: 1};
+  if(long > 0.6) return {val: 0.3, dir: -1};
+  if(short > 0.6) return {val: 0.3, dir: 1};
+  return {val: 0, dir: 0};
+}
+
+function featureCandle(cs){
+  const i = cs.length - 1;
+  if(i < 2) return {val:0, dir:0};
+  const c = cs[i], p = cs[i-1];
+  const body = Math.abs(c.c - c.o), range = c.h - c.l;
+  const pBody = Math.abs(p.c - p.o);
+  // Engulfing
+  if(c.c > c.o && p.c < p.o && body > pBody * 1.5 && c.c > p.o && c.o < p.c)
+    return {val: 0.7, dir: 1}; // bullish engulfing
+  if(c.c < c.o && p.c > p.o && body > pBody * 1.5 && c.o > p.c && c.c < p.o)
+    return {val: 0.7, dir: -1}; // bearish engulfing
+  // Pin bar (long wick)
+  if(range > 0 && body / range < 0.3){
+    const upperWick = c.h - Math.max(c.o, c.c);
+    const lowerWick = Math.min(c.o, c.c) - c.l;
+    if(lowerWick > body * 2 && lowerWick > upperWick * 2) return {val: 0.5, dir: 1}; // hammer
+    if(upperWick > body * 2 && upperWick > lowerWick * 2) return {val: 0.5, dir: -1}; // shooting star
+  }
+  return {val: 0, dir: 0};
+}
+
+// ── Core: extract features, compute score ──
+
+function leExtract(cs){
+  if(!LE.weights) leInit();
+  const features = {};
+  let longScore = 0, shortScore = 0, totalWeight = 0;
+
+  for(const f of FEATURES){
+    const result = f.fn(cs);
+    features[f.key] = result;
+    const w = LE.weights[f.key] || 1.0;
+    const contribution = result.val * w;
+    if(result.dir > 0) longScore += contribution;
+    else if(result.dir < 0) shortScore += contribution;
+    totalWeight += w;
+  }
+
+  // Normalize to 0-100
+  const maxPossible = totalWeight; // if all features fire at val=1
+  const normLong = maxPossible > 0 ? (longScore / maxPossible) * 100 : 0;
+  const normShort = maxPossible > 0 ? (shortScore / maxPossible) * 100 : 0;
+
+  const dir = normLong > normShort ? 1 : normShort > normLong ? -1 : 0;
+  const score = Math.round(Math.max(normLong, normShort));
+
+  return { features, longScore: Math.round(normLong), shortScore: Math.round(normShort), score, dir };
+}
+
+function leComputeLevels(cs, dir){
+  const i = cs.length - 1;
+  const atr = atrSeries(cs, 14);
+  const atrVal = atr[i] || cs[i].c * 0.01;
+  const price = cs[i].c;
+
+  const entry = price;
+  const sl = dir === 1 ? price - atrVal * 1.2 : price + atrVal * 1.2;
+  const tp = dir === 1 ? price + atrVal * 2.5 : price - atrVal * 2.5;
+
+  return { entry, sl, tp, atr: atrVal, rr: (2.5/1.2).toFixed(1) };
+}
+
+// ── Learning: track virtual trades and adjust weights ──
+
+function leCheckPending(cs){
+  if(!LE.pending || !cs.length) return;
+  const p = LE.pending;
+  const last = cs[cs.length - 1];
+
+  let exit = null, pnl = 0;
+  if(p.dir === 1){
+    if(last.l <= p.sl){ exit = p.sl; pnl = -1; }       // SL hit
+    else if(last.h >= p.tp){ exit = p.tp; pnl = 1; }   // TP hit
+  } else {
+    if(last.h >= p.sl){ exit = p.sl; pnl = -1; }
+    else if(last.l <= p.tp){ exit = p.tp; pnl = 1; }
+  }
+
+  // Timeout: if trade open > 50 candles, close at current price
+  if(!exit && p.age != null){
+    p.age++;
+    if(p.age > 50){
+      exit = last.c;
+      pnl = p.dir === 1 ? (exit > p.entry ? 0.5 : -0.5) : (exit < p.entry ? 0.5 : -0.5);
+    }
+  }
+
+  if(exit !== null){
+    const realPnl = p.dir === 1 ? (exit - p.entry) / p.entry * 100 : (p.entry - exit) / p.entry * 100;
+
+    // Record trade
+    const trade = {
+      t: Date.now(), sym: p.sym, tf: p.tf, dir: p.dir,
+      entry: p.entry, sl: p.sl, tp: p.tp, exit,
+      pnl: realPnl, win: pnl > 0,
+      features: p.features, score: p.score,
+    };
+    LE.history.push(trade);
+    LE.epoch = LE.history.length;
+
+    // LEARN: adjust weights
+    leLearn(trade);
+
+    LE.pending = null;
+    leSave();
+
+    const emoji = pnl > 0 ? "\u2705" : "\u274C";
+    pushLog(`${emoji} LEARN ${p.dir>0?"LONG":"SHORT"} ${p.sym} | ${realPnl>=0?"+":""}${realPnl.toFixed(2)}% | epoch ${LE.epoch}`);
+  }
+}
+
+function leLearn(trade){
+  // Gradient-like update: increase weights of features that contributed to winning trades,
+  // decrease weights of features that contributed to losing trades
+  const lr = 0.15; // learning rate
+  const decay = 0.01; // weight decay toward 1.0
+
+  for(const f of FEATURES){
+    const feat = trade.features[f.key];
+    if(!feat || feat.val === 0) continue;
+
+    const correctDir = (feat.dir === trade.dir);
+
+    if(trade.win){
+      // Reward features that agreed with the winning direction
+      if(correctDir) LE.weights[f.key] += lr * feat.val;
+      // Slightly penalize features that disagreed
+      else LE.weights[f.key] -= lr * 0.3 * feat.val;
+    } else {
+      // Penalize features that agreed with the losing direction
+      if(correctDir) LE.weights[f.key] -= lr * 0.5 * feat.val;
+      // Slightly reward features that disagreed (they were right!)
+      else LE.weights[f.key] += lr * 0.2 * feat.val;
+    }
+
+    // Weight decay toward 1.0 (prevent extreme weights)
+    LE.weights[f.key] += (1.0 - LE.weights[f.key]) * decay;
+
+    // Clamp weights to [0.1, 3.0]
+    LE.weights[f.key] = Math.max(0.1, Math.min(3.0, LE.weights[f.key]));
+  }
+
+  leSave();
+}
+
+// ── Main compute function (called periodically) ──
+
 function sigCompute(){
   if(!S.candles.length) return;
+  if(!LE.weights) leInit();
 
-  const sqz = squeezeCompute(S.candles);
-  const oid = oiDivCompute(S.candles);
-  const liq = liqCascCompute(S.candles);
+  // Check if pending trade hit SL/TP
+  leCheckPending(S.candles);
 
-  SIG.squeeze = sqz ? [Object.assign(sqz, {sym:S.sym, tf:S.tf, name:"SQUEEZE", id:"sqz"})] : [];
-  SIG.oiDiv = oid ? [Object.assign(oid, {sym:S.sym, tf:S.tf, name:"OI DIVERGE", id:"oid"})] : [];
-  SIG.liqCasc = liq ? [Object.assign(liq, {sym:S.sym, tf:S.tf, name:"LIQ CASCADE", id:"liq"})] : [];
+  // Extract features and score
+  const result = leExtract(S.candles);
+  const {score, dir, features, longScore, shortScore} = result;
+
+  // Compute entry/SL/TP if score above threshold
+  let levels = null;
+  if(score >= LE.threshold && dir !== 0){
+    levels = leComputeLevels(S.candles, dir);
+  }
+
+  LE.signal = { score, dir, features, longScore, shortScore, levels, sym: S.sym, tf: S.tf };
+
+  // Auto-open virtual trade if score >= threshold and no pending
+  if(levels && !LE.pending && score >= LE.threshold){
+    LE.pending = {
+      sym: S.sym, tf: S.tf, dir,
+      entry: levels.entry, sl: levels.sl, tp: levels.tp,
+      score, features, t: Date.now(), age: 0,
+    };
+    leSave();
+    if(S.alertOn) beep();
+    pushLog(`\uD83C\uDFAF LEARN ${dir>0?"LONG":"SHORT"} ${S.sym} @ ${fmtPrice(levels.entry)} | Score ${score} | SL ${fmtPrice(levels.sl)} TP ${fmtPrice(levels.tp)}`);
+  }
 
   setAge("sig");
   renderSignals();
-
-  const fires = [sqz, oid, liq].filter(s => s && (s.state === "FIRE" || s.state === "SIGNAL"));
-  if(fires.length > 0 && S.alertOn){
-    for(const f of fires){
-      beep();
-      pushLog(`\uD83C\uDFAF ${f.name || "SIGNAL"} ${f.dir>0?"LONG":"SHORT"} ${S.sym} | Score ${f.score}`);
-    }
-  }
 }
+
+// ── Render functions ──
 
 function renderSignals(){
   const el = $("signals");
+  if(!el || !LE.signal) return;
+
+  if(LE.tab === "hist") return renderHistory();
+  if(LE.tab === "wt") return renderWeights();
+
+  // Live view
+  const s = LE.signal;
+  const scoreColor = s.score >= 75 ? "var(--up-text)" : s.score >= 50 ? "var(--amber)" : s.score >= 30 ? "var(--ink2)" : "var(--ink3)";
+  const dirText = s.dir > 0 ? "LONG" : s.dir < 0 ? "SHORT" : "NEUTRAL";
+  const dirColor = s.dir > 0 ? "var(--up-text)" : s.dir < 0 ? "var(--down-text)" : "var(--ink3)";
+
+  // Win rate from history
+  const recent = LE.history.filter(h => h.sym === S.sym).slice(-20);
+  const wins = recent.filter(h => h.win).length;
+  const wr = recent.length > 0 ? (wins/recent.length*100).toFixed(0) : "\u2014";
+  const totalPnl = recent.reduce((s,h) => s + h.pnl, 0);
+
+  let html = `<div class="le-main">`;
+
+  // Score ring + direction
+  html += `<div class="le-score">
+    <div class="le-ring"><canvas id="le-ring-cv" width="104" height="104"></canvas>
+      <div class="rv" style="color:${scoreColor}">${s.score}</div>
+    </div>
+    <div>
+      <div class="le-dir" style="color:${dirColor}">${dirText}</div>
+      <div style="font-size:10px;color:var(--ink2)">${s.sym} \xB7 ${s.tf} \xB7 \uC5D0\uD3ED ${LE.epoch}</div>
+      <div style="font-size:10px;color:var(--ink3);margin-top:2px;">
+        L <span class="u">${s.longScore}</span> vs S <span class="d">${s.shortScore}</span>
+        ${recent.length > 0 ? ` \xB7 \uC2B9\uB960 <b style="color:var(--ink)">${wr}%</b> \xB7 PnL <span class="${totalPnl>=0?"u":"d"}">${totalPnl>=0?"+":""}${totalPnl.toFixed(1)}%</span>` : ""}
+      </div>
+    </div>
+  </div>`;
+
+  // Score bar
+  html += `<div class="le-bar">
+    <div class="fill" style="width:${Math.min(100,s.score)}%;background:${scoreColor}"></div>
+    <div class="thresh" style="left:${LE.threshold}%" title="\uC9C4\uC785 \uC784\uACC4\uAC12 ${LE.threshold}"></div>
+  </div>`;
+
+  // Pending trade info
+  if(LE.pending){
+    const p = LE.pending;
+    const curPrice = S.candles.length ? S.candles[S.candles.length-1].c : p.entry;
+    const unrealPnl = p.dir === 1 ? (curPrice - p.entry)/p.entry*100 : (p.entry - curPrice)/p.entry*100;
+    html += `<div style="padding:4px 0;margin:4px 0;border:1px solid ${unrealPnl>=0?"var(--up)":"var(--down)"};background:${unrealPnl>=0?"rgba(0,160,140,.08)":"rgba(229,72,77,.08)"};padding:6px;">
+      <div style="font-size:11px;font-weight:700;color:${p.dir>0?"var(--up-text)":"var(--down-text)"}">
+        \u25CF ${p.dir>0?"LONG":"SHORT"} \uAC00\uC0C1\uD3EC\uC9C0\uC158
+        <span style="float:right;color:${unrealPnl>=0?"var(--up-text)":"var(--down-text)"}">${unrealPnl>=0?"+":""}${unrealPnl.toFixed(2)}%</span>
+      </div>
+      <div class="le-levels">
+        <div class="lv entry">\uC9C4\uC785 <b>${fmtPrice(p.entry)}</b></div>
+        <div class="lv sl">\uC190\uC808 <b>${fmtPrice(p.sl)}</b></div>
+        <div class="lv tp">\uC775\uC808 <b>${fmtPrice(p.tp)}</b></div>
+      </div>
+    </div>`;
+  }
+
+  // Entry levels (if signal active, no pending)
+  if(s.levels && !LE.pending){
+    html += `<div class="le-levels">
+      <div class="lv entry">\uC9C4\uC785 <b>${fmtPrice(s.levels.entry)}</b></div>
+      <div class="lv sl">\uC190\uC808 <b>${fmtPrice(s.levels.sl)}</b></div>
+      <div class="lv tp">\uC775\uC808 <b>${fmtPrice(s.levels.tp)}</b></div>
+    </div>`;
+  }
+
+  // Feature breakdown
+  html += `<div class="le-features">`;
+  for(const f of FEATURES){
+    const feat = s.features[f.key];
+    if(!feat) continue;
+    const w = (LE.weights[f.key] || 1).toFixed(2);
+    const dirIcon = feat.dir > 0 ? "\u25B2" : feat.dir < 0 ? "\u25BC" : "\u2014";
+    const cls = feat.val > 0 ? (feat.dir > 0 ? "pos" : feat.dir < 0 ? "neg" : "") : "";
+    html += `<div class="f">
+      <span class="n">${f.name}</span>
+      <span class="v ${cls}">${dirIcon} ${(feat.val*100).toFixed(0)}%</span>
+      <span class="w">\xD7${w}</span>
+    </div>`;
+  }
+  html += `</div>`;
+
+  html += `<div class="le-meta">
+    <span>\uC784\uACC4\uAC12: ${LE.threshold} \xB7 LR: 0.15</span>
+    <span>\uD559\uC2B5 ${LE.epoch}\uD68C</span>
+  </div>`;
+
+  html += `</div>`;
+  el.innerHTML = html;
+
+  // Draw ring
+  setTimeout(drawScoreRing, 10);
+
+  // Auto-fill position sizer
+  if(s.levels && s.dir !== 0){
+    positionSize({entry: s.levels.entry, sl: s.levels.sl, tp: s.levels.tp, dir: s.dir, name: "LEARN"});
+  }
+}
+
+function drawScoreRing(){
+  const cv = $("le-ring-cv");
+  if(!cv || !LE.signal) return;
+  const ctx = cv.getContext("2d");
+  const s = LE.signal.score;
+  const dpr = window.devicePixelRatio || 1;
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const cx = 26, cy = 26, r = 22;
+
+  // Background ring
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.strokeStyle = "#1a1a1a";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  // Score arc
+  const angle = (s / 100) * Math.PI * 2;
+  const color = s >= 75 ? "#1fd3b4" : s >= 50 ? "#ffa028" : "#5c5c5c";
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, -Math.PI/2, -Math.PI/2 + angle);
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.lineCap = "round";
+  ctx.stroke();
+}
+
+function renderHistory(){
+  const el = $("signals");
   if(!el) return;
-
-  const all = [...SIG.squeeze, ...SIG.oiDiv, ...SIG.liqCasc];
-  const filtered = SIG.tab === "all" ? all : all.filter(s => s.id === SIG.tab);
-
-  const stateOrder = {FIRE:0, SIGNAL:0, LOADED:1, WATCH:2, BUILDING:3, IDLE:4};
-  filtered.sort((a,b) => (stateOrder[a.state]??5) - (stateOrder[b.state]??5) || b.score - a.score);
-
-  if(filtered.length === 0){
-    el.innerHTML = '<div class="sig-card"><div class="sig-detail" style="color:var(--ink3)">신호 없음</div></div>';
+  const trades = LE.history.slice().reverse().slice(0, 50);
+  if(!trades.length){
+    el.innerHTML = '<div style="padding:10px;color:var(--ink3)">\uD559\uC2B5 \uAE30\uB85D \uC5C6\uC74C \u2014 \uC2DC\uADF8\uB110\uC774 \uBC1C\uC0DD\uD558\uBA74 \uC790\uB3D9\uC73C\uB85C \uAC00\uC0C1\uB9E4\uB9E4\uB97C \uCD94\uC801\uD569\uB2C8\uB2E4.</div>';
     return;
   }
 
-  el.innerHTML = filtered.map(s => {
-    const stateMap = {
-      FIRE: {cls:"hot", badge:"buy", label: s.dir>0?"LONG":"SHORT"},
-      SIGNAL: {cls: s.dir>0?"long":"short", badge: s.dir>0?"buy":"sell", label: s.dir>0?"LONG":"SHORT"},
-      LOADED: {cls:"", badge:"wait", label:"대기"},
-      WATCH: {cls:"", badge:"wait", label:"감시"},
-      BUILDING: {cls:"", badge:"idle", label:"형성"},
-      IDLE: {cls:"", badge:"idle", label:"\u2014"},
-    };
-    const st = stateMap[s.state] || stateMap.IDLE;
+  const wins = trades.filter(t=>t.win).length;
+  const totalPnl = trades.reduce((s,t)=>s+t.pnl, 0);
 
-    let levelsHtml = "";
-    if(s.entry != null){
-      levelsHtml = `<div class="sig-levels">
-        <div class="lv entry">진입 <b>${fmtPrice(s.entry)}</b></div>
-        <div class="lv sl">손절 <b>${fmtPrice(s.sl)}</b></div>
-        <div class="lv tp">익절 <b>${fmtPrice(s.tp)}</b></div>
-      </div>`;
-    }
-
-    const scoreColor = s.score >= 75 ? "var(--up-text)" : s.score >= 50 ? "var(--amber)" : "var(--ink3)";
-
-    return `<div class="sig-card ${st.cls}" data-sig='${JSON.stringify({entry:s.entry,sl:s.sl,tp:s.tp,dir:s.dir,name:s.name})}'>
-      <div class="sig-head">
-        <span class="sig-name">${s.name} <small style="color:var(--ink3)">${s.sym} ${s.tf}</small></span>
-        <span style="display:flex;align-items:center;gap:6px;">
-          <span class="sig-score" style="background:${scoreColor}20;color:${scoreColor}">${s.score}</span>
-          <span class="sig-badge ${st.badge}">${st.label}</span>
-        </span>
-      </div>
-      <div class="sig-detail">${s.detail}${s.rr ? ` \xB7 R:R <b>${s.rr}</b>` : ""}</div>
-      ${levelsHtml}
-      <div class="sig-meter"><div class="fill" style="width:${s.score}%;background:${scoreColor}"></div></div>
+  let html = `<div class="le-hist">
+    <div style="padding:4px 8px;font-size:10px;color:var(--ink2);border-bottom:1px solid var(--border)">
+      \uCD1D ${trades.length}\uAC74 \xB7 \uC2B9\uB960 <b style="color:var(--ink)">${(wins/trades.length*100).toFixed(0)}%</b>
+      \xB7 \uB204\uC801 <span class="${totalPnl>=0?"u":"d"}">${totalPnl>=0?"+":""}${totalPnl.toFixed(2)}%</span>
     </div>`;
-  }).join("");
 
-  el.querySelectorAll(".sig-card[data-sig]").forEach(card => {
-    card.onclick = () => {
-      try{
-        const d = JSON.parse(card.dataset.sig);
-        if(d.entry && d.sl) positionSize(d);
-      }catch(e){}
-    };
-  });
+  for(const t of trades){
+    const time = new Date(t.t);
+    const timeStr = `${String(time.getMonth()+1).padStart(2,"0")}/${String(time.getDate()).padStart(2,"0")} ${String(time.getHours()).padStart(2,"0")}:${String(time.getMinutes()).padStart(2,"0")}`;
+    html += `<div class="hr">
+      <span class="dir" style="background:${t.dir>0?"rgba(0,160,140,.2)":"rgba(229,72,77,.2)"};color:${t.dir>0?"var(--up-text)":"var(--down-text)"}">${t.dir>0?"L":"S"}</span>
+      <span class="sym">${t.sym} <small style="color:var(--ink3)">${timeStr}</small></span>
+      <span style="color:var(--ink3)">S${t.score}</span>
+      <span style="color:${t.pnl>=0?"var(--up-text)":"var(--down-text)"}; font-weight:600">${t.pnl>=0?"+":""}${t.pnl.toFixed(2)}%</span>
+    </div>`;
+  }
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+function renderWeights(){
+  const el = $("signals");
+  if(!el || !LE.weights) return;
+
+  const sorted = FEATURES.slice().sort((a,b) => (LE.weights[b.key]||1) - (LE.weights[a.key]||1));
+  const maxW = Math.max(...sorted.map(f => Math.abs(LE.weights[f.key] || 1)));
+
+  let html = `<div class="le-wt" style="padding:4px 8px;">
+    <div style="font-size:10px;color:var(--ink3);padding:4px 0;border-bottom:1px solid var(--border)">
+      \uD559\uC2B5\uB41C \uAC00\uC911\uCE58 \u2014 \uB192\uC744\uC218\uB85D \uC2E0\uB8B0\uB3C4 \uB192\uC740 \uC9C0\uD45C (\uC5D0\uD3ED ${LE.epoch})
+    </div>`;
+
+  for(const f of sorted){
+    const w = LE.weights[f.key] || 1;
+    const pct = (w / 3.0) * 100; // max weight is 3.0
+    const color = w > 1.3 ? "var(--up-text)" : w < 0.7 ? "var(--down-text)" : "var(--ink2)";
+    html += `<div class="wr">
+      <span class="nm">${f.name}</span>
+      <div class="bar"><div class="fill" style="width:${pct}%;background:${color};left:0;"></div></div>
+      <span class="vl" style="color:${color}">${w.toFixed(2)}</span>
+    </div>`;
+  }
+
+  html += `<div style="margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;gap:8px;">
+    <span style="cursor:pointer;color:var(--amber);font-size:10px;" onclick="LE.weights={...DEFAULT_WEIGHTS};leSave();renderSignals();">\uAC00\uC911\uCE58 \uCD08\uAE30\uD654</span>
+    <span style="cursor:pointer;color:var(--down-text);font-size:10px;" onclick="LE.history=[];LE.epoch=0;leSave();renderSignals();">\uD559\uC2B5\uAE30\uB85D \uC0AD\uC81C</span>
+  </div>`;
+
+  html += `</div>`;
+  el.innerHTML = html;
+}
+
+// ── Chart overlay ──
+
+function sigChartOverlay(G){
+  const {ctx, x, y, start, end, xw, plotW} = G;
+
+  // Draw pending trade levels
+  const p = LE.pending;
+  if(p){
+    const W = plotW || 600;
+    const lastX = x(end - 1 - start) + xw/2;
+
+    ctx.setLineDash([4,3]);
+    // Entry
+    ctx.strokeStyle = "rgba(47,159,208,0.7)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(lastX-80, y(p.entry)); ctx.lineTo(W, y(p.entry)); ctx.stroke();
+    // SL
+    ctx.strokeStyle = "rgba(229,72,77,0.6)";
+    ctx.beginPath(); ctx.moveTo(lastX-80, y(p.sl)); ctx.lineTo(W, y(p.sl)); ctx.stroke();
+    // TP
+    ctx.strokeStyle = "rgba(0,160,140,0.6)";
+    ctx.beginPath(); ctx.moveTo(lastX-80, y(p.tp)); ctx.lineTo(W, y(p.tp)); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.font = "10px " + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#5fc3ec";
+    ctx.fillText(`\u25B8 ${p.dir>0?"L":"S"} ${fmtPrice(p.entry)}`, W-2, y(p.entry)-3);
+    ctx.fillStyle = "#ff6b66";
+    ctx.fillText(`SL ${fmtPrice(p.sl)}`, W-2, y(p.sl)-3);
+    ctx.fillStyle = "#1fd3b4";
+    ctx.fillText(`TP ${fmtPrice(p.tp)}`, W-2, y(p.tp)-3);
+  }
+
+  // Draw signal levels if no pending
+  if(!p && LE.signal && LE.signal.levels){
+    const lv = LE.signal.levels;
+    const W = plotW || 600;
+    ctx.setLineDash([2,4]);
+    ctx.globalAlpha = 0.4;
+    ctx.strokeStyle = "#5fc3ec"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(W-100, y(lv.entry)); ctx.lineTo(W, y(lv.entry)); ctx.stroke();
+    ctx.strokeStyle = "#ff6b66";
+    ctx.beginPath(); ctx.moveTo(W-100, y(lv.sl)); ctx.lineTo(W, y(lv.sl)); ctx.stroke();
+    ctx.strokeStyle = "#1fd3b4";
+    ctx.beginPath(); ctx.moveTo(W-100, y(lv.tp)); ctx.lineTo(W, y(lv.tp)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
 }
 
 function positionSize(sig){
@@ -1252,46 +1540,6 @@ function positionSize(sig){
     </div>
     ${liqDist - slPct < 3 ? '<div style="color:var(--down-text);margin-top:2px;">\u26A0 손절 \u2248 청산 \u2014 레버리지 낮추기 권장</div>' : ''}
   `;
-}
-
-/* ── Chart overlay: signal markers on chart ── */
-function sigChartOverlay(G){
-  const {ctx, x, y, start, end, xw, plotW} = G;
-  const all = [...SIG.squeeze, ...SIG.oiDiv, ...SIG.liqCasc];
-  const active = all.filter(s => s.entry != null && (s.state === "FIRE" || s.state === "SIGNAL"));
-
-  for(const s of active){
-    const px = s.entry, slPx = s.sl, tpPx = s.tp;
-    if(px == null) continue;
-
-    const lastX = x(end - 1) + xw/2;
-    const W = plotW || 600;
-
-    // Entry line
-    ctx.strokeStyle = "rgba(47,159,208,0.7)";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4,3]);
-    ctx.beginPath(); ctx.moveTo(lastX - 60, y(px)); ctx.lineTo(W, y(px)); ctx.stroke();
-
-    // SL line
-    ctx.strokeStyle = "rgba(229,72,77,0.6)";
-    ctx.beginPath(); ctx.moveTo(lastX - 60, y(slPx)); ctx.lineTo(W, y(slPx)); ctx.stroke();
-
-    // TP line
-    ctx.strokeStyle = "rgba(0,160,140,0.6)";
-    ctx.beginPath(); ctx.moveTo(lastX - 60, y(tpPx)); ctx.lineTo(W, y(tpPx)); ctx.stroke();
-    ctx.setLineDash([]);
-
-    // Labels
-    ctx.font = "10px " + getComputedStyle(document.body).fontFamily;
-    ctx.fillStyle = "#5fc3ec";
-    ctx.textAlign = "right";
-    ctx.fillText(`\u25B8 ${s.dir>0?"L":"S"} ${fmtPrice(px)}`, W - 2, y(px) - 3);
-    ctx.fillStyle = "#ff6b66";
-    ctx.fillText(`SL ${fmtPrice(slPx)}`, W - 2, y(slPx) - 3);
-    ctx.fillStyle = "#1fd3b4";
-    ctx.fillText(`TP ${fmtPrice(tpPx)}`, W - 2, y(tpPx) - 3);
-  }
 }
 
 /* ═══════════════ CHART ENGINE (canvas) ═══════════════ */
@@ -3037,6 +3285,7 @@ function billionSignalOverlay(data){
 }
 
 function boot(){
+  leInit();
   loadCfgFromHash();
   renderTabs(); renderQuotes();
   $("quadbtn").onclick=quadToggle;
@@ -3085,12 +3334,12 @@ function boot(){
     document.querySelectorAll("[data-ftab]").forEach(x=>x.classList.toggle("on",x===el));
     S.feedTab=el.dataset.ftab; renderFeed();
   });
-  /* 신호 엔진 탭 */
+  /* 학습 엔진 탭 */
   document.querySelectorAll("[data-sigtab]").forEach(el=>{
     el.onclick=()=>{
       document.querySelectorAll("[data-sigtab]").forEach(t=>t.classList.remove("on"));
       el.classList.add("on");
-      SIG.tab=el.dataset.sigtab;
+      LE.tab=el.dataset.sigtab;
       renderSignals();
     };
   });
