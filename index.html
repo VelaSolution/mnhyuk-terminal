@@ -1536,6 +1536,14 @@ function sigCompute(){
     leSave();
     if(S.alertOn) beep();
     pushLog(`\uD83C\uDFAF LEARN ${dir>0?"LONG":"SHORT"} ${S.sym} @ ${fmtPrice(levels.entry)} | Score ${score} | SL ${fmtPrice(levels.sl)} TP ${fmtPrice(levels.tp)}`);
+    try{
+      if("Notification" in window && Notification.permission === "granted"){
+        new Notification(`MOTERA \xB7 ${dir>0?"LONG":"SHORT"} ${S.sym}`, {
+          body: `Score ${score} | Entry ${fmtPrice(levels.entry)} | SL ${fmtPrice(levels.sl)}`,
+          icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>\uD83D\uDCCA</text></svg>"
+        });
+      }
+    }catch(e){}
   }
 
   setAge("sig");
@@ -2507,6 +2515,11 @@ function beep(){
     o.start(); o.stop(ctx.currentTime+0.12);
   }catch(e){}
 }
+function requestNotifPermission(){
+  if("Notification" in window && Notification.permission === "default"){
+    Notification.requestPermission();
+  }
+}
 
 /* NY timezone minute helper (for macro calendar) */
 const _nyFmt = new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",hour12:false,hour:"2-digit",minute:"2-digit"});
@@ -2929,6 +2942,58 @@ function fundingHeatmap(){
   html += '</div>';
   html += '<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">클릭하면 해당 종목 차트로 전환 · 상위 80개 표시 · 양수=롱→숏 지급 · 음수=숏→롱 지급</div>';
   showOverlay("FUNDING HEATMAP · 전 종목 펀딩레이트", html);
+}
+
+function whaleOverlay(){
+  // TS array has recent trades: {t, side, p, v}
+  if(!TS || !TS.length){
+    showOverlay("WHALE TRACKER", '<div class="rowline"><span style="color:var(--ink3)">\uCCB4\uACB0 \uB370\uC774\uD130 \uC218\uC9D1 \uC911\u2026 WebSocket \uC5F0\uACB0 \uD6C4 \uC7A0\uC2DC \uB300\uAE30</span></div>');
+    return;
+  }
+
+  // Find large trades (sort by USD value)
+  const withUsd = TS.map(t => ({...t, usd: (t.v || t.qty || 0) * (t.p || t.price || 0)}))
+    .filter(t => t.usd > 10000) // > $10K
+    .sort((a,b) => b.usd - a.usd)
+    .slice(0, 30);
+
+  if(!withUsd.length){
+    showOverlay("WHALE TRACKER", '<div class="rowline"><span style="color:var(--ink3)">$10K \uC774\uC0C1 \uCCB4\uACB0 \uC5C6\uC74C \u2014 \uB370\uC774\uD130 \uB204\uC801 \uC911</span></div>');
+    return;
+  }
+
+  const totalBuy = withUsd.filter(t => (t.S||t.side) === "Buy").reduce((s,t) => s + t.usd, 0);
+  const totalSell = withUsd.filter(t => (t.S||t.side) === "Sell").reduce((s,t) => s + t.usd, 0);
+  const buyPct = (totalBuy + totalSell) > 0 ? totalBuy / (totalBuy + totalSell) * 100 : 50;
+
+  let html = `<div style="padding:6px 10px;border-bottom:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:4px">
+      <span class="u">\uB9E4\uC218 $${(totalBuy/1000).toFixed(0)}K</span>
+      <span class="d">\uB9E4\uB3C4 $${(totalSell/1000).toFixed(0)}K</span>
+    </div>
+    <div style="display:flex;height:6px;border:1px solid #222;overflow:hidden">
+      <div style="width:${buyPct}%;background:var(--up)"></div>
+      <div style="flex:1;background:var(--down)"></div>
+    </div>
+  </div>`;
+
+  html += withUsd.map(t => {
+    const isBuy = (t.S || t.side) === "Buy";
+    const time = t.t ? fmtT(t.t) : "\u2014";
+    const usdK = (t.usd / 1000).toFixed(0);
+    const price = t.p || t.price || 0;
+    const qty = t.v || t.qty || 0;
+    const isWhale = t.usd > 100000;
+    return `<div class="rowline" style="${isWhale?'background:#1a1205;':''}">
+      <span style="color:var(--ink3)">${time}</span>
+      <span style="color:${isBuy?'var(--up-text)':'var(--down-text)'}; font-weight:700">${isBuy?'BUY':'SELL'}</span>
+      <span><b>$${usdK}K</b></span>
+      <span style="color:var(--ink2)">${fmtPrice(price)} \xD7 ${qty.toFixed(qty<1?4:2)}</span>
+    </div>`;
+  }).join("");
+
+  html += '<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">WebSocket \uC138\uC158 \uB3D9\uC548 \uC218\uC9D1\uB41C \uCCB4\uACB0 \uC911 $10K+ \uD45C\uC2DC \xB7 $100K+ \uD558\uC774\uB77C\uC774\uD2B8</div>';
+  showOverlay(`WHALE TRACKER \xB7 ${S.sym}USDT \uB300\uB7C9 \uCCB4\uACB0`, html);
 }
 
 /* SAVE/LOAD — URL 해시 설정 저장 (저장소 미사용) */
@@ -3454,6 +3519,7 @@ const CMD_LIST=[
   {c:"LIQ",  d:"청산맵(추정) 토글"},
   {c:"VP",   d:"볼륨 프로파일 토글"},
   {c:"TV",   d:"TradingView 차트 전환"},
+  {c:"WHALE", d:"최근 대량 체결 내역 (고래 추적)"},
   {c:"HELP", d:"전체 명령 도움말"},
 ];
 let sugSel=-1, sugItems=[];
@@ -3528,6 +3594,7 @@ $("cmd").addEventListener("keydown",e=>{
     e.target.value=""; return;
   }
   if(raw==="FUND"){ fundOverlay(S.sym); e.target.value=""; return; }
+  if(raw==="WHALE"){ whaleOverlay(); e.target.value=""; return; }
   if(raw==="FMAP"){ fundingHeatmap(); e.target.value=""; return; }
   if(raw==="SAVE"){ saveCfg(); e.target.value=""; return; }
   if(raw==="QUAD"){ quadToggle(); e.target.value=""; return; }
@@ -3834,6 +3901,7 @@ function boot(){
 if(_booted) return;
 _booted = true;
   leInit();
+  requestNotifPermission();
   loadCfgFromHash();
   renderTabs(); renderQuotes();
   $("quadbtn").onclick=quadToggle;
