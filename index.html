@@ -4729,6 +4729,9 @@ const CMD_LIST=[
   {c:"DEPTH", d:"오더북 누적 깊이 차트 (매수벽/매도벽)"},
   {c:"FLOW", d:"매수/매도 자금 흐름 추적 (체결 기반)"},
   {c:"ALTSEASON", d:"알트시즌 지표 (BTC 도미넌스 기반)"},
+  {c:"SECTOR", d:"섹터별 성과 분석 (L1·DeFi·Meme·AI 등)"},
+  {c:"PATTERN", d:"캔들스틱 패턴 자동 감지 (최근 10봉)"},
+  {c:"SUMMARY", d:"현재 종목 종합 요약 (한줄 분석)"},
   {c:"HELP", d:"전체 명령 도움말"},
 ];
 let sugSel=-1, sugItems=[];
@@ -4890,6 +4893,9 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="DEPTH"){ depthOverlay(); e.target.value=""; return; }
   if(raw==="FLOW"){ flowOverlay(); e.target.value=""; return; }
   if(raw==="ALTSEASON"||raw==="ALT"){ altseasonOverlay(); e.target.value=""; return; }
+  if(raw==="SECTOR"){ sectorOverlay(); e.target.value=""; return; }
+  if(raw==="PATTERN"){ patternOverlay(); e.target.value=""; return; }
+  if(raw==="SUMMARY"||raw==="SUM"){ summaryOverlay(); e.target.value=""; return; }
   if(raw==="KRW"){ krwCalcOverlay(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
@@ -5290,6 +5296,229 @@ function altseasonOverlay(){
   html += '</div></div>';
 
   showOverlay("ALT SEASON · 알트시즌 지표", html);
+}
+
+function sectorOverlay(){
+  if(!S.allTickers || !S.allTickers.length){
+    showOverlay("SECTOR", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
+    return;
+  }
+
+  // Categorize coins by sector
+  const sectors = {
+    "Layer 1": ["BTC","ETH","SOL","AVAX","ADA","SUI","NEAR","APT","TON","DOT","ATOM","FTM","ALGO","SEI","TIA"],
+    "Layer 2": ["ARB","OP","MATIC","MNT","STRK","ZK","MANTA","BLAST","MODE","SCROLL"],
+    "DeFi": ["UNI","AAVE","MKR","COMP","CRV","SNX","SUSHI","LDO","PENDLE","GMX","DYDX","JUP","RAY"],
+    "Meme": ["DOGE","SHIB","PEPE","FLOKI","BONK","WIF","MEME","TURBO","BRETT","NEIRO"],
+    "AI": ["FET","RENDER","RNDR","TAO","OCEAN","ARKM","WLD","AGIX","AI16Z","VIRTUAL","GRIFFAIN"],
+    "Gaming": ["AXS","SAND","MANA","IMX","GALA","ILV","PIXEL","RONIN","BIGTIME"],
+    "Infra": ["LINK","FIL","AR","GRT","ONDO","PYTH","TRB","BAND","API3"],
+    "Exchange": ["BNB","OKB","CRO","GT","MX","KCS","HT","LEO"],
+  };
+
+  const results = [];
+  for(const [name, coins] of Object.entries(sectors)){
+    const matched = coins.map(c => S.allTickers.find(t => t.sym === c)).filter(Boolean);
+    if(!matched.length) continue;
+    const avgPct = matched.reduce((s,t) => s + t.pct, 0) / matched.length;
+    const totalVol = matched.reduce((s,t) => s + t.vol, 0);
+    const best = matched.reduce((a,b) => a.pct > b.pct ? a : b);
+    const worst = matched.reduce((a,b) => a.pct < b.pct ? a : b);
+    results.push({name, avgPct, totalVol, count: matched.length, best, worst});
+  }
+
+  results.sort((a,b) => b.avgPct - a.avgPct);
+
+  let html = results.map((r, i) => {
+    const cls = r.avgPct >= 0 ? "u" : "d";
+    const barW = Math.min(100, Math.abs(r.avgPct) * 8);
+    const barColor = r.avgPct >= 0 ? "var(--up)" : "var(--down)";
+    return `<div style="padding:6px 10px;border-bottom:1px solid #101010">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+        <span style="font-weight:700;color:var(--ink)">${r.name} <span style="color:var(--ink3);font-size:9px">${r.count}종목</span></span>
+        <span class="${cls}" style="font-weight:700;font-size:13px">${r.avgPct>=0?'+':''}${r.avgPct.toFixed(2)}%</span>
+      </div>
+      <div style="display:flex;height:4px;background:#1a1a1a;margin-bottom:3px">
+        <div style="width:${barW}%;height:100%;background:${barColor};${r.avgPct<0?'margin-left:auto':''}"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--ink3)">
+        <span>거래량 $${fmtBig(r.totalVol)}</span>
+        <span>최고 <span class="u">${r.best.sym} +${r.best.pct.toFixed(1)}%</span></span>
+        <span>최저 <span class="d">${r.worst.sym} ${r.worst.pct.toFixed(1)}%</span></span>
+      </div>
+    </div>`;
+  }).join("");
+
+  const bestSector = results[0];
+  const worstSector = results[results.length-1];
+  html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:10px;color:var(--ink2);text-align:center">
+    🔥 ${bestSector.name} ${bestSector.avgPct>=0?'+':''}${bestSector.avgPct.toFixed(1)}% vs ❄️ ${worstSector.name} ${worstSector.avgPct>=0?'+':''}${worstSector.avgPct.toFixed(1)}%
+  </div>`;
+
+  showOverlay("SECTOR · 섹터별 24H 성과", html);
+}
+
+function patternOverlay(){
+  if(!S.candles || S.candles.length < 10){
+    showOverlay("PATTERN", '<div class="rowline"><span style="color:var(--ink3)">차트 데이터 부족</span></div>');
+    return;
+  }
+
+  const cs = S.candles;
+  const n = cs.length;
+  const patterns = [];
+
+  // Scan last 10 candles for patterns
+  for(let i = Math.max(2, n-10); i < n; i++){
+    const c = cs[i], p = cs[i-1], pp = cs[i-2];
+    const body = Math.abs(c.c - c.o);
+    const range = c.h - c.l;
+    const pBody = Math.abs(p.c - p.o);
+    const bullish = c.c > c.o;
+    const bearish = c.c < c.o;
+    const pBullish = p.c > p.o;
+    const pBearish = p.c < p.o;
+    const upperWick = c.h - Math.max(c.o, c.c);
+    const lowerWick = Math.min(c.o, c.c) - c.l;
+
+    // Doji
+    if(range > 0 && body / range < 0.1){
+      patterns.push({bar:i, name:"도지(Doji)", bias:"중립", color:"var(--ink2)", desc:"시가=종가, 방향 불확실, 반전 가능성"});
+    }
+    // Hammer
+    if(lowerWick > body * 2 && upperWick < body * 0.5 && range > 0){
+      patterns.push({bar:i, name:"망치형(Hammer)", bias:"강세", color:"var(--up-text)", desc:"하락 추세 후 반전 신호, 긴 아래꼬리"});
+    }
+    // Shooting Star
+    if(upperWick > body * 2 && lowerWick < body * 0.5 && range > 0){
+      patterns.push({bar:i, name:"유성형(Shooting Star)", bias:"약세", color:"var(--down-text)", desc:"상승 추세 후 반전 신호, 긴 윗꼬리"});
+    }
+    // Bullish Engulfing
+    if(bullish && pBearish && body > pBody * 1.3 && c.c > p.o && c.o < p.c){
+      patterns.push({bar:i, name:"강세 장악형(Bull Engulfing)", bias:"강세", color:"var(--up-text)", desc:"이전 음봉을 완전히 감싸는 양봉"});
+    }
+    // Bearish Engulfing
+    if(bearish && pBullish && body > pBody * 1.3 && c.o > p.c && c.c < p.o){
+      patterns.push({bar:i, name:"약세 장악형(Bear Engulfing)", bias:"약세", color:"var(--down-text)", desc:"이전 양봉을 완전히 감싸는 음봉"});
+    }
+    // Morning Star (3-candle)
+    if(i >= 2 && pp.c < pp.o && Math.abs(p.c-p.o) < (pp.h-pp.l)*0.3 && c.c > c.o && c.c > (pp.o+pp.c)/2){
+      patterns.push({bar:i, name:"샛별형(Morning Star)", bias:"강세", color:"var(--up-text)", desc:"하락→작은봉→상승, 강한 반전"});
+    }
+    // Evening Star (3-candle)
+    if(i >= 2 && pp.c > pp.o && Math.abs(p.c-p.o) < (pp.h-pp.l)*0.3 && c.c < c.o && c.c < (pp.o+pp.c)/2){
+      patterns.push({bar:i, name:"석별형(Evening Star)", bias:"약세", color:"var(--down-text)", desc:"상승→작은봉→하락, 강한 반전"});
+    }
+    // Marubozu (strong momentum candle, body > 90% of range)
+    if(range > 0 && body / range > 0.9){
+      const dir = bullish ? "강세" : "약세";
+      const col = bullish ? "var(--up-text)" : "var(--down-text)";
+      patterns.push({bar:i, name:`마루보즈(Marubozu)`, bias:dir, color:col, desc:"꼬리 없는 강한 모멘텀 캔들"});
+    }
+  }
+
+  if(!patterns.length){
+    showOverlay(`PATTERN · ${S.sym}`, '<div class="rowline"><span style="color:var(--ink3)">최근 10봉에서 패턴 미감지</span></div>');
+    return;
+  }
+
+  // Sort newest first
+  patterns.sort((a,b) => b.bar - a.bar);
+
+  let html = patterns.map(p => {
+    const c = cs[p.bar];
+    const time = fmtT(c.t, true);
+    return `<div style="padding:6px 10px;border-bottom:1px solid #101010">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+        <span style="font-weight:700;color:${p.color}">${p.name}</span>
+        <span style="font-size:9px;padding:1px 6px;border:1px solid ${p.color}33;color:${p.color}">${p.bias}</span>
+      </div>
+      <div style="font-size:10px;color:var(--ink2);margin-bottom:2px">${p.desc}</div>
+      <div style="font-size:9px;color:var(--ink3)">${time} · O:${fmtPrice(c.o)} H:${fmtPrice(c.h)} L:${fmtPrice(c.l)} C:${fmtPrice(c.c)}</div>
+    </div>`;
+  }).join("");
+
+  const bullCount = patterns.filter(p => p.bias === "강세").length;
+  const bearCount = patterns.filter(p => p.bias === "약세").length;
+  html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:10px;color:var(--ink2);text-align:center">
+    감지: ${patterns.length}개 · <span class="u">강세 ${bullCount}</span> · <span class="d">약세 ${bearCount}</span> · 중립 ${patterns.length-bullCount-bearCount}
+  </div>`;
+
+  showOverlay(`PATTERN · ${S.sym} ${S.tf} 캔들 패턴`, html);
+}
+
+function summaryOverlay(){
+  if(!S.candles.length){
+    showOverlay("SUMMARY", '<div class="rowline"><span style="color:var(--ink3)">데이터 없음</span></div>');
+    return;
+  }
+
+  const cs = S.candles;
+  const n = cs.length;
+  const closes = cs.map(c => c.c);
+  const price = cs[n-1].c;
+
+  // Quick indicators
+  const rsi = rsiSeries(closes, 14)[n-1];
+  const e20 = ema(closes, 20)[n-1];
+  const e50 = ema(closes, 50)[n-1];
+  const e100 = ema(closes, 100)[n-1];
+  const bb = bollinger(closes, 20, 2);
+  const bbPos = bb.up[n-1] ? ((price - bb.lo[n-1]) / (bb.up[n-1] - bb.lo[n-1]) * 100).toFixed(0) : "?";
+  const atr = atrSeries(cs, 14)[n-1];
+  const atrPct = atr ? (atr / price * 100).toFixed(2) : "?";
+  const macd = macdSeries(closes);
+  const macdHist = macd.hist[n-1];
+  const volAvg = cs.slice(Math.max(0,n-20), n).reduce((s,c)=>s+c.v,0)/20;
+  const volRatio = (cs[n-1].v / (volAvg||1)).toFixed(1);
+
+  // Funding + L/S
+  const q = S.quotes[S.sym];
+  const funding = q?.fundingRate;
+  const ls = S.lsr;
+
+  // Build assessment
+  const signals = [];
+  if(rsi < 30) signals.push({t:"RSI 과매도", c:"var(--up-text)", w:2});
+  else if(rsi > 70) signals.push({t:"RSI 과매수", c:"var(--down-text)", w:2});
+  else signals.push({t:`RSI ${rsi?.toFixed(0)}`, c:"var(--ink2)", w:0});
+
+  if(price > e20 && e20 > e50) signals.push({t:"EMA 정배열 ▲", c:"var(--up-text)", w:1});
+  else if(price < e20 && e20 < e50) signals.push({t:"EMA 역배열 ▼", c:"var(--down-text)", w:1});
+  else signals.push({t:"EMA 혼합", c:"var(--ink2)", w:0});
+
+  if(macdHist > 0) signals.push({t:"MACD 양전환", c:"var(--up-text)", w:1});
+  else signals.push({t:"MACD 음전환", c:"var(--down-text)", w:1});
+
+  signals.push({t:`BB위치 ${bbPos}%`, c:+bbPos>80?"var(--down-text)":+bbPos<20?"var(--up-text)":"var(--ink2)", w:0});
+  signals.push({t:`ATR ${atrPct}%`, c:"var(--ink2)", w:0});
+  signals.push({t:`거래량 ${volRatio}x`, c:+volRatio>1.5?"var(--amber)":"var(--ink2)", w:0});
+
+  if(funding!=null) signals.push({t:`펀딩 ${funding>=0?'+':''}${funding.toFixed(4)}%`, c:Math.abs(funding)>0.03?(funding>0?"var(--down-text)":"var(--up-text)"):"var(--ink2)", w:0});
+  if(ls) signals.push({t:`L/S ${(ls.long*100).toFixed(0)}/${(ls.short*100).toFixed(0)}`, c:ls.long>0.6?"var(--down-text)":ls.short>0.6?"var(--up-text)":"var(--ink2)", w:0});
+
+  // Overall
+  const bullW = signals.filter(s=>s.c==="var(--up-text)").reduce((a,s)=>a+1+s.w,0);
+  const bearW = signals.filter(s=>s.c==="var(--down-text)").reduce((a,s)=>a+1+s.w,0);
+  const verdict = bullW > bearW+2 ? "BULLISH" : bearW > bullW+2 ? "BEARISH" : "NEUTRAL";
+  const vColor = verdict==="BULLISH"?"var(--up-text)":verdict==="BEARISH"?"var(--down-text)":"var(--ink2)";
+
+  let html = `<div style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:14px;font-weight:700;color:var(--ink)">${S.sym}USDT · $${fmtPrice(price)}</div>
+    <div style="font-size:20px;font-weight:700;color:${vColor};margin-top:4px">${verdict}</div>
+    <div style="font-size:10px;color:var(--ink3)">강세 ${bullW} vs 약세 ${bearW}</div>
+  </div>`;
+
+  html += '<div style="padding:4px 0">';
+  for(const s of signals){
+    html += `<div class="rowline" style="padding:4px 10px">
+      <span style="color:${s.c};font-weight:600">${s.t}</span>
+    </div>`;
+  }
+  html += '</div>';
+
+  html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:9px;color:var(--ink3)">${S.tf} 타임프레임 기준 · 투자 조언이 아님</div>`;
+  showOverlay(`SUMMARY · ${S.sym} 종합 분석`, html);
 }
 
 /* ══════════════════════════════════════════════════
