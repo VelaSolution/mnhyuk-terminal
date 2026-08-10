@@ -112,6 +112,7 @@
   #fngbar{position:relative; height:8px; background:linear-gradient(90deg,#e5484d 0%,#cc7a00 35%,#777 50%,#3aa06a 65%,#00a08c 100%); margin-top:6px;}
   #fngmark{position:absolute; top:-3px; width:2px; height:14px; background:#fff;}
   #fngtext{display:flex; justify-content:space-between; margin-top:4px; color:var(--ink2); font-size:10px;}
+  #news .item[style*="border-left"]{background:rgba(255,160,40,.03);}
 
   /* ── Chart panel ─────────────────────────────── */
   #chartpanel{flex:1 1 auto;}
@@ -416,7 +417,12 @@
   </div>
 
   <div id="tabrow">
-    <div id="symtabs" style="display:flex;gap:4px;"></div>
+    <div id="symtabs" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
+    <div class="tabsep"></div>
+    <div style="position:relative;">
+      <input id="sym-search" placeholder="종목 검색" autocomplete="off" spellcheck="false" style="background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:3px 8px;width:90px;outline:none;" onfocus="symSearchOpen()" oninput="symSearchFilter()">
+      <div id="sym-results" style="display:none;position:absolute;left:0;top:calc(100% + 1px);background:rgba(10,10,10,.98);border:1px solid var(--border);z-index:20;max-height:300px;overflow-y:auto;width:200px;box-shadow:0 6px 24px rgba(0,0,0,.8);"></div>
+    </div>
     <div class="tabsep"></div>
     <div id="tftabs" style="display:flex;gap:4px;"></div>
     <div id="fkeys">
@@ -453,6 +459,9 @@
           <div class="rowline"><span>ETH DOMINANCE</span><b id="g-ethd">—</b></div>
           <div class="rowline"><span>DXY <small style="color:var(--ink3)">환율근사·일간</small></span><b id="g-dxy">—</b></div>
           <div class="rowline"><span>GOLD <small style="color:var(--ink3)">PAXG 실시간</small></span><b id="g-gold">—</b></div>
+          <div class="rowline"><span>USD / KRW</span><b id="g-usdkrw">—</b></div>
+          <div class="rowline"><span>BTC 24H HIGH/LOW</span><b id="g-btchl">—</b></div>
+          <div class="rowline"><span>ETH/BTC</span><b id="g-ethbtc">—</b></div>
           <div id="fng">
             <div style="display:flex;justify-content:space-between;">
               <span style="color:var(--ink2)">FEAR &amp; GREED</span>
@@ -461,9 +470,16 @@
             <div id="fngbar"><div id="fngmark" style="left:50%"></div></div>
             <div id="fngtext"><span>공포 0</span><span>탐욕 100</span></div>
           </div>
+          <div style="padding:4px 10px;border-top:1px solid #101010;">
+            <div style="display:flex;justify-content:space-between;color:var(--ink3);font-size:10px;margin-bottom:3px">
+              <span>MARKET DOMINANCE</span>
+            </div>
+            <div id="g-dom-bar" style="display:flex;height:8px;border:1px solid #222;overflow:hidden;"></div>
+            <div id="g-dom-labels" style="display:flex;justify-content:space-between;font-size:9px;color:var(--ink3);margin-top:2px;"></div>
+          </div>
         </div>
       </div>
-      <div class="panel" style="flex:0 0 auto; max-height:148px;">
+      <div class="panel" style="flex:0 0 auto; max-height:200px;">
         <div class="ptitle">MACRO CALENDAR <small>ECO · KST</small><span class="age" id="age-eco"></span></div>
         <div class="pbody" id="eco"><div class="rowline"><span style="color:var(--ink3)">로드 중…</span></div></div>
       </div>
@@ -2381,6 +2397,16 @@ const ECO_STATIC=(()=>{
     const dow=new Date(Date.UTC(2026,m-1,1)).getUTCDay();
     ev.push({n:"미국 고용보고서(NFP)",t:nyUTC(m,1+((5-dow+7)%7),8,30)});
   }
+  // PPI: 매월 CPI 2일 후 08:30 ET (근사)
+  [[1,15],[2,15],[3,13],[4,12],[5,14],[6,12],[7,16],[8,14],[9,13],[10,16],[11,12],[12,12]].forEach(([m,d])=>ev.push({n:"미국 PPI",t:nyUTC(m,d,8,30)}));
+  // Retail Sales
+  [[1,16],[2,14],[3,17],[4,16],[5,15],[6,17],[7,16],[8,13],[9,16],[10,16],[11,17],[12,16]].forEach(([m,d])=>ev.push({n:"미국 소매판매",t:nyUTC(m,d,8,30)}));
+  // GDP (분기별)
+  [[1,29],[4,29],[7,30],[10,29]].forEach(([m,d])=>ev.push({n:"미국 GDP(속보)",t:nyUTC(m,d,8,30)}));
+  // 한국은행 금통위 (한국 기준금리)
+  [[1,15],[2,26],[4,16],[5,28],[7,9],[8,27],[10,15],[11,26]].forEach(([m,d])=>ev.push({n:"한은 금통위",t:Date.UTC(2026,m-1,d,1,0)}));
+  // 비트코인 반감기 체크포인트 (2028년이지만 카운트다운 흥미)
+  ev.push({n:"BTC 반감기 예상",t:Date.UTC(2028,3,15,0,0)});
   return ev.sort((a,b)=>a.t-b.t);
 })();
 const ecoAlerted=new Set();
@@ -2395,7 +2421,7 @@ async function loadEco(){
   const now=Date.now();
   let list=[...(evs||[]),...ECO_STATIC].filter(e=>e.t>now-2*36e5).sort((a,b)=>a.t-b.t);
   const seen=new Set();
-  list=list.filter(e=>{ const k=Math.floor(e.t/36e5); if(seen.has(k))return false; seen.add(k); return true; }).slice(0,5);
+  list=list.filter(e=>{ const k=Math.floor(e.t/36e5); if(seen.has(k))return false; seen.add(k); return true; }).slice(0,8);
   S.ecoList=list; renderEco(); setAge("eco");
 }
 function renderEco(){
@@ -2860,10 +2886,15 @@ function watchCmd(op,sym){
     }).join("")+'<div class="rowline"><span style="color:var(--ink3);font-size:10px">WATCH ADD 심볼 · WATCH DEL 심볼 (세션 한정, 김프·청산피드 연동)</span></div>');
     return;
   }
-  if(op==="ADD"&&sym&&!SYMBOLS.includes(sym)&&SYMBOLS.length<20) SYMBOLS.push(sym);
-  if(op==="DEL"&&sym) SYMBOLS=SYMBOLS.filter(x=>x!==sym);
+  if(op==="ADD"&&sym&&!SYMBOLS.includes(sym)&&SYMBOLS.length<20){
+    SYMBOLS.push(sym);
+    wsSend({op:"subscribe", args:["tickers."+pair(sym), "allLiquidation."+pair(sym)]});
+  }
+  if(op==="DEL"&&sym){
+    wsSend({op:"unsubscribe", args:["tickers."+pair(sym), "allLiquidation."+pair(sym)]});
+    SYMBOLS=SYMBOLS.filter(x=>x!==sym);
+  }
   renderTabs(); renderQuotes(); loadQuotes(); loadKimchi();
-  try{ if(WS.sock) WS.sock.close(); }catch(e){}   // 재연결로 WS 구독 갱신
 }
 function helpHTML(){
   const rows=[
@@ -2945,6 +2976,72 @@ function switchTo(sym, tf){
   $("fund-sym").textContent=sym;
   loadChart(); loadDeriv();
 }
+
+/* ── symbol search ── */
+function symSearchOpen(){
+  symSearchFilter();
+}
+function symSearchFilter(){
+  const q = $("sym-search").value.toUpperCase().trim();
+  const el = $("sym-results");
+  if(!S.allTickers || !S.allTickers.length){
+    el.innerHTML = '<div style="padding:6px 10px;color:var(--ink3);font-size:10px">시세 데이터 로드 중…</div>';
+    el.style.display = "block";
+    return;
+  }
+  let filtered = S.allTickers;
+  if(q) filtered = filtered.filter(t => t.sym.includes(q));
+  filtered.sort((a,b) => {
+    if(a.sym === q) return -1;
+    if(b.sym === q) return 1;
+    return b.vol - a.vol;
+  });
+  filtered = filtered.slice(0, 30);
+  if(!filtered.length){
+    el.innerHTML = '<div style="padding:6px 10px;color:var(--ink3);font-size:10px">결과 없음</div>';
+    el.style.display = "block";
+    return;
+  }
+  el.innerHTML = filtered.map(t => {
+    const cls = t.pct >= 0 ? "u" : "d";
+    const inWatch = SYMBOLS.includes(t.sym);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;cursor:pointer;border-bottom:1px solid #101010;font-size:11px;${inWatch?'background:#1a1205;':''}"
+      onmouseover="this.style.background='#1a1a1a'" onmouseout="this.style.background='${inWatch?'#1a1205':''}'"
+      onclick="switchTo('${t.sym}',S.tf);$('sym-results').style.display='none';$('sym-search').value='';">
+      <span style="font-weight:600;color:var(--ink)">${t.sym} ${inWatch?'<span style="color:var(--amber);font-size:9px">★</span>':''}</span>
+      <span>
+        <span style="color:var(--ink2);margin-right:8px">${fmtPrice(t.last)}</span>
+        <span class="${cls}">${t.pct>=0?'+':''}${t.pct.toFixed(2)}%</span>
+      </span>
+    </div>`;
+  }).join("");
+  el.style.display = "block";
+}
+document.addEventListener("click", e => {
+  const sr = $("sym-results");
+  const si = $("sym-search");
+  if(sr && si && !sr.contains(e.target) && e.target !== si){
+    sr.style.display = "none";
+  }
+});
+document.addEventListener("DOMContentLoaded", () => {
+  const si = $("sym-search");
+  if(si) si.addEventListener("keydown", e => {
+    if(e.key === "Enter"){
+      const q = e.target.value.toUpperCase().trim();
+      if(q){
+        switchTo(q, S.tf);
+        $("sym-results").style.display = "none";
+        e.target.value = "";
+      }
+    }
+    if(e.key === "Escape"){
+      $("sym-results").style.display = "none";
+      e.target.value = "";
+      e.target.blur();
+    }
+  });
+});
 
 /* quote monitor + 전종목 스크리너 */
 function renderQuotes(){
@@ -3092,8 +3189,30 @@ async function loadGlobals(){
     $("g-vol").textContent="$"+fmtBig(d.total_volume.usd);
     $("g-btcd").textContent=d.market_cap_percentage.btc.toFixed(1)+"%";
     $("g-ethd").textContent=d.market_cap_percentage.eth.toFixed(1)+"%";
+    // Dominance bar
+    const domBar = $("g-dom-bar");
+    const domLabels = $("g-dom-labels");
+    if(domBar && d.market_cap_percentage){
+      const btcD = d.market_cap_percentage.btc || 0;
+      const ethD = d.market_cap_percentage.eth || 0;
+      const othD = Math.max(0, 100 - btcD - ethD);
+      domBar.innerHTML = `<div style="width:${btcD}%;background:var(--amber)"></div><div style="width:${ethD}%;background:var(--cyan)"></div><div style="width:${othD}%;background:#333"></div>`;
+      domLabels.innerHTML = `<span style="color:var(--amber)">BTC ${btcD.toFixed(1)}%</span><span style="color:var(--cyan)">ETH ${ethD.toFixed(1)}%</span><span>기타 ${othD.toFixed(0)}%</span>`;
+    }
     S.srcHealth.ok++; setLED(); setAge("glob"); tickAges();
   }catch(e){ S.srcHealth.fail++; setLED(); }
+  // USD/KRW, BTC high/low, ETH/BTC from state
+  try{
+    if(S.usdkrw) $("g-usdkrw").textContent = "₩" + Math.round(S.usdkrw).toLocaleString();
+    const btcQ = S.quotes["BTC"];
+    if(btcQ){
+      $("g-btchl").innerHTML = `<span class="u">$${fmtBig(btcQ.high)}</span> / <span class="d">$${fmtBig(btcQ.low)}</span>`;
+    }
+    const ethQ = S.quotes["ETH"], btcQ2 = S.quotes["BTC"];
+    if(ethQ && btcQ2 && btcQ2.last > 0){
+      $("g-ethbtc").textContent = (ethQ.last / btcQ2.last).toFixed(5);
+    }
+  }catch(e){}
   try{
     const j=await fetchJson("https://api.alternative.me/fng/?limit=1");
     const d=j.data[0], v=+d.value;
@@ -3126,11 +3245,19 @@ async function loadNews(){
     items=items.slice(0,16);
     if(!items.length) throw 0;
     if(tab!=="kr") S.newsItems=items;
-    $("news").innerHTML=items.map(n=>`
-      <div class="item">
-        <div class="meta">${fmtT(n.t, Date.now()-n.t>864e5)} · <b>${n.src}</b></div>
+    $("news").innerHTML=items.map(n=>{
+      const urgent = /hack|exploit|crash|plunge|surge|soar|dump|pump|ban|sec |lawsuit|emergency|halt|delist|bankrupt/i.test(n.title);
+      const bullish = /surge|soar|rally|bullish|ath|record|approve|adopt|etf.*approv|partnership|launch/i.test(n.title);
+      const bearish = /crash|plunge|dump|bearish|hack|exploit|ban|lawsuit|delist|bankrupt|liquidat/i.test(n.title);
+      const tag = urgent ? '<span style="color:var(--down-text);font-weight:700;font-size:9px;letter-spacing:.5px;margin-left:4px;border:1px solid var(--down);padding:0 3px">URGENT</span>' :
+        bullish ? '<span style="color:var(--up-text);font-size:9px;margin-left:4px">▲</span>' :
+        bearish ? '<span style="color:var(--down-text);font-size:9px;margin-left:4px">▼</span>' : '';
+      const freshness = Date.now() - n.t < 1800000 ? ' style="border-left:2px solid var(--amber);padding-left:7px"' : '';
+      return `<div class="item"${freshness}>
+        <div class="meta">${fmtT(n.t, Date.now()-n.t>864e5)} · <b>${n.src}</b>${tag}</div>
         <a href="${n.url}" target="_blank" rel="noopener">${n.title}</a>
-      </div>`).join("");
+      </div>`;
+    }).join("");
     renderTape(true);
     S.srcHealth.ok++; setLED(); setAge("news"); tickAges();
   }catch(e){
@@ -3617,8 +3744,8 @@ _booted = true;
   setInterval(loadChart, 30_000);
   setInterval(sigCompute, 15_000);  // 신호 엔진 주기적 갱신
   setInterval(loadDeriv, 60_000);
-  setInterval(loadGlobals, 10*60_000);
-  setInterval(loadNews, 5*60_000);
+  setInterval(loadGlobals, 3*60_000);
+  setInterval(loadNews, 2*60_000);
   setInterval(()=>{tickClocks(); tickFundingCd();}, 1000);
   setInterval(tickAges, 5000);
   tickClocks();
