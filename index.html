@@ -2780,6 +2780,11 @@ $("cmd").addEventListener("keydown",e=>{
   if(pinm){ S.orderPin=pinm[1]; e.target.value=""; e.target.placeholder="주문 PIN 설정됨 (세션 한정)"; return; }
   if(raw==="TG ON"||raw==="TG OFF"){ S.tgOn=raw==="TG ON"; e.target.value=""; e.target.placeholder=`텔레그램 릴레이 ${S.tgOn?"켜짐":"꺼짐"}`; return; }
   if(raw==="BRIEF"){ briefOverlay(); e.target.value=""; return; }
+  if(raw==="BILLION"||raw==="B"){ billionOverlay(); e.target.value=""; return; }
+  if(raw==="BILLION RUN"||raw==="B RUN"){ billionRunAnalysis(); e.target.value=""; return; }
+  if(raw==="BILLION SCAN"||raw==="B SCAN"){ billionScan(); e.target.value=""; return; }
+  const bset=raw.match(/^(?:BILLION|B)\s+SET\s+(.+)$/);
+  if(bset){ localStorage.setItem("billionUrl",bset[1]); location.reload(); return; }
   if(raw==="LOG"){
     showOverlay("알림 로그 ("+ALOG.length+")",
       ALOG.length?ALOG.map(l=>`<div class="rowline"><span class="n">${fmtT(l.t,true)}</span><b style="font-weight:400;text-align:right">${l.msg}</b></div>`).join(""):'<div class="rowline"><span class="n">기록 없음</span></div>');
@@ -2811,6 +2816,202 @@ function tickClocks(){
 }
 
 /* boot */
+/* ══════════════════════════════════════════════════
+   BILLION AI AGENT 연동
+   빌리언 = AI 두뇌 (분석 + 시그널)
+   MOTERA = 실행 터미널 (데이터 + 주문)
+   ══════════════════════════════════════════════════ */
+
+const BILLION_URL = localStorage.getItem("billionUrl") || "http://localhost:3847";
+let billionSignal = null;
+let billionLastCheck = 0;
+
+function billionConnect(){
+  // 30초마다 빌리언 시그널 폴링
+  pollBillionSignal();
+  setInterval(pollBillionSignal, 30_000);
+  pushLogLocal("BILLION AI Agent 연결 시도: " + BILLION_URL);
+}
+
+async function pollBillionSignal(){
+  try {
+    const res = await fetch(BILLION_URL + "/api/trading-team/status", {signal: AbortSignal.timeout(5000)});
+    if(!res.ok) return;
+    const data = await res.json();
+    if(!data.team || !data.timestamp) return;
+
+    // LED 상태 업데이트
+    $("led").className = "ok";
+
+    // 새 시그널이면 알림
+    if(data.timestamp !== billionLastCheck && data.decision && data.decision !== "HOLD"){
+      billionLastCheck = data.timestamp;
+      billionSignal = data;
+
+      const emoji = data.decision === "BUY" ? "🟢" : "🔴";
+      pushLog(`${emoji} BILLION AI: ${data.decision} ${data.symbol || "BTC"} 시그널`);
+      beep();
+
+      // 시그널 오버레이 자동 표시
+      billionSignalOverlay(data);
+    } else if(data.timestamp !== billionLastCheck) {
+      billionLastCheck = data.timestamp;
+    }
+  } catch(e) {
+    // 연결 실패 — 무시 (빌리언 서버 꺼져있을 수 있음)
+  }
+}
+
+async function billionRunAnalysis(){
+  $("cmd").placeholder = "BILLION 분석 실행 중... (약 1~2분)";
+  pushLog("BILLION AI: 13명 팀 분석 시작...");
+  try {
+    const res = await fetch(BILLION_URL + "/api/trading-team/auto", {method:"POST", signal: AbortSignal.timeout(120000)});
+    if(res.ok){
+      const data = await res.json();
+      pushLog("BILLION AI: 분석 완료" + (data.hasAlert ? " — " + data.alert : ""));
+      $("cmd").placeholder = "분석 완료! BILLION 명령으로 결과 확인";
+      // 결과 자동 로딩
+      setTimeout(pollBillionSignal, 2000);
+    } else {
+      pushLog("BILLION AI: 분석 실패");
+      $("cmd").placeholder = "분석 실패 — 빌리언 서버 확인";
+    }
+  } catch(e) {
+    pushLog("BILLION AI: 연결 실패 — " + BILLION_URL);
+    $("cmd").placeholder = "빌리언 서버 연결 실패";
+  }
+}
+
+async function billionScan(){
+  $("cmd").placeholder = "BILLION 멀티코인 스캔 중...";
+  try {
+    const res = await fetch(BILLION_URL + "/api/trading-team/scan", {signal: AbortSignal.timeout(30000)});
+    if(!res.ok) throw new Error();
+    const data = await res.json();
+
+    let html = "";
+    if(data.coins && data.coins.length > 0){
+      html += data.coins.map(c =>
+        `<div class="rowline"><span style="font-weight:600">${c.symbol}</span><span>${c.change24h>=0?"+":""}${c.change24h.toFixed(2)}%</span><b style="color:${c.score>=4?"var(--up-text)":c.score>=2?"var(--amber)":"var(--ink2)"}">${c.score}점 ${c.reason||""}</b></div>`
+      ).join("");
+    }
+    if(data.recommendation){
+      html += `<div style="padding:8px 10px;margin-top:4px;border-top:1px solid var(--border);color:var(--amber);font-size:11px;line-height:1.6">${data.recommendation}</div>`;
+    }
+    showOverlay("BILLION SCAN · 멀티코인 기회 탐색", html);
+    $("cmd").placeholder = "";
+  } catch(e) {
+    $("cmd").placeholder = "스캔 실패";
+  }
+}
+
+function billionOverlay(){
+  if(!billionSignal || !billionSignal.team){
+    showOverlay("BILLION AI Agent",
+      `<div class="rowline"><span>상태</span><b>${billionLastCheck?"연결됨":"미연결"}</b></div>
+       <div class="rowline"><span>서버</span><b>${BILLION_URL}</b></div>
+       <div class="rowline"><span>마지막 시그널</span><b>${billionSignal?"있음":"없음"}</b></div>
+       <div class="rowline"><span style="color:var(--ink3);font-size:10px;white-space:normal;line-height:1.6">
+         B RUN — AI 팀 분석 실행<br>
+         B SCAN — 멀티코인 기회 스캔<br>
+         BILLION SET [URL] — 서버 주소 변경
+       </span></div>`);
+    return;
+  }
+  billionSignalOverlay(billionSignal);
+}
+
+function billionSignalOverlay(data){
+  const decision = data.decision || "HOLD";
+  const sym = data.symbol || "BTC";
+  const color = decision==="BUY"?"var(--up-text)":decision==="SELL"?"var(--down-text)":"var(--ink2)";
+  const dir = decision==="BUY"?"LONG":decision==="SELL"?"SHORT":"—";
+  const ts = data.timestamp ? new Date(data.timestamp).toLocaleString("ko-KR",{timeZone:"Asia/Seoul"}) : "—";
+
+  // CEO 분석에서 가격 파싱
+  const ceo = data.team?.find(m => m.tier==="ceo" || m.name?.startsWith("CEO"));
+  const head = data.team?.find(m => m.tier==="head" || m.name?.startsWith("HEAD"));
+  const director = data.team?.find(m => m.tier==="director" || m.name?.startsWith("DIRECTOR"));
+  const txt = ceo?.fullText || head?.fullText || "";
+
+  const parsePrice = (rx) => { const m=txt.match(rx); return m ? m[1].replace(/,/g,"") : "—"; };
+  const entry = parsePrice(/진입가[:\s]*\$?([\d,]+)/);
+  const sl = parsePrice(/손절가[:\s]*\$?([\d,]+)/);
+  const tp1 = parsePrice(/TP1[:\s]*\$?([\d,]+)/);
+  const tp2 = parsePrice(/TP2[:\s]*\$?([\d,]+)/);
+  const tp3 = parsePrice(/TP3[:\s]*\$?([\d,]+)/);
+  const confM = txt.match(/확신도[:\s]*([\d.]+)/);
+  const conf = confM ? confM[1] : "—";
+  const rrM = txt.match(/R:R[:\s]*([\d.:]+)/);
+  const rr = rrM ? rrM[1] : "—";
+  const levM = txt.match(/레버리지[:\s]*([\dx×]+)/i);
+  const lev = levM ? levM[1] : "—";
+
+  // 트레이더 합의
+  const traders = data.team?.filter(m => m.tier==="trader") || [];
+  const traderVotes = traders.map(t => {
+    const ft = t.fullText || "";
+    const d = /롱|매수|LONG|BUY/i.test(ft) ? "LONG" : /숏|매도|SHORT|SELL/i.test(ft) ? "SHORT" : "HOLD";
+    const c = d==="LONG"?"var(--up-text)":d==="SHORT"?"var(--down-text)":"var(--ink2)";
+    return `<span style="color:${c};margin-right:10px">${t.name?.split(" ")[0]||"TR"}: <b>${d}</b></span>`;
+  }).join("");
+
+  // 분석원 인사이트
+  const analysts = data.team?.filter(m => m.tier==="analyst") || [];
+  const analystHTML = analysts.map(a =>
+    `<div class="rowline" style="flex-direction:column;align-items:flex-start;gap:2px">
+       <span style="color:var(--cyan-text);font-size:10px">${a.name?.split(" ")[0]||"ANALYST"}</span>
+       <b style="font-weight:400;font-size:10.5px;line-height:1.5;white-space:normal">${(a.summary||a.fullText||"").slice(0,120)}</b>
+     </div>`
+  ).join("");
+
+  let html = `
+    <div style="text-align:center;padding:12px 10px;border-bottom:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--ink3);letter-spacing:2px;margin-bottom:6px">BILLION TRADING TEAM · ${ts}</div>
+      <div style="font-size:28px;font-weight:800;letter-spacing:3px;color:${color}">${decision}</div>
+      <div style="font-size:16px;font-weight:700;color:var(--ink);margin-top:4px">${sym} · ${dir}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border2)">
+      <div style="background:var(--panel);padding:8px;text-align:center"><div style="font-size:9px;color:var(--cyan-text);letter-spacing:1px">ENTRY</div><div style="font-size:14px;font-weight:700;margin-top:3px">$${entry}</div></div>
+      <div style="background:var(--panel);padding:8px;text-align:center"><div style="font-size:9px;color:var(--down-text);letter-spacing:1px">SL</div><div style="font-size:14px;font-weight:700;margin-top:3px;color:var(--down-text)">$${sl}</div></div>
+      <div style="background:var(--panel);padding:8px;text-align:center"><div style="font-size:9px;color:var(--up-text);letter-spacing:1px">TP1</div><div style="font-size:14px;font-weight:700;margin-top:3px;color:var(--up-text)">$${tp1}</div></div>
+      <div style="background:var(--panel);padding:8px;text-align:center"><div style="font-size:9px;color:var(--up-text);letter-spacing:1px">TP2</div><div style="font-size:14px;font-weight:700;margin-top:3px">$${tp2}</div></div>
+      <div style="background:var(--panel);padding:8px;text-align:center"><div style="font-size:9px;color:var(--up-text);letter-spacing:1px">TP3</div><div style="font-size:14px;font-weight:700;margin-top:3px">$${tp3}</div></div>
+      <div style="background:var(--panel);padding:8px;text-align:center"><div style="font-size:9px;color:var(--amber);letter-spacing:1px">CONF</div><div style="font-size:14px;font-weight:700;margin-top:3px;color:var(--amber)">${conf}/10</div></div>
+    </div>
+    <div class="rowline"><span>R:R</span><b>${rr}</b></div>
+    <div class="rowline"><span>레버리지</span><b>${lev}</b></div>
+    <div style="padding:6px 10px;border-bottom:1px solid var(--border2)">
+      <div style="font-size:9px;color:var(--ink3);letter-spacing:1px;margin-bottom:4px">TEAM CONSENSUS</div>
+      <div style="font-size:11px">${traderVotes}</div>
+    </div>
+    <div style="padding:2px 0">
+      <div style="padding:4px 10px;font-size:9px;color:var(--ink3);letter-spacing:1px">ANALYST INSIGHTS</div>
+      ${analystHTML}
+    </div>`;
+
+  if(ceo?.fullText){
+    html += `<div style="padding:2px 0;border-top:1px solid var(--border2)">
+      <div style="padding:4px 10px;font-size:9px;color:var(--amber);letter-spacing:1px">CEO DECISION</div>
+      <div style="padding:4px 10px;font-size:10.5px;color:var(--ink2);line-height:1.6;white-space:pre-wrap;max-height:150px;overflow-y:auto">${ceo.fullText}</div>
+    </div>`;
+  }
+  if(director?.fullText){
+    html += `<div style="padding:2px 0;border-top:1px solid var(--border2)">
+      <div style="padding:4px 10px;font-size:9px;color:var(--up-text);letter-spacing:1px">RISK REVIEW</div>
+      <div style="padding:4px 10px;font-size:10px;color:var(--ink3);line-height:1.5;white-space:pre-wrap;max-height:100px;overflow-y:auto">${director.fullText}</div>
+    </div>`;
+  }
+
+  // 현재 심볼 차트로 전환
+  if(sym !== S.sym && ["BTC","ETH","SOL","XRP","DOGE","ADA","AVAX","LINK"].includes(sym)){
+    switchTo(sym, S.tf);
+  }
+
+  showOverlay(`BILLION AI · ${decision} ${sym}`, html);
+}
+
 function boot(){
   loadCfgFromHash();
   renderTabs(); renderQuotes();
@@ -2881,6 +3082,7 @@ function boot(){
       .catch(()=>{});
   }
   wsConnect();
+  billionConnect(); // BILLION AI Agent 연동
   loadQuotes(); loadChart(); loadDeriv(); loadGlobals(); loadNews(); loadKimchi(); loadEco();
   setInterval(loadEco, 30*60_000);
   setInterval(renderEco, 30_000);                             // 카운트다운 갱신
