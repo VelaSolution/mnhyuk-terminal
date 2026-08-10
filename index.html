@@ -245,6 +245,30 @@
   #kimchi td:first-child,#kimchi th:first-child{text-align:left;}
   #kimchi .note{padding:3px 8px; color:var(--ink3); font-size:10px;}
 
+  /* ── Signal Engine ─────────────────────────── */
+  #signals .sig-card{padding:6px 8px; border-bottom:1px solid #101010; cursor:pointer;}
+  #signals .sig-card:hover{background:#131313;}
+  #signals .sig-card.hot{background:#1a1205; border-left:2px solid var(--amber);}
+  #signals .sig-card.long{border-left:2px solid var(--up);}
+  #signals .sig-card.short{border-left:2px solid var(--down);}
+  #signals .sig-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:3px;}
+  #signals .sig-name{font-weight:600; font-size:11px;}
+  #signals .sig-badge{font-size:9px; padding:1px 6px; letter-spacing:.5px; font-weight:700;}
+  #signals .sig-badge.buy{background:rgba(0,160,140,.2); color:var(--up-text);}
+  #signals .sig-badge.sell{background:rgba(229,72,77,.2); color:var(--down-text);}
+  #signals .sig-badge.wait{background:rgba(255,160,40,.15); color:var(--amber);}
+  #signals .sig-badge.idle{background:#1a1a1a; color:var(--ink3);}
+  #signals .sig-detail{font-size:10px; color:var(--ink2); line-height:1.5;}
+  #signals .sig-detail b{color:var(--ink); font-variant-numeric:tabular-nums;}
+  #signals .sig-levels{display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; margin-top:4px; font-size:10px;}
+  #signals .sig-levels .lv{padding:2px 4px; text-align:center;}
+  #signals .sig-levels .entry{background:rgba(47,159,208,.1); color:var(--cyan-text);}
+  #signals .sig-levels .sl{background:rgba(229,72,77,.1); color:var(--down-text);}
+  #signals .sig-levels .tp{background:rgba(0,160,140,.1); color:var(--up-text);}
+  #signals .sig-meter{height:4px; background:#1a1a1a; margin-top:4px;}
+  #signals .sig-meter .fill{height:100%; transition:width .3s;}
+  .sig-score{display:inline-block; width:20px; height:20px; line-height:20px; text-align:center; font-weight:700; font-size:11px; border-radius:4px;}
+
   /* responsive fallback */
   @media (max-width:1380px){ #col4{display:none;} #main{grid-template-columns:280px minmax(0,1fr) 310px;} }
   @media (max-width:1100px){
@@ -396,6 +420,27 @@
 
     <!-- RIGHT -->
     <div class="col" id="rightcol">
+      <div class="panel" style="flex:1.2;">
+        <div class="ptitle">SIGNAL ENGINE <small>실시간 전략</small>
+          <span class="ntab on" data-sigtab="all">전체</span>
+          <span class="ntab" data-sigtab="sqz">스퀴즈</span>
+          <span class="ntab" data-sigtab="oid">OI괴리</span>
+          <span class="ntab" data-sigtab="liq">청산역전</span>
+          <span class="age" id="age-sig"></span>
+        </div>
+        <div class="pbody" id="signals"><div class="sig-card"><div class="sig-detail" style="color:var(--ink3)">분석 중…</div></div></div>
+      </div>
+      <div class="panel" style="flex:0 0 auto; max-height:120px;">
+        <div class="ptitle">POSITION SIZER <small>레버리지 계산</small></div>
+        <div class="pbody" id="psizer" style="padding:6px 8px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; font-size:10px; margin-bottom:4px;">
+            <div><span style="color:var(--ink3)">자본</span><br><input id="ps-cap" value="10000" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:2px 4px;text-align:right;"></div>
+            <div><span style="color:var(--ink3)">리스크%</span><br><input id="ps-risk" value="1" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:2px 4px;text-align:right;"></div>
+            <div><span style="color:var(--ink3)">레버리지</span><br><input id="ps-lev" value="20" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:2px 4px;text-align:right;"></div>
+          </div>
+          <div id="ps-result" style="font-size:10px; color:var(--ink2); line-height:1.5;">신호 선택 시 자동 계산</div>
+        </div>
+      </div>
       <div class="panel" style="flex:1;">
         <div class="ptitle">NEWS WIRE
           <span class="ntab on" data-ntab="all">전체</span>
@@ -798,6 +843,457 @@ function atrSeries(cs, len){
   return out;
 }
 
+/* ═══════════════ SIGNAL ENGINE — 고레버리지 전략 시스템 ═══════════════ */
+const SIG = {
+  squeeze: [],
+  oiDiv: [],
+  liqCasc: [],
+  tab: "all",
+  liqBuf: {longVol:0, shortVol:0, lastReset:0, events:[]},
+};
+
+/* ── Strategy 1: Squeeze Momentum ── */
+function squeezeCompute(cs) {
+  if(cs.length < 30) return null;
+  const closes = cs.map(c=>c.c);
+  const bb = bollinger(closes, 20, 2);
+  const kelt = (()=>{
+    const m = ema(closes, 20), a = atrSeries(cs, 10);
+    return {up:m.map((v,i)=>v!=null?v+1.5*a[i]:null), lo:m.map((v,i)=>v!=null?v-1.5*a[i]:null)};
+  })();
+
+  // Squeeze: BB inside Keltner
+  const sqz = cs.map((_,i) => {
+    if(bb.up[i]==null || kelt.up[i]==null) return false;
+    return bb.up[i] < kelt.up[i] && bb.lo[i] > kelt.lo[i];
+  });
+
+  // BB width (normalized)
+  const bbw = cs.map((_,i) => {
+    if(bb.up[i]==null || bb.mid[i]==null || bb.mid[i]===0) return null;
+    return (bb.up[i] - bb.lo[i]) / bb.mid[i];
+  });
+
+  // Momentum: linear regression of close over 12 bars
+  const mom = new Array(cs.length).fill(null);
+  for(let i=11; i<cs.length; i++){
+    let sx=0,sy=0,sxy=0,sx2=0;
+    for(let j=0;j<12;j++){
+      sx+=j; sy+=closes[i-11+j]; sxy+=j*closes[i-11+j]; sx2+=j*j;
+    }
+    mom[i] = (12*sxy - sx*sy) / (12*sx2 - sx*sx);
+  }
+
+  const n = cs.length;
+  const last = n-1;
+
+  // Find squeeze state
+  let sqzLen = 0;
+  for(let i=last; i>=Math.max(0,last-30); i--){
+    if(sqz[i]) sqzLen++; else break;
+  }
+
+  const wasSqueeze = sqzLen >= 4;
+
+  // Current squeeze range
+  let sqzHi = -Infinity, sqzLo = Infinity;
+  if(sqzLen > 0){
+    for(let i=last-sqzLen+1; i<=last; i++){
+      sqzHi = Math.max(sqzHi, cs[i].h);
+      sqzLo = Math.min(sqzLo, cs[i].l);
+    }
+  }
+
+  // Still in active squeeze
+  if(sqz[last] && sqzLen >= 2){
+    const dir = mom[last] > 0 ? 1 : mom[last] < 0 ? -1 : 0;
+    const range = sqzHi !== -Infinity ? sqzHi - sqzLo : null;
+    return {
+      state: sqzLen >= 4 ? "LOADED" : "BUILDING",
+      dir,
+      sqzLen,
+      range,
+      bbw: bbw[last],
+      entry: null, sl: null, tp: null,
+      score: Math.min(95, 40 + sqzLen * 8 + (bbw[last] < 0.02 ? 15 : 0)),
+      detail: `스퀴즈 ${sqzLen}봉 | BBW ${(bbw[last]*100).toFixed(2)}% | 모멘텀 ${dir>0?"\u25B2":"\u25BC"}`
+    };
+  }
+
+  // Squeeze just released (within last 3 bars)
+  let recentSqzEnd = -1;
+  for(let i=last; i>=Math.max(0,last-5); i--){
+    if(sqz[i]){ recentSqzEnd = i; break; }
+  }
+  if(recentSqzEnd >= last-3 && recentSqzEnd >= 0 && !sqz[last]){
+    // Recalculate squeeze range for the ended squeeze
+    let rSqzLen = 0;
+    for(let i=recentSqzEnd; i>=Math.max(0,recentSqzEnd-30); i--){
+      if(sqz[i]) rSqzLen++; else break;
+    }
+    sqzHi = -Infinity; sqzLo = Infinity;
+    for(let i=recentSqzEnd-rSqzLen+1; i<=recentSqzEnd; i++){
+      if(i>=0){ sqzHi = Math.max(sqzHi, cs[i].h); sqzLo = Math.min(sqzLo, cs[i].l); }
+    }
+
+    const dir = mom[last] > 0 ? 1 : -1;
+    const volAvg = cs.slice(Math.max(0,last-20), last).reduce((s,c)=>s+c.v, 0) / 20;
+    const volRatio = cs[last].v / (volAvg || 1);
+    const range = sqzHi - sqzLo;
+
+    const entry = cs[last].c;
+    const sl = dir === 1 ? sqzLo - range * 0.1 : sqzHi + range * 0.1;
+    const risk = Math.abs(entry - sl);
+    const tp = dir === 1 ? entry + risk * 2.5 : entry - risk * 2.5;
+
+    const score = Math.min(98, 60 + (volRatio > 1.5 ? 15 : 0) + (range/entry < 0.015 ? 10 : 0));
+
+    return {
+      state: "FIRE",
+      dir,
+      sqzLen: rSqzLen,
+      range,
+      bbw: bbw[last],
+      entry, sl, tp,
+      score,
+      rr: (Math.abs(tp - entry) / risk).toFixed(1),
+      volRatio: volRatio.toFixed(1),
+      detail: `스퀴즈 해제! ${dir>0?"LONG":"SHORT"} | R:R ${(Math.abs(tp-entry)/risk).toFixed(1)} | Vol ${volRatio.toFixed(1)}x`
+    };
+  }
+
+  return { state: "IDLE", dir: 0, score: 0, detail: "스퀴즈 미감지" };
+}
+
+/* ── Strategy 2: OI Divergence ── */
+function oiDivCompute(cs) {
+  if(!S.oi || S.oi.length < 10 || cs.length < 20) return { state:"IDLE", score:0, detail:"OI 데이터 부족" };
+
+  const n = cs.length;
+  const last = n - 1;
+
+  let priceHH = -Infinity, priceLL = Infinity;
+  let hhIdx = last, llIdx = last;
+  for(let i=Math.max(0,last-12); i<=last; i++){
+    if(cs[i].h > priceHH){ priceHH = cs[i].h; hhIdx = i; }
+    if(cs[i].l < priceLL){ priceLL = cs[i].l; llIdx = i; }
+  }
+
+  const isNewHigh = hhIdx >= last - 2 && priceHH >= cs[Math.max(0,last-20)].h;
+  const isNewLow = llIdx >= last - 2 && priceLL <= cs[Math.max(0,last-20)].l;
+
+  const oiLen = S.oi.length;
+  const oiRecent = S.oi.slice(-3).reduce((s,o)=>s+o.v, 0) / 3;
+  const oiEarlier = S.oi.slice(-8,-3).reduce((s,o)=>s+o.v, 0) / 5;
+  const oiDeclining = oiRecent < oiEarlier * 0.97;
+  const oiChange = ((oiRecent - oiEarlier) / oiEarlier * 100);
+
+  const q = S.quotes[S.sym];
+  const fundingExtreme = q && Math.abs(q.fundingRate) > 0.03;
+  const fundingDir = q ? (q.fundingRate > 0 ? 1 : -1) : 0;
+
+  if(isNewHigh && oiDeclining){
+    const entry = cs[last].c;
+    const sl = priceHH * 1.003;
+    const risk = sl - entry;
+    const tp = entry - risk * 2;
+    const score = 55 + (fundingExtreme && fundingDir > 0 ? 20 : 0) + (Math.abs(oiChange) > 5 ? 15 : 0);
+
+    return {
+      state: "SIGNAL",
+      dir: -1,
+      entry, sl, tp,
+      score: Math.min(95, score),
+      rr: "2.0",
+      oiChange: oiChange.toFixed(1),
+      detail: `신고가 + OI 감소(${oiChange.toFixed(1)}%) \u2192 SHORT${fundingExtreme?" \xB7 펀딩 과열":""}`,
+    };
+  }
+
+  if(isNewLow && oiDeclining){
+    const entry = cs[last].c;
+    const sl = priceLL * 0.997;
+    const risk = entry - sl;
+    const tp = entry + risk * 2;
+    const score = 55 + (fundingExtreme && fundingDir < 0 ? 20 : 0) + (Math.abs(oiChange) > 5 ? 15 : 0);
+
+    return {
+      state: "SIGNAL",
+      dir: 1,
+      entry, sl, tp,
+      score: Math.min(95, score),
+      rr: "2.0",
+      oiChange: oiChange.toFixed(1),
+      detail: `신저가 + OI 감소(${oiChange.toFixed(1)}%) \u2192 LONG${fundingExtreme?" \xB7 펀딩 과냉":""}`,
+    };
+  }
+
+  if(oiDeclining){
+    return { state:"WATCH", dir:0, score:25, detail:`OI 감소 중(${oiChange.toFixed(1)}%) \u2014 신고/저가 대기` };
+  }
+
+  return { state:"IDLE", dir:0, score:0, detail:"OI 정상 흐름" };
+}
+
+/* ── Strategy 3: Liquidation Cascade ── */
+function liqCascCompute(cs) {
+  const buf = SIG.liqBuf;
+  const now = Date.now();
+
+  if(now - buf.lastReset > 300000){
+    buf.longVol = 0;
+    buf.shortVol = 0;
+    buf.lastReset = now;
+    buf.events = buf.events.filter(e => now - e.t < 600000);
+  }
+
+  if(typeof LQ !== 'undefined' && LQ.length > 0){
+    const recent = LQ.filter(l => now - l.t < 300000);
+    buf.longVol = recent.filter(l => l.side === "Buy").reduce((s,l) => s + l.p * l.v, 0);
+    buf.shortVol = recent.filter(l => l.side === "Sell").reduce((s,l) => s + l.p * l.v, 0);
+  }
+
+  if(cs.length < 10) return { state:"IDLE", dir:0, score:0, detail:"데이터 부족" };
+
+  const totalLiq = buf.longVol + buf.shortVol;
+  const threshold = 500000;
+  const massiveThreshold = 2000000;
+
+  const n = cs.length;
+  const last = n - 1;
+  const price = cs[last].c;
+  const closes = cs.map(c=>c.c);
+  const ema20 = ema(closes, 20);
+  const vwapVal = vwapSeries(cs);
+
+  if(buf.longVol > threshold && buf.longVol > buf.shortVol * 3){
+    const cascade_low = Math.min(...cs.slice(-5).map(c=>c.l));
+    const reclaimed = price > (ema20[last] || price) || price > (vwapVal[last] || price);
+
+    if(reclaimed){
+      const entry = price;
+      const sl = cascade_low * 0.998;
+      const risk = entry - sl;
+      const tp = entry + risk * 3;
+      const score = Math.min(95, 60 + (totalLiq > massiveThreshold ? 20 : 0) + (reclaimed ? 15 : 0));
+
+      return {
+        state: "FIRE",
+        dir: 1,
+        entry, sl, tp,
+        score,
+        rr: "3.0",
+        liqVol: buf.longVol,
+        detail: `롱 청산 $${(buf.longVol/1000).toFixed(0)}K \u2192 반전 LONG | EMA20 회복`,
+      };
+    }
+
+    return {
+      state: "WATCH",
+      dir: 1,
+      score: 40,
+      liqVol: buf.longVol,
+      detail: `롱 청산 $${(buf.longVol/1000).toFixed(0)}K 발생 \u2014 EMA/VWAP 회복 대기`,
+    };
+  }
+
+  if(buf.shortVol > threshold && buf.shortVol > buf.longVol * 3){
+    const cascade_high = Math.max(...cs.slice(-5).map(c=>c.h));
+    const reclaimed = price < (ema20[last] || price) || price < (vwapVal[last] || price);
+
+    if(reclaimed){
+      const entry = price;
+      const sl = cascade_high * 1.002;
+      const risk = sl - entry;
+      const tp = entry - risk * 3;
+      const score = Math.min(95, 60 + (totalLiq > massiveThreshold ? 20 : 0) + (reclaimed ? 15 : 0));
+
+      return {
+        state: "FIRE",
+        dir: -1,
+        entry, sl, tp,
+        score,
+        rr: "3.0",
+        liqVol: buf.shortVol,
+        detail: `숏 청산 $${(buf.shortVol/1000).toFixed(0)}K \u2192 반전 SHORT | EMA20 하회`,
+      };
+    }
+
+    return {
+      state: "WATCH",
+      dir: -1,
+      score: 40,
+      liqVol: buf.shortVol,
+      detail: `숏 청산 $${(buf.shortVol/1000).toFixed(0)}K 발생 \u2014 EMA/VWAP 이탈 대기`,
+    };
+  }
+
+  if(totalLiq > 100000){
+    return { state:"WATCH", dir:0, score:15, detail:`청산 누적 $${(totalLiq/1000).toFixed(0)}K \u2014 임계치 미달` };
+  }
+
+  return { state:"IDLE", dir:0, score:0, detail:"청산 이벤트 없음" };
+}
+
+/* ── Signal Engine: compute all & render ── */
+function sigCompute(){
+  if(!S.candles.length) return;
+
+  const sqz = squeezeCompute(S.candles);
+  const oid = oiDivCompute(S.candles);
+  const liq = liqCascCompute(S.candles);
+
+  SIG.squeeze = sqz ? [Object.assign(sqz, {sym:S.sym, tf:S.tf, name:"SQUEEZE", id:"sqz"})] : [];
+  SIG.oiDiv = oid ? [Object.assign(oid, {sym:S.sym, tf:S.tf, name:"OI DIVERGE", id:"oid"})] : [];
+  SIG.liqCasc = liq ? [Object.assign(liq, {sym:S.sym, tf:S.tf, name:"LIQ CASCADE", id:"liq"})] : [];
+
+  setAge("sig");
+  renderSignals();
+
+  const fires = [sqz, oid, liq].filter(s => s && (s.state === "FIRE" || s.state === "SIGNAL"));
+  if(fires.length > 0 && S.alertOn){
+    for(const f of fires){
+      beep();
+      pushLog(`\uD83C\uDFAF ${f.name || "SIGNAL"} ${f.dir>0?"LONG":"SHORT"} ${S.sym} | Score ${f.score}`);
+    }
+  }
+}
+
+function renderSignals(){
+  const el = $("signals");
+  if(!el) return;
+
+  const all = [...SIG.squeeze, ...SIG.oiDiv, ...SIG.liqCasc];
+  const filtered = SIG.tab === "all" ? all : all.filter(s => s.id === SIG.tab);
+
+  const stateOrder = {FIRE:0, SIGNAL:0, LOADED:1, WATCH:2, BUILDING:3, IDLE:4};
+  filtered.sort((a,b) => (stateOrder[a.state]??5) - (stateOrder[b.state]??5) || b.score - a.score);
+
+  if(filtered.length === 0){
+    el.innerHTML = '<div class="sig-card"><div class="sig-detail" style="color:var(--ink3)">신호 없음</div></div>';
+    return;
+  }
+
+  el.innerHTML = filtered.map(s => {
+    const stateMap = {
+      FIRE: {cls:"hot", badge:"buy", label: s.dir>0?"LONG":"SHORT"},
+      SIGNAL: {cls: s.dir>0?"long":"short", badge: s.dir>0?"buy":"sell", label: s.dir>0?"LONG":"SHORT"},
+      LOADED: {cls:"", badge:"wait", label:"대기"},
+      WATCH: {cls:"", badge:"wait", label:"감시"},
+      BUILDING: {cls:"", badge:"idle", label:"형성"},
+      IDLE: {cls:"", badge:"idle", label:"\u2014"},
+    };
+    const st = stateMap[s.state] || stateMap.IDLE;
+
+    let levelsHtml = "";
+    if(s.entry != null){
+      levelsHtml = `<div class="sig-levels">
+        <div class="lv entry">진입 <b>${fmtPrice(s.entry)}</b></div>
+        <div class="lv sl">손절 <b>${fmtPrice(s.sl)}</b></div>
+        <div class="lv tp">익절 <b>${fmtPrice(s.tp)}</b></div>
+      </div>`;
+    }
+
+    const scoreColor = s.score >= 75 ? "var(--up-text)" : s.score >= 50 ? "var(--amber)" : "var(--ink3)";
+
+    return `<div class="sig-card ${st.cls}" data-sig='${JSON.stringify({entry:s.entry,sl:s.sl,tp:s.tp,dir:s.dir,name:s.name})}'>
+      <div class="sig-head">
+        <span class="sig-name">${s.name} <small style="color:var(--ink3)">${s.sym} ${s.tf}</small></span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <span class="sig-score" style="background:${scoreColor}20;color:${scoreColor}">${s.score}</span>
+          <span class="sig-badge ${st.badge}">${st.label}</span>
+        </span>
+      </div>
+      <div class="sig-detail">${s.detail}${s.rr ? ` \xB7 R:R <b>${s.rr}</b>` : ""}</div>
+      ${levelsHtml}
+      <div class="sig-meter"><div class="fill" style="width:${s.score}%;background:${scoreColor}"></div></div>
+    </div>`;
+  }).join("");
+
+  el.querySelectorAll(".sig-card[data-sig]").forEach(card => {
+    card.onclick = () => {
+      try{
+        const d = JSON.parse(card.dataset.sig);
+        if(d.entry && d.sl) positionSize(d);
+      }catch(e){}
+    };
+  });
+}
+
+function positionSize(sig){
+  const cap = parseFloat($("ps-cap")?.value) || 10000;
+  const riskPct = parseFloat($("ps-risk")?.value) || 1;
+  const lev = parseFloat($("ps-lev")?.value) || 20;
+
+  if(!sig || !sig.entry || !sig.sl) return;
+
+  const riskAmt = cap * riskPct / 100;
+  const slDist = Math.abs(sig.entry - sig.sl);
+  const slPct = slDist / sig.entry * 100;
+  const posSize = riskAmt / (slDist / sig.entry);
+  const qty = posSize / sig.entry;
+  const margin = posSize / lev;
+  const liqDist = 100 / lev;
+
+  const el = $("ps-result");
+  if(!el) return;
+  el.innerHTML = `
+    <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+      <span>${sig.name||"SIGNAL"} ${sig.dir>0?"<span class='u'>LONG</span>":"<span class='d'>SHORT</span>"}</span>
+      <span style="color:var(--amber)">\xD7${lev}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">
+      <span>포지션: <b style="color:var(--ink)">$${posSize.toFixed(0)}</b></span>
+      <span>마진: <b style="color:var(--ink)">$${margin.toFixed(0)}</b></span>
+      <span>수량: <b style="color:var(--ink)">${qty.toFixed(qty<1?4:2)}</b></span>
+      <span>손절폭: <b style="color:var(--down-text)">${slPct.toFixed(2)}%</b></span>
+      <span>리스크: <b style="color:var(--amber)">$${riskAmt.toFixed(0)}</b></span>
+      <span>청산거리: <b style="color:${liqDist-slPct<5?"var(--down-text)":"var(--ink)"}">~${liqDist.toFixed(1)}%</b></span>
+    </div>
+    ${liqDist - slPct < 3 ? '<div style="color:var(--down-text);margin-top:2px;">\u26A0 손절 \u2248 청산 \u2014 레버리지 낮추기 권장</div>' : ''}
+  `;
+}
+
+/* ── Chart overlay: signal markers on chart ── */
+function sigChartOverlay(G){
+  const {ctx, x, y, start, end, xw, plotW} = G;
+  const all = [...SIG.squeeze, ...SIG.oiDiv, ...SIG.liqCasc];
+  const active = all.filter(s => s.entry != null && (s.state === "FIRE" || s.state === "SIGNAL"));
+
+  for(const s of active){
+    const px = s.entry, slPx = s.sl, tpPx = s.tp;
+    if(px == null) continue;
+
+    const lastX = x(end - 1) + xw/2;
+    const W = plotW || 600;
+
+    // Entry line
+    ctx.strokeStyle = "rgba(47,159,208,0.7)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(lastX - 60, y(px)); ctx.lineTo(W, y(px)); ctx.stroke();
+
+    // SL line
+    ctx.strokeStyle = "rgba(229,72,77,0.6)";
+    ctx.beginPath(); ctx.moveTo(lastX - 60, y(slPx)); ctx.lineTo(W, y(slPx)); ctx.stroke();
+
+    // TP line
+    ctx.strokeStyle = "rgba(0,160,140,0.6)";
+    ctx.beginPath(); ctx.moveTo(lastX - 60, y(tpPx)); ctx.lineTo(W, y(tpPx)); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Labels
+    ctx.font = "10px " + getComputedStyle(document.body).fontFamily;
+    ctx.fillStyle = "#5fc3ec";
+    ctx.textAlign = "right";
+    ctx.fillText(`\u25B8 ${s.dir>0?"L":"S"} ${fmtPrice(px)}`, W - 2, y(px) - 3);
+    ctx.fillStyle = "#ff6b66";
+    ctx.fillText(`SL ${fmtPrice(slPx)}`, W - 2, y(slPx) - 3);
+    ctx.fillStyle = "#1fd3b4";
+    ctx.fillText(`TP ${fmtPrice(tpPx)}`, W - 2, y(tpPx) - 3);
+  }
+}
+
 /* ═══════════════ CHART ENGINE (canvas) ═══════════════ */
 const CH = {
   cv:$("chart"), ctx:$("chart").getContext("2d"),
@@ -1176,6 +1672,9 @@ function drawChart(){
     ctx.fillStyle="#fff"; ctx.textAlign="left"; ctx.textBaseline="middle";
     ctx.fillText(fmtPrice(last.c), plotW+6, yy);
   }
+
+  /* signal engine overlay */
+  sigChartOverlay({ctx, x, y, start, end, xw, plotW});
 
   /* crosshair */
   if(CH.cross){
@@ -2024,7 +2523,7 @@ async function loadChart(){
     S.candles=data;
     loadOIPane();
     $("chartmsg").style.display="none";
-    drawChart(); setAge("chart"); tickAges();
+    drawChart(); setAge("chart"); tickAges(); sigCompute();
   }catch(e){
     if(seq!==chartLoadSeq) return;
     if(!S.candles.length){
@@ -2361,6 +2860,15 @@ function boot(){
     document.querySelectorAll("[data-ftab]").forEach(x=>x.classList.toggle("on",x===el));
     S.feedTab=el.dataset.ftab; renderFeed();
   });
+  /* 신호 엔진 탭 */
+  document.querySelectorAll("[data-sigtab]").forEach(el=>{
+    el.onclick=()=>{
+      document.querySelectorAll("[data-sigtab]").forEach(t=>t.classList.remove("on"));
+      el.classList.add("on");
+      SIG.tab=el.dataset.sigtab;
+      renderSignals();
+    };
+  });
   /* Vercel 프록시 감지 (한국 뉴스 탭) */
   if(location.protocol==="http:"||location.protocol==="https:"){
     fetch("/api/health").then(r=>r.ok?r.json():null)
@@ -2380,6 +2888,7 @@ function boot(){
   setInterval(loadQuotes, 20_000);   // WS 백업 폴링
   setTimeout(loadSparks, 4000); setInterval(loadSparks, 10*60_000);
   setInterval(loadChart, 30_000);
+  setInterval(sigCompute, 15_000);  // 신호 엔진 주기적 갱신
   setInterval(loadDeriv, 60_000);
   setInterval(loadGlobals, 10*60_000);
   setInterval(loadNews, 5*60_000);
