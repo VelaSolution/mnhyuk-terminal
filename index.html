@@ -4726,6 +4726,9 @@ const CMD_LIST=[
   {c:"TIMELINE", d:"가격 히스토리 타임라인 (7일·30일·90일 변동)"},
   {c:"VOL24", d:"전 종목 24h 변동률 순위 (변동성 랭킹)"},
   {c:"KRW", d:"원화 환산 계산기 (현재 종목 기준)"},
+  {c:"DEPTH", d:"오더북 누적 깊이 차트 (매수벽/매도벽)"},
+  {c:"FLOW", d:"매수/매도 자금 흐름 추적 (체결 기반)"},
+  {c:"ALTSEASON", d:"알트시즌 지표 (BTC 도미넌스 기반)"},
   {c:"HELP", d:"전체 명령 도움말"},
 ];
 let sugSel=-1, sugItems=[];
@@ -4884,6 +4887,9 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="LIQUIDMAP"||raw==="LMAP"){ liquidmapOverlay(); e.target.value=""; return; }
   if(raw==="TIMELINE"){ timelineOverlay(); e.target.value=""; return; }
   if(raw==="VOL24"){ vol24Overlay(); e.target.value=""; return; }
+  if(raw==="DEPTH"){ depthOverlay(); e.target.value=""; return; }
+  if(raw==="FLOW"){ flowOverlay(); e.target.value=""; return; }
+  if(raw==="ALTSEASON"||raw==="ALT"){ altseasonOverlay(); e.target.value=""; return; }
   if(raw==="KRW"){ krwCalcOverlay(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
@@ -5046,6 +5052,244 @@ function krwCalcOverlay(){
   // Kimchi premium if available
   html += '<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">환율은 실시간 추정치 · 김프는 KIMCHI 패널 참고</div>';
   showOverlay(`KRW · ${S.sym} 원화 환산`, html);
+}
+
+function depthOverlay(){
+  if(!OB || (!OB.bids.size && !OB.asks.size)){
+    showOverlay("DEPTH CHART", '<div class="rowline"><span style="color:var(--ink3)">오더북 데이터 없음 — WebSocket 연결 대기</span></div>');
+    return;
+  }
+
+  // Sort bids descending, asks ascending
+  const bids = [...OB.bids.entries()].map(([p,q])=>({p:+p,q:+q})).sort((a,b)=>b.p-a.p).slice(0,30);
+  const asks = [...OB.asks.entries()].map(([p,q])=>({p:+p,q:+q})).sort((a,b)=>a.p-b.p).slice(0,30);
+
+  if(!bids.length && !asks.length){
+    showOverlay("DEPTH CHART", '<div class="rowline"><span style="color:var(--ink3)">호가 데이터 부족</span></div>');
+    return;
+  }
+
+  // Cumulative
+  let cumBid = 0, cumAsk = 0;
+  const bidCum = bids.map(b => { cumBid += b.q; return {p:b.p, cum:cumBid}; });
+  const askCum = asks.map(a => { cumAsk += a.q; return {p:a.p, cum:cumAsk}; });
+
+  const maxCum = Math.max(cumBid, cumAsk, 1);
+  const allPrices = [...bidCum.map(b=>b.p), ...askCum.map(a=>a.p)];
+  const minP = Math.min(...allPrices), maxP = Math.max(...allPrices);
+  const pRange = maxP - minP || 1;
+
+  const midPrice = asks.length && bids.length ? (asks[0].p + bids[0].p) / 2 : (asks[0]?.p || bids[0]?.p || 0);
+  const spread = asks.length && bids.length ? asks[0].p - bids[0].p : 0;
+  const spreadBps = midPrice ? (spread / midPrice * 10000).toFixed(1) : 0;
+
+  // SVG depth chart
+  const W = 320, H = 120;
+  const px = p => ((p - minP) / pRange) * W;
+  const cy = cum => H - (cum / maxCum) * (H - 10);
+
+  // Bid path (right to left, filled)
+  let bidPath = `M${px(bidCum[0].p)},${H}`;
+  for(const b of bidCum) bidPath += `L${px(b.p)},${cy(b.cum)}`;
+  bidPath += `L${px(bidCum[bidCum.length-1].p)},${H}Z`;
+
+  // Ask path (left to right, filled)
+  let askPath = `M${px(askCum[0].p)},${H}`;
+  for(const a of askCum) askPath += `L${px(a.p)},${cy(a.cum)}`;
+  askPath += `L${px(askCum[askCum.length-1].p)},${H}Z`;
+
+  // Mid line
+  const midX = px(midPrice);
+
+  let html = `<div style="padding:10px;text-align:center;">
+    <svg width="${W}" height="${H}" style="border:1px solid #222;background:#0a0a0a;">
+      <path d="${bidPath}" fill="rgba(0,160,140,0.2)" stroke="var(--up)" stroke-width="1.5"/>
+      <path d="${askPath}" fill="rgba(229,72,77,0.2)" stroke="var(--down)" stroke-width="1.5"/>
+      <line x1="${midX}" y1="0" x2="${midX}" y2="${H}" stroke="#555" stroke-dasharray="3,3"/>
+      <text x="${midX}" y="10" fill="var(--ink3)" font-size="8" text-anchor="middle">$${fmtPrice(midPrice)}</text>
+    </svg>
+    <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:4px">
+      <span class="u">매수 ${cumBid.toFixed(2)}</span>
+      <span style="color:var(--ink3)">스프레드 ${spreadBps}bps</span>
+      <span class="d">매도 ${cumAsk.toFixed(2)}</span>
+    </div>
+  </div>`;
+
+  // Bid/Ask imbalance
+  const imbalance = cumBid / (cumBid + cumAsk) * 100;
+  const imbColor = imbalance > 55 ? "var(--up-text)" : imbalance < 45 ? "var(--down-text)" : "var(--ink2)";
+  html += `<div style="padding:6px 10px;border-top:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px">
+      <span style="color:var(--ink3)">매수/매도 불균형</span>
+      <span style="color:${imbColor};font-weight:700">${imbalance.toFixed(1)}% 매수</span>
+    </div>
+    <div style="display:flex;height:6px;border:1px solid #222;overflow:hidden">
+      <div style="width:${imbalance}%;background:var(--up)"></div>
+      <div style="flex:1;background:var(--down)"></div>
+    </div>
+  </div>`;
+
+  // Largest walls
+  const topBids = [...bids].sort((a,b)=>b.q-a.q).slice(0,3);
+  const topAsks = [...asks].sort((a,b)=>b.q-a.q).slice(0,3);
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)">';
+  html += '<div style="background:var(--panel);padding:4px 8px"><div style="color:var(--ink3);font-size:9px;letter-spacing:1px;margin-bottom:2px">매수벽 TOP 3</div>';
+  topBids.forEach(b => { html += `<div class="rowline" style="padding:2px 0"><span class="u">$${fmtPrice(b.p)}</span><b>${b.q.toFixed(2)}</b></div>`; });
+  html += '</div><div style="background:var(--panel);padding:4px 8px"><div style="color:var(--ink3);font-size:9px;letter-spacing:1px;margin-bottom:2px">매도벽 TOP 3</div>';
+  topAsks.forEach(a => { html += `<div class="rowline" style="padding:2px 0"><span class="d">$${fmtPrice(a.p)}</span><b>${a.q.toFixed(2)}</b></div>`; });
+  html += '</div></div>';
+
+  showOverlay(`DEPTH · ${S.sym}USDT 오더북 깊이`, html);
+}
+
+function flowOverlay(){
+  if(!TS || TS.length < 5){
+    showOverlay("FLOW", '<div class="rowline"><span style="color:var(--ink3)">체결 데이터 수집 중… WebSocket 연결 후 대기</span></div>');
+    return;
+  }
+
+  // Aggregate by time buckets (1-min)
+  const now = Date.now();
+  const buckets = {};
+  let totalBuy = 0, totalSell = 0;
+
+  for(const t of TS){
+    const ts = t.t || Date.now();
+    const min = Math.floor(ts / 60000) * 60000;
+    if(!buckets[min]) buckets[min] = {buy:0, sell:0};
+    const usd = (t.v || 0) * (t.p || 0);
+    const isBuy = (t.S || t.side) === "Buy";
+    if(isBuy){ buckets[min].buy += usd; totalBuy += usd; }
+    else { buckets[min].sell += usd; totalSell += usd; }
+  }
+
+  const keys = Object.keys(buckets).sort().slice(-15); // last 15 minutes
+  const maxVal = Math.max(...keys.map(k => Math.max(buckets[k].buy, buckets[k].sell)), 1);
+
+  const netFlow = totalBuy - totalSell;
+  const flowColor = netFlow >= 0 ? "var(--up-text)" : "var(--down-text)";
+
+  let html = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px">총 매수</div>
+      <div style="color:var(--up-text);font-weight:700;font-size:13px">$${(totalBuy/1000).toFixed(0)}K</div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px">총 매도</div>
+      <div style="color:var(--down-text);font-weight:700;font-size:13px">$${(totalSell/1000).toFixed(0)}K</div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px">순 유입</div>
+      <div style="color:${flowColor};font-weight:700;font-size:13px">${netFlow>=0?'+':''}$${(netFlow/1000).toFixed(0)}K</div>
+    </div>
+  </div>`;
+
+  // Bar chart per minute
+  html += '<div style="padding:8px 10px;">';
+  html += '<div style="color:var(--ink3);font-size:9px;margin-bottom:4px">분당 매수/매도 ($)</div>';
+  html += '<div style="display:flex;gap:2px;align-items:flex-end;height:60px;">';
+  for(const k of keys){
+    const b = buckets[k];
+    const bH = (b.buy / maxVal * 50);
+    const sH = (b.sell / maxVal * 50);
+    const time = new Date(+k);
+    const label = pad2(time.getHours()) + ":" + pad2(time.getMinutes());
+    html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:0;" title="${label}">
+      <div style="width:100%;height:${bH}px;background:var(--up);min-height:1px"></div>
+      <div style="width:100%;height:${sH}px;background:var(--down);min-height:1px"></div>
+      <div style="font-size:7px;color:var(--ink3);margin-top:1px">${time.getMinutes()}</div>
+    </div>`;
+  }
+  html += '</div></div>';
+
+  // Flow pressure meter
+  const pressure = totalBuy + totalSell > 0 ? totalBuy / (totalBuy + totalSell) * 100 : 50;
+  html += `<div style="padding:6px 10px;border-top:1px solid var(--border)">
+    <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px">
+      <span class="u">매수압력</span>
+      <span style="color:var(--ink);font-weight:700">${pressure.toFixed(1)}%</span>
+      <span class="d">매도압력</span>
+    </div>
+    <div style="display:flex;height:6px;border:1px solid #222;overflow:hidden">
+      <div style="width:${pressure}%;background:var(--up)"></div>
+      <div style="flex:1;background:var(--down)"></div>
+    </div>
+  </div>`;
+
+  html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">${TS.length}건 체결 · WebSocket 세션 누적 · ${S.sym}USDT</div>`;
+  showOverlay(`FLOW · ${S.sym} 자금 흐름`, html);
+}
+
+function altseasonOverlay(){
+  if(!S.allTickers || !S.allTickers.length){
+    showOverlay("ALT SEASON", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
+    return;
+  }
+
+  const all = S.allTickers.filter(t => t.sym !== "BTC");
+  const btc = S.allTickers.find(t => t.sym === "BTC");
+  if(!btc){
+    showOverlay("ALT SEASON", '<div class="rowline"><span style="color:var(--ink3)">BTC 데이터 없음</span></div>');
+    return;
+  }
+
+  // How many alts outperform BTC in 24h?
+  const outperforming = all.filter(t => t.pct > btc.pct).length;
+  const total = all.length;
+  const altPct = total > 0 ? outperforming / total * 100 : 0;
+
+  // Alt season score (0-100)
+  // 75%+ alts outperform = alt season, 25%- = BTC season
+  const score = Math.round(altPct);
+  const label = score >= 75 ? "ALT SEASON" : score >= 50 ? "ALT LEANING" : score >= 25 ? "BTC LEANING" : "BTC SEASON";
+  const color = score >= 75 ? "var(--up-text)" : score >= 50 ? "var(--amber)" : score >= 25 ? "var(--amber)" : "var(--down-text)";
+
+  // Average alt performance vs BTC
+  const avgAlt = all.reduce((s,t) => s + t.pct, 0) / all.length;
+  const altVsBtc = avgAlt - btc.pct;
+
+  // Top/bottom performers
+  const topAlts = [...all].sort((a,b) => b.pct - a.pct).slice(0, 5);
+  const botAlts = [...all].sort((a,b) => a.pct - b.pct).slice(0, 5);
+
+  let html = `<div style="padding:12px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;color:var(--ink3);margin-bottom:4px">ALT SEASON INDEX</div>
+    <div style="font-size:36px;font-weight:700;color:${color}">${score}</div>
+    <div style="font-size:12px;color:${color};font-weight:600;letter-spacing:1px">${label}</div>
+    <div style="height:8px;margin:8px auto;max-width:200px;background:linear-gradient(90deg,var(--down) 0%,var(--amber) 50%,var(--up) 100%);border:1px solid #222;position:relative">
+      <div style="position:absolute;top:-4px;left:${score}%;width:2px;height:16px;background:#fff;transform:translateX(-1px)"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;max-width:200px;margin:0 auto;font-size:8px;color:var(--ink3)">
+      <span>BTC 시즌</span><span>알트 시즌</span>
+    </div>
+  </div>`;
+
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">
+    <div style="background:var(--panel);padding:6px;text-align:center;font-size:10px">
+      <div style="color:var(--ink3);font-size:9px">BTC 24h</div>
+      <div style="color:${btc.pct>=0?'var(--up-text)':'var(--down-text)'};font-weight:700">${btc.pct>=0?'+':''}${btc.pct.toFixed(2)}%</div>
+    </div>
+    <div style="background:var(--panel);padding:6px;text-align:center;font-size:10px">
+      <div style="color:var(--ink3);font-size:9px">알트 평균</div>
+      <div style="color:${avgAlt>=0?'var(--up-text)':'var(--down-text)'};font-weight:700">${avgAlt>=0?'+':''}${avgAlt.toFixed(2)}%</div>
+    </div>
+    <div style="background:var(--panel);padding:6px;text-align:center;font-size:10px">
+      <div style="color:var(--ink3);font-size:9px">알트 vs BTC</div>
+      <div style="color:${altVsBtc>=0?'var(--up-text)':'var(--down-text)'};font-weight:700">${altVsBtc>=0?'+':''}${altVsBtc.toFixed(2)}%p</div>
+    </div>
+  </div>`;
+
+  html += `<div class="rowline" style="padding:4px 10px;color:var(--ink3);font-size:10px">BTC 대비 아웃퍼폼: <b style="color:var(--ink)">${outperforming}/${total}</b> (${altPct.toFixed(0)}%)</div>`;
+
+  // Top/Bottom
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)">';
+  html += '<div style="background:var(--panel);padding:4px 8px"><div style="color:var(--ink3);font-size:9px;letter-spacing:1px;margin-bottom:2px">TOP 5 상승</div>';
+  topAlts.forEach(c => { html += `<div class="rowline" style="padding:2px 0;cursor:pointer" onclick="switchTo('${c.sym}',S.tf);$('btov').classList.remove('on');"><span style="font-weight:600;color:var(--ink)">${c.sym}</span><b class="u">+${c.pct.toFixed(1)}%</b></div>`; });
+  html += '</div><div style="background:var(--panel);padding:4px 8px"><div style="color:var(--ink3);font-size:9px;letter-spacing:1px;margin-bottom:2px">BOTTOM 5 하락</div>';
+  botAlts.forEach(c => { html += `<div class="rowline" style="padding:2px 0;cursor:pointer" onclick="switchTo('${c.sym}',S.tf);$('btov').classList.remove('on');"><span style="font-weight:600;color:var(--ink)">${c.sym}</span><b class="d">${c.pct.toFixed(1)}%</b></div>`; });
+  html += '</div></div>';
+
+  showOverlay("ALT SEASON · 알트시즌 지표", html);
 }
 
 /* ══════════════════════════════════════════════════
