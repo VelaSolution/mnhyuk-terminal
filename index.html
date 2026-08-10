@@ -4763,6 +4763,9 @@ const CMD_LIST=[
   {c:"MATRIX", d:"시장 조건 매트릭스 (전체 조건 한눈에)"},
   {c:"RR 162 158 170", d:"R:R 계산기 (진입·손절·익절)"},
   {c:"FEAR", d:"공포/탐욕 지수 상세 분석"},
+  {c:"WHALEMAP", d:"고래 활동 맵 (대규모 체결 + 청산 종합)"},
+  {c:"ETA 200", d:"목표가 도달 예상 시간 (ATR 기반)"},
+  {c:"DOMINANCE", d:"도미넌스 상세 분석 (BTC·ETH·알트)"},
 ];
 let sugSel=-1, sugItems=[];
 function renderSug(){
@@ -4970,6 +4973,10 @@ $("cmd").addEventListener("keydown",e=>{
   const rrm = raw.match(/^RR\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)$/);
   if(rrm){ rrCalcOverlay(+rrm[1], +rrm[2], +rrm[3]); e.target.value=""; return; }
   if(raw==="FEAR"||raw==="GREED"||raw==="FNG"){ fearOverlay(); e.target.value=""; return; }
+  if(raw==="WHALEMAP"||raw==="WM"){ whalemapOverlay(); e.target.value=""; return; }
+  const etam = raw.match(/^ETA\s+([\d.]+)$/);
+  if(etam){ etaOverlay(+etam[1]); e.target.value=""; return; }
+  if(raw==="DOMINANCE"||raw==="DOM"){ dominanceOverlay(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
   const m=raw.match(/^([A-Z0-9]{2,10})\s*(15M|1H|4H|1D)?$/);
@@ -7741,6 +7748,242 @@ async function fearOverlay(){
     showOverlay("FEAR & GREED · 공포/탐욕 분석", html);
   } catch(e){
     showOverlay("FEAR & GREED", '<div class="rowline"><span style="color:var(--down-text)">데이터 로드 실패</span></div>');
+  }
+}
+function whalemapOverlay(){
+  // Combine trade data (TS) and liquidation data (LQ)
+  const now = Date.now();
+
+  // Large trades
+  const largeTrades = (typeof TS !== 'undefined' ? TS : [])
+    .filter(t => (t.v||0) * (t.p||0) > 50000) // > $50K
+    .slice(0, 20);
+
+  // Liquidations
+  const recentLiq = (typeof LQ !== 'undefined' ? LQ : [])
+    .filter(l => now - (l.t||0) < 3600000) // last hour
+    .slice(0, 15);
+
+  const totalLiqLong = recentLiq.filter(l => (l.side||l.S) === "Sell").reduce((s,l) => s + (l.v||0)*(l.p||0), 0);
+  const totalLiqShort = recentLiq.filter(l => (l.side||l.S) === "Buy").reduce((s,l) => s + (l.v||0)*(l.p||0), 0);
+  const totalTradeBuy = largeTrades.filter(t => (t.side||t.S) === "Buy").reduce((s,t) => s + (t.v||0)*(t.p||0), 0);
+  const totalTradeSell = largeTrades.filter(t => (t.side||t.S) === "Sell").reduce((s,t) => s + (t.v||0)*(t.p||0), 0);
+
+  let html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)">
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px;letter-spacing:1px">대량 매수</div>
+      <div style="font-size:16px;font-weight:700;color:var(--up-text)">$${(totalTradeBuy/1000).toFixed(0)}K</div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px;letter-spacing:1px">대량 매도</div>
+      <div style="font-size:16px;font-weight:700;color:var(--down-text)">$${(totalTradeSell/1000).toFixed(0)}K</div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px;letter-spacing:1px">롱 청산</div>
+      <div style="font-size:16px;font-weight:700;color:var(--down-text)">$${(totalLiqLong/1000).toFixed(0)}K</div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px;letter-spacing:1px">숏 청산</div>
+      <div style="font-size:16px;font-weight:700;color:var(--up-text)">$${(totalLiqShort/1000).toFixed(0)}K</div>
+    </div>
+  </div>`;
+
+  // Net flow
+  const netTrade = totalTradeBuy - totalTradeSell;
+  const netLiq = totalLiqShort - totalLiqLong; // short liq = bullish
+  const netColor = (netTrade + netLiq) >= 0 ? "var(--up-text)" : "var(--down-text)";
+  html += `<div style="padding:6px 10px;text-align:center;border-top:1px solid var(--border)">
+    <span style="color:var(--ink3);font-size:10px">순 압력: </span>
+    <span style="color:${netColor};font-weight:700">${(netTrade+netLiq)>=0?'매수 우세':'매도 우세'} $${Math.abs((netTrade+netLiq)/1000).toFixed(0)}K</span>
+  </div>`;
+
+  // Recent large trades
+  if(largeTrades.length){
+    html += '<div style="padding:3px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border);border-top:1px solid var(--border)">대량 체결</div>';
+    largeTrades.slice(0, 10).forEach(t => {
+      const isBuy = (t.side||t.S) === "Buy";
+      const usd = ((t.v||0) * (t.p||0) / 1000).toFixed(0);
+      const time = t.t ? fmtT(t.t) : "—";
+      html += `<div class="rowline" style="padding:2px 10px">
+        <span style="color:var(--ink3);font-size:9px">${time}</span>
+        <span style="color:${isBuy?'var(--up-text)':'var(--down-text)'};font-weight:700">${isBuy?'BUY':'SELL'}</span>
+        <span style="color:var(--ink)">$${usd}K</span>
+        <span style="color:var(--ink2)">@ $${fmtPrice(t.p||0)}</span>
+      </div>`;
+    });
+  }
+
+  // Recent liquidations
+  if(recentLiq.length){
+    html += '<div style="padding:3px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border);border-top:1px solid var(--border)">최근 청산</div>';
+    recentLiq.slice(0, 8).forEach(l => {
+      const isLongLiq = (l.side||l.S) === "Sell"; // long position liquidated = sell
+      const usd = ((l.v||0) * (l.p||0) / 1000).toFixed(0);
+      const time = l.t ? fmtT(l.t) : "—";
+      html += `<div class="rowline" style="padding:2px 10px">
+        <span style="color:var(--ink3);font-size:9px">${time}</span>
+        <span style="color:${isLongLiq?'var(--down-text)':'var(--up-text)'};font-weight:700">${isLongLiq?'LONG 청산':'SHORT 청산'}</span>
+        <span style="color:var(--ink)">$${usd}K</span>
+        <span style="color:var(--ink2)">@ $${fmtPrice(l.p||0)}</span>
+      </div>`;
+    });
+  }
+
+  if(!largeTrades.length && !recentLiq.length){
+    html += '<div class="rowline"><span style="color:var(--ink3)">WebSocket 데이터 수집 중… 잠시 대기</span></div>';
+  }
+
+  html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3);border-top:1px solid var(--border)">
+    WebSocket 세션 누적 · 체결 $50K+ · 청산 최근 1시간
+  </div>`;
+
+  showOverlay(`WHALEMAP · 고래 활동 맵`, html);
+}
+function etaOverlay(target){
+  if(!S.candles.length){
+    showOverlay("ETA", '<div class="rowline"><span style="color:var(--ink3)">데이터 없음</span></div>');
+    return;
+  }
+
+  const cs = S.candles;
+  const n = cs.length;
+  const price = cs[n-1].c;
+  const atr = atrSeries(cs, 14)[n-1];
+
+  if(!atr || atr <= 0){
+    showOverlay("ETA", '<div class="rowline"><span style="color:var(--ink3)">ATR 계산 불가</span></div>');
+    return;
+  }
+
+  const dist = Math.abs(target - price);
+  const distPct = (dist / price * 100).toFixed(2);
+  const isUp = target > price;
+  const dir = isUp ? "▲" : "▼";
+  const dirColor = isUp ? "var(--up-text)" : "var(--down-text)";
+
+  // ATR-based candle estimate
+  const candlesNeeded = Math.ceil(dist / atr);
+
+  // Time estimate based on timeframe
+  const tfMinutes = {"15M":15, "1H":60, "4H":240, "1D":1440}[S.tf] || 60;
+  const totalMinutes = candlesNeeded * tfMinutes;
+  const hours = Math.floor(totalMinutes / 60);
+  const days = Math.floor(hours / 24);
+
+  let timeStr;
+  if(days > 0) timeStr = `${days}일 ${hours % 24}시간`;
+  else if(hours > 0) timeStr = `${hours}시간 ${totalMinutes % 60}분`;
+  else timeStr = `${totalMinutes}분`;
+
+  let html = `<div style="padding:12px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;color:var(--ink3)">목표가까지 예상 시간</div>
+    <div style="font-size:28px;font-weight:700;color:var(--amber)">${timeStr}</div>
+    <div style="font-size:10px;color:var(--ink3)">ATR(14) 기반 추정 · 보장하지 않음</div>
+  </div>`;
+
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px">현재가</div>
+      <div style="font-weight:700;color:var(--ink)">$${fmtPrice(price)}</div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px">목표가</div>
+      <div style="font-weight:700;color:${dirColor}">${dir} $${fmtPrice(target)}</div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px">거리</div>
+      <div style="font-weight:700;color:var(--ink)">${distPct}%</div>
+    </div>
+  </div>`;
+
+  html += `<div class="rowline"><span>ATR(14)</span><b>$${fmtPrice(atr)} (${(atr/price*100).toFixed(2)}%)</b></div>`;
+  html += `<div class="rowline"><span>예상 봉 수</span><b>${candlesNeeded}봉 (${S.tf})</b></div>`;
+  html += `<div class="rowline"><span>타임프레임</span><b>${S.tf} (${tfMinutes}분/봉)</b></div>`;
+
+  // Different TF estimates
+  html += '<div style="padding:3px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">타임프레임별 예상</div>';
+  ["15M","1H","4H","1D"].forEach(tf => {
+    const mins = {"15M":15,"1H":60,"4H":240,"1D":1440}[tf];
+    const totalM = candlesNeeded * mins;
+    const h = Math.floor(totalM/60), d = Math.floor(h/24);
+    const est = d > 0 ? `${d}일 ${h%24}h` : h > 0 ? `${h}h ${totalM%60}m` : `${totalM}m`;
+    html += `<div class="rowline"><span style="color:var(--amber)">${tf}</span><b>${est}</b><span style="color:var(--ink3)">${candlesNeeded}봉</span></div>`;
+  });
+
+  html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3);border-top:1px solid var(--border)">
+    ATR = 평균 실제 범위 · 실제 도달 시간은 시장 상황에 따라 크게 다를 수 있음
+  </div>`;
+
+  showOverlay(`ETA · $${fmtPrice(target)} 도달 예상`, html);
+}
+async function dominanceOverlay(){
+  showOverlay("DOMINANCE", '<div class="rowline"><span style="color:var(--ink3)">도미넌스 데이터 로드 중…</span></div>');
+
+  try {
+    const j = await fetchJson("https://api.coingecko.com/api/v3/global");
+    const d = j.data;
+    const mcPct = d.market_cap_percentage;
+
+    // Sort by dominance
+    const sorted = Object.entries(mcPct).sort((a,b) => b[1] - a[1]).slice(0, 15);
+    const totalMcap = d.total_market_cap?.usd || 0;
+
+    // Colors
+    const coinColors = {btc:"var(--amber)",eth:"var(--cyan-text)",usdt:"var(--ink2)",bnb:"#f3ba2f",sol:"#9945ff",xrp:"#00aae4",usdc:"var(--ink2)",ada:"#0d1e30",doge:"#ba9f33",trx:"#eb0029"};
+
+    let html = `<div style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--ink3)">Total Market Cap</div>
+      <div style="font-size:18px;font-weight:700;color:var(--ink)">$${fmtBig(totalMcap)}</div>
+    </div>`;
+
+    // Dominance bar
+    html += '<div style="display:flex;height:12px;margin:4px 10px;border:1px solid #222;overflow:hidden">';
+    for(const [coin, pct] of sorted.slice(0, 6)){
+      const color = coinColors[coin] || "var(--ink3)";
+      html += `<div style="width:${pct}%;background:${color}" title="${coin.toUpperCase()} ${pct.toFixed(1)}%"></div>`;
+    }
+    html += '</div>';
+
+    // Table
+    html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+    html += '<thead><tr><th style="text-align:left;padding:4px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">#</th><th style="text-align:left;padding:4px 8px;color:var(--ink3);font-weight:400">COIN</th><th style="text-align:right;padding:4px 8px;color:var(--ink3);font-weight:400">도미넌스</th><th style="padding:4px 8px"></th></tr></thead><tbody>';
+
+    sorted.forEach(([coin, pct], i) => {
+      const color = coinColors[coin] || "var(--ink2)";
+      const barW = Math.min(200, pct * 3);
+      html += `<tr style="border-bottom:1px solid #101010">
+        <td style="padding:3px 8px;color:var(--ink3)">${i+1}</td>
+        <td style="padding:3px 8px;font-weight:700;color:${color}">${coin.toUpperCase()}</td>
+        <td style="padding:3px 8px;text-align:right;font-weight:600;color:var(--ink)">${pct.toFixed(2)}%</td>
+        <td style="padding:3px 8px;width:100px"><div style="width:${barW}px;height:4px;background:${color};max-width:100%"></div></td>
+      </tr>`;
+    });
+    html += '</tbody></table>';
+
+    // Key ratios
+    const btcD = mcPct.btc || 0;
+    const ethD = mcPct.eth || 0;
+    const altD = 100 - btcD - ethD - (mcPct.usdt||0) - (mcPct.usdc||0);
+
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);border-top:1px solid var(--border)">
+      <div style="background:var(--panel);padding:6px;text-align:center">
+        <div style="color:var(--ink3);font-size:9px">BTC</div>
+        <div style="font-weight:700;color:var(--amber)">${btcD.toFixed(1)}%</div>
+      </div>
+      <div style="background:var(--panel);padding:6px;text-align:center">
+        <div style="color:var(--ink3);font-size:9px">ETH</div>
+        <div style="font-weight:700;color:var(--cyan-text)">${ethD.toFixed(1)}%</div>
+      </div>
+      <div style="background:var(--panel);padding:6px;text-align:center">
+        <div style="color:var(--ink3);font-size:9px">알트 (스테이블 제외)</div>
+        <div style="font-weight:700;color:var(--up-text)">${altD.toFixed(1)}%</div>
+      </div>
+    </div>`;
+
+    html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">CoinGecko 글로벌 데이터 · 스테이블코인 포함</div>`;
+    showOverlay("DOMINANCE · 시장 도미넌스", html);
+  } catch(e){
+    showOverlay("DOMINANCE", '<div class="rowline"><span style="color:var(--down-text)">데이터 로드 실패</span></div>');
   }
 }
 </script>
