@@ -4739,6 +4739,9 @@ const CMD_LIST=[
   {c:"GRID 150 170 10", d:"그리드 트레이딩 계산기 (하한·상한·격자수)"},
   {c:"MOMENTUM", d:"전 종목 모멘텀 스코어 순위"},
   {c:"LEVELS", d:"자동 지지/저항 레벨 감지"},
+  {c:"CONVERT 1 BTC", d:"암호화폐 단위 변환 (USD·KRW·사토시)"},
+  {c:"RATIO", d:"핵심 시장 비율 (ETH/BTC·SOL/ETH·금/BTC 등)"},
+  {c:"SCREENER RSI<30", d:"조건식 스크리너 (RSI<30, VOL>2 등)"},
   {c:"HELP", d:"전체 명령 도움말"},
 ];
 let sugSel=-1, sugItems=[];
@@ -4911,6 +4914,12 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="MOMENTUM"||raw==="MOM"){ momentumOverlay(); e.target.value=""; return; }
   if(raw==="LEVELS"||raw==="SR"){ levelsOverlay(); e.target.value=""; return; }
   if(raw==="KRW"){ krwCalcOverlay(); e.target.value=""; return; }
+  const convm = raw.match(/^CONVERT\s+([\d.]+)\s+([A-Z0-9]+)$/);
+  if(convm){ convertOverlay(+convm[1], convm[2]); e.target.value=""; return; }
+  if(raw==="RATIO"){ ratioOverlay(); e.target.value=""; return; }
+  const scrm = raw.match(/^SCREENER\s+(.+)$/);
+  if(scrm){ screenerOverlay(scrm[1]); e.target.value=""; return; }
+  if(raw==="SCREENER"){ screenerOverlay("RSI<30"); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
   const m=raw.match(/^([A-Z0-9]{2,10})\s*(15M|1H|4H|1D)?$/);
@@ -5983,6 +5992,199 @@ function levelsOverlay(){
   </div>`;
 
   showOverlay(`LEVELS · ${S.sym} 지지/저항`, html);
+}
+
+function convertOverlay(amount, sym){
+  const ticker = S.allTickers ? S.allTickers.find(t => t.sym === sym) : null;
+  const q = S.quotes[sym];
+  const price = q ? q.last : (ticker ? ticker.last : null);
+
+  if(!price){
+    showOverlay("CONVERT", `<div class="rowline"><span style="color:var(--ink3)">${sym} 가격 정보 없음</span></div>`);
+    return;
+  }
+
+  const usd = amount * price;
+  const krw = usd * (S.usdkrw || 1380);
+  const btcPrice = S.quotes["BTC"] ? S.quotes["BTC"].last : (S.allTickers ? S.allTickers.find(t=>t.sym==="BTC")?.last : null);
+  const ethPrice = S.quotes["ETH"] ? S.quotes["ETH"].last : (S.allTickers ? S.allTickers.find(t=>t.sym==="ETH")?.last : null);
+  const btcVal = btcPrice ? usd / btcPrice : null;
+  const ethVal = ethPrice ? usd / ethPrice : null;
+  const sats = btcVal ? Math.round(btcVal * 1e8) : null;
+
+  let html = `<div style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:14px;color:var(--ink)">${amount} <span style="color:var(--amber);font-weight:700">${sym}</span></div>
+    <div style="font-size:10px;color:var(--ink3);margin-top:2px">@ $${fmtPrice(price)} / ${sym}</div>
+  </div>`;
+
+  html += '<div style="padding:0">';
+  html += `<div class="rowline" style="padding:8px 10px"><span style="color:var(--ink2)">USD</span><b style="color:var(--ink);font-size:14px">$${usd>=1000?usd.toLocaleString('en',{maximumFractionDigits:2}):usd.toFixed(usd<1?6:2)}</b></div>`;
+  html += `<div class="rowline" style="padding:8px 10px"><span style="color:var(--ink2)">KRW</span><b style="color:var(--amber);font-size:14px">₩${Math.round(krw).toLocaleString()}</b></div>`;
+  if(btcVal!=null && sym!=="BTC") html += `<div class="rowline" style="padding:8px 10px"><span style="color:var(--ink2)">BTC</span><b style="color:var(--ink)">${btcVal.toFixed(8)}</b></div>`;
+  if(ethVal!=null && sym!=="ETH") html += `<div class="rowline" style="padding:8px 10px"><span style="color:var(--ink2)">ETH</span><b style="color:var(--ink)">${ethVal.toFixed(6)}</b></div>`;
+  if(sats!=null && sym!=="BTC") html += `<div class="rowline" style="padding:8px 10px"><span style="color:var(--ink2)">SATS</span><b style="color:var(--ink)">${sats.toLocaleString()} sats</b></div>`;
+  html += '</div>';
+
+  // Quick conversion table
+  const multiples = [0.1, 0.5, 1, 5, 10, 50, 100];
+  html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">환산표</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10px"><tbody>';
+  for(const m of multiples){
+    html += `<tr style="border-bottom:1px solid #0e0e0e">
+      <td style="padding:2px 10px;color:var(--ink);font-weight:600">${m} ${sym}</td>
+      <td style="padding:2px 10px;text-align:right;color:var(--ink2)">$${(m*price).toLocaleString('en',{maximumFractionDigits:2})}</td>
+      <td style="padding:2px 10px;text-align:right;color:var(--amber)">₩${Math.round(m*price*(S.usdkrw||1380)).toLocaleString()}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+
+  showOverlay(`CONVERT · ${amount} ${sym}`, html);
+}
+
+function ratioOverlay(){
+  const getPrice = sym => {
+    const q = S.quotes[sym];
+    if(q) return q.last;
+    const t = S.allTickers ? S.allTickers.find(x=>x.sym===sym) : null;
+    return t ? t.last : null;
+  };
+
+  const btc = getPrice("BTC"), eth = getPrice("ETH"), sol = getPrice("SOL");
+  const doge = getPrice("DOGE"), ada = getPrice("ADA"), xrp = getPrice("XRP");
+  const bnb = getPrice("BNB"), avax = getPrice("AVAX"), link = getPrice("LINK");
+
+  const ratios = [];
+  if(eth && btc) ratios.push({name:"ETH / BTC", value:(eth/btc).toFixed(6), desc:"이더/비트 비율 — 알트 강세 지표"});
+  if(sol && eth) ratios.push({name:"SOL / ETH", value:(sol/eth).toFixed(6), desc:"솔라나 vs 이더리움"});
+  if(sol && btc) ratios.push({name:"SOL / BTC", value:(sol/btc).toFixed(8), desc:"솔라나 vs 비트코인"});
+  if(bnb && btc) ratios.push({name:"BNB / BTC", value:(bnb/btc).toFixed(6), desc:"바이낸스 vs 비트코인"});
+  if(xrp && btc) ratios.push({name:"XRP / BTC", value:(xrp/btc).toFixed(8), desc:"리플 vs 비트코인"});
+  if(link && eth) ratios.push({name:"LINK / ETH", value:(link/eth).toFixed(6), desc:"체인링크 vs 이더리움"});
+  if(avax && eth) ratios.push({name:"AVAX / ETH", value:(avax/eth).toFixed(6), desc:"아발란체 vs 이더리움"});
+  if(ada && btc) ratios.push({name:"ADA / BTC", value:(ada/btc).toFixed(8), desc:"카르다노 vs 비트코인"});
+  if(doge && btc) ratios.push({name:"DOGE / BTC", value:(doge/btc).toFixed(8), desc:"도지 vs 비트코인"});
+
+  // Gold/BTC if available
+  const gold = S.quotes["PAXG"] ? S.quotes["PAXG"].last : null;
+  if(gold && btc) ratios.push({name:"GOLD / BTC", value:(gold/btc).toFixed(6), desc:"금 vs 비트코인"});
+  if(btc && S.usdkrw) ratios.push({name:"BTC / KRW", value:"₩"+Math.round(btc*S.usdkrw).toLocaleString(), desc:"비트코인 원화 가격"});
+
+  let html = ratios.map(r => {
+    return `<div style="padding:6px 10px;border-bottom:1px solid #101010">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-weight:700;color:var(--ink)">${r.name}</span>
+        <span style="font-weight:700;color:var(--amber);font-size:13px;font-variant-numeric:tabular-nums">${r.value}</span>
+      </div>
+      <div style="font-size:9px;color:var(--ink3);margin-top:1px">${r.desc}</div>
+    </div>`;
+  }).join("");
+
+  if(!ratios.length) html = '<div class="rowline"><span style="color:var(--ink3)">시세 데이터 로드 중…</span></div>';
+
+  html += '<div style="padding:6px 10px;font-size:9px;color:var(--ink3)">실시간 선물 가격 기준 · ETH/BTC ↑ = 알트시즌 신호</div>';
+  showOverlay("RATIO · 핵심 시장 비율", html);
+}
+
+async function screenerOverlay(condition){
+  if(!S.allTickers || !S.allTickers.length){
+    showOverlay("SCREENER", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
+    return;
+  }
+
+  showOverlay(`SCREENER · ${condition}`, '<div class="rowline"><span style="color:var(--ink3)">스크리닝 중… (상위 20종목)</span></div>');
+
+  // Parse condition
+  const cond = condition.toUpperCase().trim();
+  const match = cond.match(/^(RSI|VOL|PCT|FUND)\s*([<>])\s*([\d.]+)$/);
+
+  if(!match){
+    showOverlay("SCREENER", `<div style="padding:10px;color:var(--ink3)">
+      <div style="margin-bottom:6px">지원 조건식:</div>
+      <div class="rowline"><span style="color:var(--amber)">SCREENER RSI&lt;30</span><span>RSI 과매도 종목</span></div>
+      <div class="rowline"><span style="color:var(--amber)">SCREENER RSI&gt;70</span><span>RSI 과매수 종목</span></div>
+      <div class="rowline"><span style="color:var(--amber)">SCREENER VOL&gt;2</span><span>거래량 2배+ 급증</span></div>
+      <div class="rowline"><span style="color:var(--amber)">SCREENER PCT&gt;5</span><span>24h +5% 이상 상승</span></div>
+      <div class="rowline"><span style="color:var(--amber)">SCREENER PCT&lt;-5</span><span>24h -5% 이상 하락</span></div>
+      <div class="rowline"><span style="color:var(--amber)">SCREENER FUND&gt;0.05</span><span>펀딩 0.05%+ (과열)</span></div>
+    </div>`);
+    return;
+  }
+
+  const [, metric, op, valStr] = match;
+  const threshold = parseFloat(valStr);
+  const isGt = op === ">";
+
+  // For RSI, need to fetch candles per coin
+  if(metric === "RSI"){
+    const top = [...S.allTickers].sort((a,b)=>b.vol-a.vol).slice(0, 20);
+    const results = [];
+
+    for(const coin of top){
+      try {
+        const data = await firstOk(klineChain(coin.sym, "1H", 60));
+        if(!data || data.length < 20) continue;
+        const closes = data.map(c=>c.c);
+        const rsiArr = rsiSeries(closes, 14);
+        const rsi = rsiArr[closes.length-1];
+        if(rsi == null) continue;
+
+        const pass = isGt ? rsi > threshold : rsi < threshold;
+        if(pass) results.push({sym:coin.sym, value:rsi.toFixed(1), price:coin.last, pct:coin.pct});
+      } catch(e){}
+    }
+
+    if(!results.length){
+      showOverlay(`SCREENER · RSI${op}${threshold}`, '<div class="rowline"><span style="color:var(--ink3)">조건에 부합하는 종목 없음</span></div>');
+      return;
+    }
+
+    let html = results.map((r,i) => `<div class="rowline" style="cursor:pointer" onclick="switchTo('${r.sym}',S.tf);$('btov').classList.remove('on');">
+      <span style="color:var(--ink3)">${i+1}</span>
+      <span style="font-weight:600;color:var(--ink)">${r.sym}</span>
+      <span style="color:var(--ink2)">$${fmtPrice(r.price)}</span>
+      <span class="${r.pct>=0?'u':'d'}">${r.pct>=0?'+':''}${r.pct.toFixed(1)}%</span>
+      <span style="color:${+r.value<30?'var(--up-text)':+r.value>70?'var(--down-text)':'var(--ink)'};font-weight:700">RSI ${r.value}</span>
+    </div>`).join("");
+    html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">1H RSI 기준 · 거래량 상위 20종목 스캔</div>`;
+    showOverlay(`SCREENER · RSI${op}${threshold} (${results.length}건)`, html);
+    return;
+  }
+
+  // VOL, PCT, FUND — use allTickers directly
+  let filtered;
+  if(metric === "VOL"){
+    // Volume ratio approximation — compare to median
+    const vols = S.allTickers.map(t=>t.vol).sort((a,b)=>a-b);
+    const median = vols[Math.floor(vols.length/2)] || 1;
+    filtered = S.allTickers.filter(t => {
+      const ratio = t.vol / median;
+      return isGt ? ratio > threshold : ratio < threshold;
+    }).map(t => ({...t, displayVal: (t.vol / (vols[Math.floor(vols.length/2)]||1)).toFixed(1) + "x"}));
+  } else if(metric === "PCT"){
+    filtered = S.allTickers.filter(t => isGt ? t.pct > threshold : t.pct < threshold)
+      .map(t => ({...t, displayVal: (t.pct>=0?"+":"") + t.pct.toFixed(2) + "%"}));
+  } else if(metric === "FUND"){
+    filtered = S.allTickers.filter(t => t.funding != null && (isGt ? t.funding > threshold : t.funding < threshold))
+      .map(t => ({...t, displayVal: (t.funding>=0?"+":"") + t.funding.toFixed(4) + "%"}));
+  }
+
+  if(!filtered || !filtered.length){
+    showOverlay(`SCREENER · ${cond}`, '<div class="rowline"><span style="color:var(--ink3)">조건에 부합하는 종목 없음</span></div>');
+    return;
+  }
+
+  filtered.sort((a,b) => Math.abs(b.pct) - Math.abs(a.pct));
+  filtered = filtered.slice(0, 30);
+
+  let html = filtered.map((c,i) => `<div class="rowline" style="cursor:pointer" onclick="switchTo('${c.sym}',S.tf);$('btov').classList.remove('on');">
+    <span style="color:var(--ink3)">${i+1}</span>
+    <span style="font-weight:600;color:var(--ink)">${c.sym}</span>
+    <span style="color:var(--ink2)">$${fmtPrice(c.last)}</span>
+    <span class="${c.pct>=0?'u':'d'}">${c.pct>=0?'+':''}${c.pct.toFixed(1)}%</span>
+    <span style="color:var(--amber);font-weight:700">${c.displayVal}</span>
+  </div>`).join("");
+  html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">${filtered.length}건 매칭 · 최대 30건 표시</div>`;
+  showOverlay(`SCREENER · ${cond} (${filtered.length}건)`, html);
 }
 
 /* ══════════════════════════════════════════════════
