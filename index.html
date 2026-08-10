@@ -129,7 +129,7 @@
     color:var(--ink3); pointer-events:none; text-align:center; line-height:1.7;}
 
   /* ── Derivatives strip ───────────────────────── */
-  #deriv{flex:0 0 auto; display:grid; grid-template-columns:1fr 1.3fr 1.3fr; gap:1px; background:var(--border2); border-top:1px solid var(--border2);}
+  #deriv{flex:0 0 auto; display:grid; grid-template-columns:1fr 1.2fr 1.2fr 1fr; gap:1px; background:var(--border2); border-top:1px solid var(--border2);}
   .dcell{background:var(--panel); padding:6px 10px; min-height:74px;}
   .dcell h4{color:var(--ink3); font-size:10px; font-weight:400; letter-spacing:1px; margin-bottom:4px;}
   .dcell .big{font-size:16px; font-weight:700; font-variant-numeric:tabular-nums;}
@@ -411,6 +411,7 @@
       <span><span id="led"></span><span id="ledtext">CONNECTING</span></span>
       <span>SEOUL <b id="clk-kst">--:--:--</b></span>
       <span>UTC <b id="clk-utc">--:--:--</b></span>
+      <span id="session-chip" style="font-size:10px;padding:1px 6px;border:1px solid var(--border);letter-spacing:.5px"></span>
       <span id="user-badge"></span>
       <button id="logout-btn" onclick="authLogout()">LOGOUT</button>
     </div>
@@ -552,6 +553,19 @@
             <div class="big"><span class="u" id="ls-l">—</span> <span style="color:var(--ink3);font-size:12px">vs</span> <span class="d" id="ls-s">—</span></div>
             <div id="lsbar"><div class="l" style="width:50%"></div><div class="s" style="flex:1"></div></div>
             <div class="sub" id="ls-note">롱 계정 비중 (1h)</div>
+          </div>
+          <div class="dcell">
+            <h4>REGIME <span style="color:var(--ink3)">시장 상태</span></h4>
+            <div class="big" id="regime-label" style="font-size:14px">—</div>
+            <div class="sub" id="regime-detail"></div>
+            <div id="regime-bar" style="display:flex;height:6px;margin-top:5px;border:1px solid #222;overflow:hidden;">
+              <div id="regime-trend" style="background:var(--up);width:0%"></div>
+              <div id="regime-range" style="background:var(--amber);width:0%"></div>
+              <div id="regime-vol" style="background:var(--down);width:0%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--ink3);margin-top:2px">
+              <span>추세</span><span>횡보</span><span>변동</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1528,6 +1542,65 @@ function sigCompute(){
   renderSignals();
 }
 
+/* ═══════════════ REGIME DETECTOR ═══════════════ */
+function computeRegime(){
+  if(S.candles.length < 30) return;
+  const cs = S.candles;
+  const closes = cs.map(c=>c.c);
+  const n = cs.length;
+
+  // ADX for trend strength
+  const adxData = adxSeries(cs, 14);
+  const adxVal = adxData.adx ? adxData.adx[n-1] : null;
+
+  // BB width for volatility
+  const bb = bollinger(closes, 20, 2);
+  const bbw = bb.up[n-1] && bb.mid[n-1] ? (bb.up[n-1] - bb.lo[n-1]) / bb.mid[n-1] * 100 : null;
+
+  // ATR change (current vs 20-bar avg)
+  const atr = atrSeries(cs, 14);
+  const atrNow = atr[n-1];
+  const atrAvg = atr.slice(Math.max(0,n-20), n).reduce((s,v)=>s+(v||0),0) / 20;
+  const atrRatio = atrAvg ? atrNow / atrAvg : 1;
+
+  // EMA alignment
+  const e20 = ema(closes, 20);
+  const e50 = ema(closes, 50);
+  const aligned = e20[n-1] && e50[n-1] ? Math.abs(e20[n-1] - e50[n-1]) / closes[n-1] * 100 : 0;
+
+  let regime, color, trendPct, rangePct, volPct;
+
+  if(adxVal != null && adxVal > 25 && aligned > 0.3){
+    regime = "TRENDING";
+    color = "var(--up-text)";
+    const dir = e20[n-1] > e50[n-1] ? "▲" : "▼";
+    trendPct = Math.min(90, adxVal * 2);
+    rangePct = Math.max(5, 100 - trendPct - 10);
+    volPct = 10;
+    $("regime-detail").innerHTML = `ADX <b>${adxVal.toFixed(0)}</b> · ${dir} ${aligned.toFixed(2)}% 이격`;
+  } else if(atrRatio > 1.5 || (bbw && bbw > 5)){
+    regime = "VOLATILE";
+    color = "var(--down-text)";
+    trendPct = 15;
+    rangePct = 15;
+    volPct = 70;
+    $("regime-detail").innerHTML = `ATR <b>${atrRatio.toFixed(1)}x</b> · BBW <b>${bbw?bbw.toFixed(1):'—'}%</b>`;
+  } else {
+    regime = "RANGING";
+    color = "var(--amber)";
+    trendPct = 15;
+    rangePct = 70;
+    volPct = 15;
+    $("regime-detail").innerHTML = `ADX <b>${adxVal?adxVal.toFixed(0):'—'}</b> · 낮은 변동성`;
+  }
+
+  $("regime-label").textContent = regime;
+  $("regime-label").style.color = color;
+  $("regime-trend").style.width = trendPct + "%";
+  $("regime-range").style.width = rangePct + "%";
+  $("regime-vol").style.width = volPct + "%";
+}
+
 // ── Render functions ──
 
 function renderSignals(){
@@ -1672,10 +1745,57 @@ function renderHistory(){
   const wins = trades.filter(t=>t.win).length;
   const totalPnl = trades.reduce((s,t)=>s+t.pnl, 0);
 
+  // Calculate more stats
+  const losses = trades.filter(t=>!t.win).length;
+  const avgWin = wins > 0 ? trades.filter(t=>t.win).reduce((s,t)=>s+t.pnl,0) / wins : 0;
+  const avgLoss = losses > 0 ? trades.filter(t=>!t.win).reduce((s,t)=>s+t.pnl,0) / losses : 0;
+  const profitFactor = avgLoss !== 0 ? Math.abs(avgWin * wins / (avgLoss * losses)) : 0;
+  const maxWin = trades.length ? Math.max(...trades.map(t=>t.pnl)) : 0;
+  const maxLoss = trades.length ? Math.min(...trades.map(t=>t.pnl)) : 0;
+
+  // Equity curve data
+  let equity = 0;
+  const eqCurve = trades.slice().reverse().map(t => { equity += t.pnl; return equity; });
+  const maxDD = (()=>{
+    let peak = 0, dd = 0;
+    for(const e of eqCurve){ peak = Math.max(peak, e); dd = Math.min(dd, e - peak); }
+    return dd;
+  })();
+
   let html = `<div class="le-hist">
-    <div style="padding:4px 8px;font-size:10px;color:var(--ink2);border-bottom:1px solid var(--border)">
-      \uCD1D ${trades.length}\uAC74 \xB7 \uC2B9\uB960 <b style="color:var(--ink)">${(wins/trades.length*100).toFixed(0)}%</b>
-      \xB7 \uB204\uC801 <span class="${totalPnl>=0?"u":"d"}">${totalPnl>=0?"+":""}${totalPnl.toFixed(2)}%</span>
+    <div style="padding:6px 8px;border-bottom:1px solid var(--border)">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:10px;margin-bottom:4px;">
+        <div style="background:#111;padding:4px;text-align:center;">
+          <div style="color:var(--ink3);font-size:9px">\uC2B9\uB960</div>
+          <div style="color:var(--ink);font-weight:700;font-size:13px">${trades.length?(wins/trades.length*100).toFixed(0):'0'}%</div>
+        </div>
+        <div style="background:#111;padding:4px;text-align:center;">
+          <div style="color:var(--ink3);font-size:9px">Profit Factor</div>
+          <div style="color:${profitFactor>=1?'var(--up-text)':'var(--down-text)'};font-weight:700;font-size:13px">${profitFactor.toFixed(2)}</div>
+        </div>
+        <div style="background:#111;padding:4px;text-align:center;">
+          <div style="color:var(--ink3);font-size:9px">\uB204\uC801 PnL</div>
+          <div style="color:${totalPnl>=0?'var(--up-text)':'var(--down-text)'};font-weight:700;font-size:13px">${totalPnl>=0?'+':''}${totalPnl.toFixed(1)}%</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;font-size:9px;">
+        <div style="background:#111;padding:3px;text-align:center;">
+          <span style="color:var(--ink3)">\uD3C9\uADE0 \uC2B9</span><br>
+          <span class="u">${avgWin>=0?'+':''}${avgWin.toFixed(2)}%</span>
+        </div>
+        <div style="background:#111;padding:3px;text-align:center;">
+          <span style="color:var(--ink3)">\uD3C9\uADE0 \uD328</span><br>
+          <span class="d">${avgLoss.toFixed(2)}%</span>
+        </div>
+        <div style="background:#111;padding:3px;text-align:center;">
+          <span style="color:var(--ink3)">\uCD5C\uB300 \uC2B9</span><br>
+          <span class="u">+${maxWin.toFixed(2)}%</span>
+        </div>
+        <div style="background:#111;padding:3px;text-align:center;">
+          <span style="color:var(--ink3)">MDD</span><br>
+          <span class="d">${maxDD.toFixed(2)}%</span>
+        </div>
+      </div>
     </div>`;
 
   for(const t of trades){
@@ -2301,7 +2421,19 @@ function handleWsMsg(m){
     for(const [p,s] of d.a||[]){ const f=+s; f===0?OB.asks.delete(p):OB.asks.set(p,f); }
     OB.ts=m.ts||0; obDirty=true;
   } else if(m.topic.startsWith("publicTrade.")){
-    for(const t of m.data||[]) TS.unshift({t:+t.T, side:t.S, p:+t.p, v:+t.v});
+    for(const t of m.data||[]){
+      TS.unshift({t:+t.T, side:t.S, p:+t.p, v:+t.v});
+      // Large trade alert
+      const tradeUsd = (+t.v) * (+t.p);
+      if(tradeUsd > 100000){
+        const side = t.S === "Buy" ? "매수" : "매도";
+        const usd = (tradeUsd / 1000).toFixed(0);
+        if(tradeUsd > 500000){
+          pushLog(`🐋 고래 ${side} $${usd}K @ ${fmtPrice(+t.p)} ${S.sym}`);
+          if(S.alertOn) beep();
+        }
+      }
+    }
     TS.length=Math.min(TS.length,80); tsDirty=true;
   } else if(m.topic.startsWith("allLiquidation")){
     for(const q of m.data||[])
@@ -2773,6 +2905,32 @@ async function fundOverlay(sym){
     `<div class="rowline"><span style="font-size:10px;color:var(--ink3)">양수 = 롱이 숏에게 지불 · 8시간마다 정산</span></div>`);
 }
 
+/* ═══════════════ FUNDING HEATMAP ═══════════════ */
+function fundingHeatmap(){
+  if(!S.allTickers || !S.allTickers.length){
+    showOverlay("FUNDING HEATMAP", '<div class="rowline"><span style="color:var(--ink3)">전종목 데이터 로드 중… 잠시 후 다시 시도</span></div>');
+    return;
+  }
+  const coins = S.allTickers.filter(t => t.funding != null).sort((a,b) => b.funding - a.funding);
+  const maxAbs = Math.max(...coins.map(t => Math.abs(t.funding)), 0.01);
+
+  let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:2px;padding:4px;">';
+  for(const c of coins.slice(0, 80)){
+    const intensity = Math.min(1, Math.abs(c.funding) / maxAbs);
+    const bg = c.funding >= 0
+      ? `rgba(0,160,140,${intensity * 0.4})`
+      : `rgba(229,72,77,${intensity * 0.4})`;
+    const textColor = Math.abs(c.funding) > 0.03 ? (c.funding >= 0 ? "var(--up-text)" : "var(--down-text)") : "var(--ink2)";
+    html += `<div style="background:${bg};border:1px solid ${c.funding>=0?'rgba(0,160,140,.2)':'rgba(229,72,77,.2)'};padding:4px;text-align:center;cursor:pointer;font-size:10px;" onclick="switchTo('${c.sym}',S.tf);$('btov').classList.remove('on');">
+      <div style="font-weight:600;color:var(--ink);font-size:9px">${c.sym}</div>
+      <div style="color:${textColor};font-weight:700;font-size:11px">${c.funding>=0?'+':''}${c.funding.toFixed(4)}%</div>
+    </div>`;
+  }
+  html += '</div>';
+  html += '<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">클릭하면 해당 종목 차트로 전환 · 상위 80개 표시 · 양수=롱→숏 지급 · 음수=숏→롱 지급</div>';
+  showOverlay("FUNDING HEATMAP · 전 종목 펀딩레이트", html);
+}
+
 /* SAVE/LOAD — URL 해시 설정 저장 (저장소 미사용) */
 function saveCfg(){
   try{
@@ -3118,7 +3276,7 @@ async function loadChart(){
     S.candles=data;
     loadOIPane();
     $("chartmsg").style.display="none";
-    drawChart(); setAge("chart"); tickAges(); sigCompute();
+    drawChart(); setAge("chart"); tickAges(); sigCompute(); computeRegime();
   }catch(e){
     if(seq!==chartLoadSeq) return;
     if(!S.candles.length){
@@ -3291,6 +3449,7 @@ const CMD_LIST=[
   {c:"WATCH",         d:"관심종목 목록 보기"},
   {c:"WATCH ADD PEPE",d:"관심종목 추가 (김프 연동)"},
   {c:"WATCH DEL XRP", d:"관심종목 제거"},
+  {c:"FMAP", d:"전 종목 펀딩레이트 히트맵"},
   {c:"MOST", d:"급등 스크리너로 전환"},
   {c:"LIQ",  d:"청산맵(추정) 토글"},
   {c:"VP",   d:"볼륨 프로파일 토글"},
@@ -3369,6 +3528,7 @@ $("cmd").addEventListener("keydown",e=>{
     e.target.value=""; return;
   }
   if(raw==="FUND"){ fundOverlay(S.sym); e.target.value=""; return; }
+  if(raw==="FMAP"){ fundingHeatmap(); e.target.value=""; return; }
   if(raw==="SAVE"){ saveCfg(); e.target.value=""; return; }
   if(raw==="QUAD"){ quadToggle(); e.target.value=""; return; }
   if(raw==="OPEN"){ try{ window.open(`https://www.bybit.com/trade/usdt/${pair(S.sym)}`,"_blank"); }catch(e2){} e.target.value=""; return; }
@@ -3438,6 +3598,15 @@ function tickClocks(){
   const f=(tz)=>now.toLocaleTimeString("en-GB",{timeZone:tz,hour12:false});
   $("clk-kst").textContent=f("Asia/Seoul");
   $("clk-utc").textContent=f("UTC");
+  // Session detection
+  const utcH = now.getUTCHours();
+  const chip = $("session-chip");
+  if(chip){
+    if(utcH >= 0 && utcH < 7){ chip.textContent = "ASIA"; chip.style.color = "var(--amber)"; chip.style.borderColor = "var(--amber-dim)"; }
+    else if(utcH >= 7 && utcH < 13){ chip.textContent = "LONDON"; chip.style.color = "var(--cyan-text)"; chip.style.borderColor = "var(--cyan)"; }
+    else if(utcH >= 13 && utcH < 21){ chip.textContent = "NEW YORK"; chip.style.color = "var(--up-text)"; chip.style.borderColor = "var(--up)"; }
+    else { chip.textContent = "OFF-HOURS"; chip.style.color = "var(--ink3)"; chip.style.borderColor = "var(--border)"; }
+  }
 }
 
 /* boot */
@@ -3742,7 +3911,7 @@ _booted = true;
   setInterval(loadQuotes, 20_000);   // WS 백업 폴링
   setTimeout(loadSparks, 4000); setInterval(loadSparks, 10*60_000);
   setInterval(loadChart, 30_000);
-  setInterval(sigCompute, 15_000);  // 신호 엔진 주기적 갱신
+  setInterval(()=>{ sigCompute(); computeRegime(); }, 15_000);  // 신호 엔진 + 레짐 주기적 갱신
   setInterval(loadDeriv, 60_000);
   setInterval(loadGlobals, 3*60_000);
   setInterval(loadNews, 2*60_000);
