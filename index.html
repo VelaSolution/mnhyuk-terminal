@@ -4757,6 +4757,9 @@ const CMD_LIST=[
   {c:"PORTFOLIO ADD 0.5 SOL 150", d:"포트폴리오에 종목 추가"},
   {c:"HISTORY", d:"명령어 사용 기록"},
   {c:"POWER", d:"파워 분석 (시장 강도 + 모멘텀 + 변동성 종합)"},
+  {c:"GAPS", d:"가격 갭 감지 (FVG · CME 갭)"},
+  {c:"VPROFILE", d:"가격대별 거래량 분포 (볼륨 프로파일 텍스트)"},
+  {c:"SIGNAL", d:"학습엔진 현재 시그널 요약"},
 ];
 let sugSel=-1, sugItems=[];
 function renderSug(){
@@ -4957,6 +4960,9 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="PORTFOLIO"||raw==="PORT"){ portfolioOverlay(); e.target.value=""; return; }
   if(raw==="HISTORY"){ historyOverlay(); e.target.value=""; return; }
   if(raw==="POWER"){ powerOverlay(); e.target.value=""; return; }
+  if(raw==="GAPS"){ gapsOverlay(); e.target.value=""; return; }
+  if(raw==="VPROFILE"){ vprofileOverlay(); e.target.value=""; return; }
+  if(raw==="SIGNAL"||raw==="SIG"){ signalOverlay(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
   const m=raw.match(/^([A-Z0-9]{2,10})\s*(15M|1H|4H|1D)?$/);
@@ -7278,6 +7284,247 @@ function powerOverlay(){
   </div>`;
 
   showOverlay(`POWER · ${S.sym} 파워 분석`, html);
+}
+function gapsOverlay(){
+  if(!S.candles || S.candles.length < 10){
+    showOverlay("GAPS", '<div class="rowline"><span style="color:var(--ink3)">차트 데이터 부족</span></div>');
+    return;
+  }
+
+  const cs = S.candles;
+  const n = cs.length;
+  const price = cs[n-1].c;
+  const gaps = [];
+
+  // Fair Value Gaps (FVG) - 3-candle gap
+  for(let i = 2; i < n; i++){
+    // Bullish FVG: candle[i] low > candle[i-2] high
+    if(cs[i].l > cs[i-2].h){
+      const top = cs[i].l, bot = cs[i-2].h;
+      const size = (top - bot) / bot * 100;
+      if(size > 0.05){ // filter tiny gaps
+        const filled = price <= top && price >= bot;
+        const dist = price > top ? ((price - top) / price * 100) : price < bot ? ((bot - price) / price * 100) : 0;
+        gaps.push({type:"FVG↑", dir:1, top, bot, size, bar:i, filled, dist, t:cs[i].t});
+      }
+    }
+    // Bearish FVG: candle[i] high < candle[i-2] low
+    if(cs[i].h < cs[i-2].l){
+      const top = cs[i-2].l, bot = cs[i].h;
+      const size = (top - bot) / bot * 100;
+      if(size > 0.05){
+        const filled = price <= top && price >= bot;
+        const dist = price > top ? ((price - top) / price * 100) : price < bot ? ((bot - price) / price * 100) : 0;
+        gaps.push({type:"FVG↓", dir:-1, top, bot, size, bar:i, filled, dist, t:cs[i].t});
+      }
+    }
+  }
+
+  // Sort by recency, unfilled first
+  gaps.sort((a,b) => {
+    if(a.filled !== b.filled) return a.filled ? 1 : -1;
+    return b.bar - a.bar;
+  });
+
+  const unfilled = gaps.filter(g => !g.filled);
+  const filled = gaps.filter(g => g.filled);
+
+  if(!gaps.length){
+    showOverlay(`GAPS · ${S.sym}`, '<div style="padding:10px;color:var(--ink3);text-align:center">가격 갭 미감지</div>');
+    return;
+  }
+
+  let html = `<div style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:10px;color:var(--ink2)">
+    미충전 <b style="color:var(--amber)">${unfilled.length}</b> · 충전됨 <b style="color:var(--ink3)">${filled.length}</b> · 현재가 $${fmtPrice(price)}
+  </div>`;
+
+  // Show unfilled gaps (most important)
+  if(unfilled.length){
+    html += '<div style="padding:3px 10px;color:var(--amber);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">미충전 갭 (가격 자석)</div>';
+    unfilled.slice(0, 10).forEach(g => {
+      const barsAgo = n - 1 - g.bar;
+      const dirColor = g.dir > 0 ? "var(--up-text)" : "var(--down-text)";
+      const above = price < g.bot;
+      const below = price > g.top;
+      const position = above ? "위" : below ? "아래" : "안";
+      html += `<div class="rowline" style="padding:4px 10px">
+        <span style="color:${dirColor};font-weight:700;min-width:35px">${g.type}</span>
+        <span style="color:var(--ink2)">$${fmtPrice(g.bot)} ~ $${fmtPrice(g.top)}</span>
+        <span style="color:var(--ink3);font-size:9px">${g.size.toFixed(2)}%</span>
+        <span style="color:var(--ink3);font-size:9px">${barsAgo}봉 전</span>
+        <span style="color:var(--amber);font-size:9px">${g.dist.toFixed(2)}% ${position}</span>
+      </div>`;
+    });
+  }
+
+  html += `<div style="padding:6px 10px;font-size:9px;color:var(--ink3);border-top:1px solid var(--border)">
+    FVG = Fair Value Gap · 미충전 갭은 가격이 다시 방문할 확률 높음 · ${S.tf} 기준
+  </div>`;
+
+  showOverlay(`GAPS · ${S.sym} 가격 갭 (${unfilled.length}개 미충전)`, html);
+}
+function vprofileOverlay(){
+  if(!S.candles || S.candles.length < 20){
+    showOverlay("VPROFILE", '<div class="rowline"><span style="color:var(--ink3)">차트 데이터 부족</span></div>');
+    return;
+  }
+
+  const cs = S.candles;
+  const n = cs.length;
+  const price = cs[n-1].c;
+
+  // Use visible candles or last 200
+  const data = cs.slice(Math.max(0, n-200));
+
+  // Find price range and create buckets
+  const allH = data.map(c=>c.h), allL = data.map(c=>c.l);
+  const hi = Math.max(...allH), lo = Math.min(...allL);
+  const range = hi - lo;
+  const bucketCount = 20;
+  const bucketSize = range / bucketCount;
+
+  const buckets = new Array(bucketCount).fill(0);
+
+  // Distribute volume into price buckets
+  for(const c of data){
+    const mid = (c.h + c.l) / 2;
+    const idx = Math.min(bucketCount - 1, Math.floor((mid - lo) / bucketSize));
+    buckets[idx] += c.v;
+  }
+
+  const maxVol = Math.max(...buckets);
+
+  // Find POC (Point of Control)
+  const pocIdx = buckets.indexOf(maxVol);
+  const pocPrice = lo + (pocIdx + 0.5) * bucketSize;
+
+  // Value Area (70% of volume)
+  const totalVol = buckets.reduce((s,v)=>s+v,0);
+  const vaTarget = totalVol * 0.7;
+  let vaVol = buckets[pocIdx], vaLow = pocIdx, vaHigh = pocIdx;
+  while(vaVol < vaTarget){
+    const addLow = vaLow > 0 ? buckets[vaLow-1] : 0;
+    const addHigh = vaHigh < bucketCount-1 ? buckets[vaHigh+1] : 0;
+    if(addLow >= addHigh && vaLow > 0){ vaLow--; vaVol += addLow; }
+    else if(vaHigh < bucketCount-1){ vaHigh++; vaVol += addHigh; }
+    else break;
+  }
+
+  const vahPrice = lo + (vaHigh + 1) * bucketSize;
+  const valPrice = lo + vaLow * bucketSize;
+
+  let html = `<div style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;color:var(--ink3)">POC (최다 거래량 가격)</div>
+    <div style="font-size:18px;font-weight:700;color:var(--amber)">$${fmtPrice(pocPrice)}</div>
+    <div style="font-size:10px;color:var(--ink3)">VA: $${fmtPrice(valPrice)} ~ $${fmtPrice(vahPrice)}</div>
+  </div>`;
+
+  // Render bars (bottom to top = low to high)
+  html += '<div style="padding:4px 10px">';
+  for(let i = bucketCount - 1; i >= 0; i--){
+    const pLow = lo + i * bucketSize;
+    const pHigh = pLow + bucketSize;
+    const pct = maxVol > 0 ? (buckets[i] / maxVol * 100) : 0;
+    const isPOC = i === pocIdx;
+    const isVA = i >= vaLow && i <= vaHigh;
+    const isCurrent = price >= pLow && price < pHigh;
+    const barColor = isPOC ? "var(--amber)" : isVA ? "var(--cyan)" : "var(--ink3)";
+    const bg = isCurrent ? "background:#1a1205;" : "";
+
+    html += `<div style="display:flex;align-items:center;gap:6px;padding:1px 0;${bg}font-size:9px">
+      <span style="min-width:55px;text-align:right;color:var(--ink2)">$${fmtPrice(pLow)}</span>
+      <div style="flex:1;height:6px;background:#111">
+        <div style="width:${pct}%;height:100%;background:${barColor}"></div>
+      </div>
+      <span style="min-width:20px;text-align:right;color:var(--ink3)">${pct.toFixed(0)}%</span>
+      ${isPOC?'<span style="color:var(--amber);font-weight:700;font-size:8px">POC</span>':''}
+      ${isCurrent?'<span style="color:var(--ink);font-size:8px">◄</span>':''}
+    </div>`;
+  }
+  html += '</div>';
+
+  html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3);border-top:1px solid var(--border)">
+    ${data.length}봉 분석 · <span style="color:var(--amber)">■</span> POC · <span style="color:var(--cyan)">■</span> Value Area (70%) · ${S.tf} 기준
+  </div>`;
+
+  showOverlay(`VPROFILE · ${S.sym} 볼륨 프로파일`, html);
+}
+function signalOverlay(){
+  if(!LE.signal){
+    showOverlay("SIGNAL", '<div class="rowline"><span style="color:var(--ink3)">학습엔진 데이터 없음</span></div>');
+    return;
+  }
+
+  const s = LE.signal;
+  const dir = s.dir > 0 ? "LONG" : s.dir < 0 ? "SHORT" : "NEUTRAL";
+  const dirColor = s.dir > 0 ? "var(--up-text)" : s.dir < 0 ? "var(--down-text)" : "var(--ink3)";
+  const scoreColor = s.score >= 75 ? "var(--up-text)" : s.score >= 50 ? "var(--amber)" : "var(--ink3)";
+
+  let html = `<div style="padding:12px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;color:var(--ink3)">CONFLUENCE SCORE</div>
+    <div style="font-size:42px;font-weight:700;color:${scoreColor}">${s.score}</div>
+    <div style="font-size:16px;font-weight:700;color:${dirColor};letter-spacing:2px">${dir}</div>
+    <div style="font-size:10px;color:var(--ink3);margin-top:4px">L <span class="u">${s.longScore}</span> vs S <span class="d">${s.shortScore}</span> · 임계값 ${LE.threshold}</div>
+  </div>`;
+
+  // Levels if available
+  if(s.levels){
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">
+      <div style="background:var(--panel);padding:6px;text-align:center">
+        <div style="color:var(--ink3);font-size:9px">진입</div>
+        <div style="color:var(--cyan-text);font-weight:700">$${fmtPrice(s.levels.entry)}</div>
+      </div>
+      <div style="background:var(--panel);padding:6px;text-align:center">
+        <div style="color:var(--ink3);font-size:9px">손절</div>
+        <div style="color:var(--down-text);font-weight:700">$${fmtPrice(s.levels.sl)}</div>
+      </div>
+      <div style="background:var(--panel);padding:6px;text-align:center">
+        <div style="color:var(--ink3);font-size:9px">익절</div>
+        <div style="color:var(--up-text);font-weight:700">$${fmtPrice(s.levels.tp)}</div>
+      </div>
+    </div>`;
+  }
+
+  // Feature breakdown
+  html += '<div style="padding:3px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border);border-top:1px solid var(--border)">FEATURE BREAKDOWN</div>';
+
+  const FEAT_NAMES = {rsi_ob:"RSI",bb_touch:"BB터치",macd_cross:"MACD",ema_align:"EMA정렬",adx_str:"ADX",vol_spike:"거래량",squeeze:"스퀴즈",stoch_sig:"StochRSI",funding:"펀딩",oi_div:"OI괴리",ls_extreme:"롱숏",candle:"캔들"};
+
+  for(const [key, feat] of Object.entries(s.features)){
+    if(!feat || feat.val === 0) continue;
+    const w = LE.weights ? (LE.weights[key] || 1).toFixed(2) : "1.00";
+    const dirIcon = feat.dir > 0 ? "▲" : feat.dir < 0 ? "▼" : "—";
+    const cls = feat.dir > 0 ? "u" : feat.dir < 0 ? "d" : "";
+    const contribution = (feat.val * (LE.weights?LE.weights[key]:1)).toFixed(2);
+
+    html += `<div class="rowline" style="padding:3px 10px">
+      <span style="color:var(--ink2);min-width:55px">${FEAT_NAMES[key]||key}</span>
+      <span class="${cls}" style="min-width:30px">${dirIcon} ${(feat.val*100).toFixed(0)}%</span>
+      <span style="color:var(--ink3);font-size:9px;min-width:35px">w:${w}</span>
+      <span style="color:var(--ink);font-size:9px">기여: ${contribution}</span>
+    </div>`;
+  }
+
+  // Pending trade
+  if(LE.pending){
+    const p = LE.pending;
+    const curPrice = S.candles.length ? S.candles[S.candles.length-1].c : p.entry;
+    const unrealPnl = p.dir===1 ? (curPrice-p.entry)/p.entry*100 : (p.entry-curPrice)/p.entry*100;
+    html += `<div style="padding:6px 10px;border-top:1px solid var(--border);background:${unrealPnl>=0?'rgba(0,160,140,.05)':'rgba(229,72,77,.05)'}">
+      <div style="font-size:10px;font-weight:700;color:${p.dir>0?'var(--up-text)':'var(--down-text)'}">● 가상포지션 ${p.dir>0?'LONG':'SHORT'} · ${unrealPnl>=0?'+':''}${unrealPnl.toFixed(2)}%</div>
+    </div>`;
+  }
+
+  // Recent stats
+  const recent = LE.history.filter(h=>h.sym===S.sym).slice(-10);
+  if(recent.length){
+    const wins = recent.filter(h=>h.win).length;
+    html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3);border-top:1px solid var(--border)">
+      최근 ${recent.length}건: 승률 ${(wins/recent.length*100).toFixed(0)}% · 에폭 ${LE.epoch}
+    </div>`;
+  }
+
+  showOverlay(`SIGNAL · ${S.sym} ${S.tf} 학습엔진 시그널`, html);
 }
 </script>
 </body>
