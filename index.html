@@ -4736,6 +4736,9 @@ const CMD_LIST=[
   {c:"PERF", d:"전 종목 멀티 타임프레임 성과 매트릭스"},
   {c:"DIVERGE", d:"RSI·MACD 다이버전스 자동 감지"},
   {c:"REPORT", d:"오늘의 종합 리포트 (전 지표 한눈에)"},
+  {c:"GRID 150 170 10", d:"그리드 트레이딩 계산기 (하한·상한·격자수)"},
+  {c:"MOMENTUM", d:"전 종목 모멘텀 스코어 순위"},
+  {c:"LEVELS", d:"자동 지지/저항 레벨 감지"},
   {c:"HELP", d:"전체 명령 도움말"},
 ];
 let sugSel=-1, sugItems=[];
@@ -4903,6 +4906,10 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="PERF"){ perfOverlay(); e.target.value=""; return; }
   if(raw==="DIVERGE"||raw==="DIV"){ divergeOverlay(); e.target.value=""; return; }
   if(raw==="REPORT"){ reportOverlay(); e.target.value=""; return; }
+  const gridm = raw.match(/^GRID\s+([\d.]+)\s+([\d.]+)\s+(\d+)$/);
+  if(gridm){ gridCalcOverlay(+gridm[1], +gridm[2], +gridm[3]); e.target.value=""; return; }
+  if(raw==="MOMENTUM"||raw==="MOM"){ momentumOverlay(); e.target.value=""; return; }
+  if(raw==="LEVELS"||raw==="SR"){ levelsOverlay(); e.target.value=""; return; }
   if(raw==="KRW"){ krwCalcOverlay(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
@@ -5766,6 +5773,216 @@ function reportOverlay(){
 
   html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:9px;color:var(--ink3);text-align:center">MOTERA TERMINAL · ${dateStr} · 투자 조언이 아님</div>`;
   showOverlay(`REPORT · ${sym} 종합 리포트`, html);
+}
+function gridCalcOverlay(low, high, grids){
+  if(low >= high || grids < 2 || grids > 200){
+    pushLog("GRID: 올바른 범위와 격자수를 입력하세요 (예: GRID 150 170 10)");
+    return;
+  }
+
+  const sym = S.sym;
+  const q = S.quotes[sym];
+  const price = q ? q.last : (low + high) / 2;
+  const step = (high - low) / grids;
+  const stepPct = (step / low * 100).toFixed(3);
+  const perGridProfit = step;
+
+  // Generate grid levels
+  const levels = [];
+  for(let i = 0; i <= grids; i++){
+    const p = low + step * i;
+    const abovePrice = p > price;
+    levels.push({price: p, type: abovePrice ? "SELL" : "BUY", dist: ((p - price) / price * 100)});
+  }
+
+  // Estimated profit per grid (without fees)
+  const profitPerGrid = (step / ((low + high) / 2) * 100);
+  const totalIfAllFilled = profitPerGrid * grids / 2; // approximate
+
+  let html = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px;background:var(--border)">
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px">격자 간격</div>
+      <div style="font-size:13px;font-weight:700;color:var(--amber)">$${step.toFixed(step<1?4:2)}</div>
+      <div style="font-size:9px;color:var(--ink3)">${stepPct}%</div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px">격자 수</div>
+      <div style="font-size:13px;font-weight:700;color:var(--ink)">${grids}</div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px">범위</div>
+      <div style="font-size:13px;font-weight:700;color:var(--ink)">${((high-low)/low*100).toFixed(1)}%</div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px">격자당 수익</div>
+      <div style="font-size:13px;font-weight:700;color:var(--up-text)">${profitPerGrid.toFixed(3)}%</div>
+    </div>
+  </div>`;
+
+  html += '<div style="max-height:200px;overflow-y:auto">';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  html += '<thead><tr><th style="text-align:left;padding:3px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel)">#</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">가격</th><th style="text-align:center;padding:3px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">주문</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">거리</th></tr></thead><tbody>';
+
+  levels.forEach((lv, i) => {
+    const isCurrent = Math.abs(lv.price - price) < step * 0.5;
+    const bg = isCurrent ? 'background:#1a1205;' : '';
+    html += `<tr style="border-bottom:1px solid #0e0e0e;${bg}">
+      <td style="padding:2px 8px;color:var(--ink3)">${i+1}</td>
+      <td style="padding:2px 8px;text-align:right;color:var(--ink);font-weight:600">$${fmtPrice(lv.price)}</td>
+      <td style="padding:2px 8px;text-align:center;color:${lv.type==='BUY'?'var(--up-text)':'var(--down-text)'};font-weight:600">${lv.type}</td>
+      <td style="padding:2px 8px;text-align:right;color:var(--ink2)">${lv.dist>=0?'+':''}${lv.dist.toFixed(2)}%</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+
+  html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:9px;color:var(--ink3)">
+    현재가 $${fmtPrice(price)} · 수수료 미포함 · 격자 전략은 횡보장에서 효과적
+  </div>`;
+
+  showOverlay(`GRID · ${sym} $${low}~$${high} × ${grids}격자`, html);
+}
+function momentumOverlay(){
+  if(!S.allTickers || !S.allTickers.length){
+    showOverlay("MOMENTUM", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
+    return;
+  }
+
+  // Momentum score = weighted: 24h change * volume rank
+  const all = S.allTickers.filter(t => t.vol > 0);
+  const maxVol = Math.max(...all.map(t => t.vol));
+
+  const scored = all.map(t => {
+    const volNorm = t.vol / maxVol; // 0-1
+    const momScore = t.pct * (0.5 + volNorm * 0.5); // weighted by volume
+    return {...t, momScore, volNorm};
+  });
+
+  // Top bullish momentum
+  const bullish = [...scored].sort((a,b) => b.momScore - a.momScore).slice(0, 15);
+  // Top bearish momentum
+  const bearish = [...scored].sort((a,b) => a.momScore - b.momScore).slice(0, 15);
+
+  function momTable(items, title, emoji){
+    let h = `<div style="color:var(--ink3);font-size:10px;letter-spacing:1px;padding:5px 8px;background:var(--panel2);border-bottom:1px solid var(--border)">${emoji} ${title}</div>`;
+    h += items.map((c, i) => {
+      const momColor = c.momScore >= 0 ? "var(--up-text)" : "var(--down-text)";
+      const volBar = Math.round(c.volNorm * 40);
+      return `<div class="rowline" style="padding:3px 8px;cursor:pointer;font-size:10px" onclick="switchTo('${c.sym}',S.tf);$('btov').classList.remove('on');">
+        <span style="color:var(--ink3);min-width:18px">${i+1}</span>
+        <span style="font-weight:600;color:var(--ink);min-width:42px">${c.sym}</span>
+        <span style="color:${c.pct>=0?'var(--up-text)':'var(--down-text)'};min-width:55px;text-align:right">${c.pct>=0?'+':''}${c.pct.toFixed(1)}%</span>
+        <span style="min-width:50px;text-align:right"><div style="display:inline-block;width:${volBar}px;height:3px;background:var(--amber);vertical-align:middle"></div></span>
+        <span style="color:${momColor};font-weight:700;min-width:45px;text-align:right">${c.momScore>=0?'+':''}${c.momScore.toFixed(1)}</span>
+      </div>`;
+    }).join("");
+    return h;
+  }
+
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)">';
+  html += '<div style="background:var(--panel)">' + momTable(bullish, "강세 모멘텀", "🚀") + '</div>';
+  html += '<div style="background:var(--panel)">' + momTable(bearish, "약세 모멘텀", "📉") + '</div>';
+  html += '</div>';
+
+  html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">모멘텀 = 24h변동률 × 거래량가중 · 높을수록 강한 추세</div>`;
+  showOverlay("MOMENTUM · 모멘텀 순위", html);
+}
+function levelsOverlay(){
+  if(!S.candles || S.candles.length < 30){
+    showOverlay("LEVELS", '<div class="rowline"><span style="color:var(--ink3)">차트 데이터 부족</span></div>');
+    return;
+  }
+
+  const cs = S.candles;
+  const n = cs.length;
+  const price = cs[n-1].c;
+
+  // Find pivot highs and lows
+  const pivotHigh = [], pivotLow = [];
+  const lookback = 5;
+
+  for(let i = lookback; i < n - lookback; i++){
+    let isHigh = true, isLow = true;
+    for(let j = 1; j <= lookback; j++){
+      if(cs[i].h <= cs[i-j].h || cs[i].h <= cs[i+j].h) isHigh = false;
+      if(cs[i].l >= cs[i-j].l || cs[i].l >= cs[i+j].l) isLow = false;
+    }
+    if(isHigh) pivotHigh.push({price: cs[i].h, bar: i, t: cs[i].t});
+    if(isLow) pivotLow.push({price: cs[i].l, bar: i, t: cs[i].t});
+  }
+
+  // Cluster nearby levels (within 0.5% of each other)
+  function clusterLevels(pivots){
+    const clusters = [];
+    const sorted = [...pivots].sort((a,b) => a.price - b.price);
+    let i = 0;
+    while(i < sorted.length){
+      const cluster = [sorted[i]];
+      let j = i + 1;
+      while(j < sorted.length && (sorted[j].price - cluster[0].price) / cluster[0].price < 0.005){
+        cluster.push(sorted[j]);
+        j++;
+      }
+      const avgPrice = cluster.reduce((s,p) => s + p.price, 0) / cluster.length;
+      const touches = cluster.length;
+      const lastTouch = Math.max(...cluster.map(p => p.bar));
+      clusters.push({price: avgPrice, touches, lastTouch, recency: n - 1 - lastTouch});
+      i = j;
+    }
+    return clusters;
+  }
+
+  const resistances = clusterLevels(pivotHigh).filter(c => c.price > price).sort((a,b) => a.price - b.price).slice(0, 5);
+  const supports = clusterLevels(pivotLow).filter(c => c.price < price).sort((a,b) => b.price - a.price).slice(0, 5);
+
+  let html = `<div style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;color:var(--ink3)">현재가</div>
+    <div style="font-size:18px;font-weight:700;color:var(--ink)">$${fmtPrice(price)}</div>
+  </div>`;
+
+  // Resistances (above)
+  html += '<div style="padding:4px 10px;color:var(--down-text);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">저항 RESISTANCE ▲</div>';
+  if(resistances.length){
+    resistances.forEach(r => {
+      const dist = ((r.price - price) / price * 100).toFixed(2);
+      const strength = r.touches >= 3 ? "강" : r.touches >= 2 ? "중" : "약";
+      const strengthColor = r.touches >= 3 ? "var(--down-text)" : r.touches >= 2 ? "var(--amber)" : "var(--ink3)";
+      html += `<div class="rowline" style="padding:4px 10px">
+        <span style="color:var(--down-text);font-weight:700">$${fmtPrice(r.price)}</span>
+        <span style="color:var(--ink2)">+${dist}%</span>
+        <span style="color:${strengthColor}">${strength} (${r.touches}회 터치)</span>
+        <span style="color:var(--ink3);font-size:9px">${r.recency}봉 전</span>
+      </div>`;
+    });
+  } else {
+    html += '<div class="rowline"><span style="color:var(--ink3)">감지된 저항 없음</span></div>';
+  }
+
+  // Current price marker
+  html += `<div style="padding:4px 10px;background:#1a1205;text-align:center;font-weight:700;color:var(--amber);border:1px dashed var(--amber-dim)">── 현재가 $${fmtPrice(price)} ──</div>`;
+
+  // Supports (below)
+  html += '<div style="padding:4px 10px;color:var(--up-text);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">지지 SUPPORT ▼</div>';
+  if(supports.length){
+    supports.forEach(s => {
+      const dist = ((price - s.price) / price * 100).toFixed(2);
+      const strength = s.touches >= 3 ? "강" : s.touches >= 2 ? "중" : "약";
+      const strengthColor = s.touches >= 3 ? "var(--up-text)" : s.touches >= 2 ? "var(--amber)" : "var(--ink3)";
+      html += `<div class="rowline" style="padding:4px 10px">
+        <span style="color:var(--up-text);font-weight:700">$${fmtPrice(s.price)}</span>
+        <span style="color:var(--ink2)">-${dist}%</span>
+        <span style="color:${strengthColor}">${strength} (${s.touches}회 터치)</span>
+        <span style="color:var(--ink3);font-size:9px">${s.recency}봉 전</span>
+      </div>`;
+    });
+  } else {
+    html += '<div class="rowline"><span style="color:var(--ink3)">감지된 지지 없음</span></div>';
+  }
+
+  html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:9px;color:var(--ink3)">
+    피벗 기반 자동 감지 · 터치 횟수가 많을수록 강한 레벨 · ${S.tf} 기준 ${n}봉 분석
+  </div>`;
+
+  showOverlay(`LEVELS · ${S.sym} 지지/저항`, html);
 }
 
 /* ══════════════════════════════════════════════════
