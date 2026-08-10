@@ -522,6 +522,7 @@
             <label><input type="checkbox" data-ind="psar"> 파라볼릭 SAR</label>
             <label><input type="checkbox" data-ind="kelt"> 켈트너 채널 20/2A</label>
             <label><input type="checkbox" data-ind="don"> 돈치안 채널 20</label>
+            <label><input type="checkbox" data-ind="hma"> Hull MA 20</label>
             <div class="imh">서브패널</div>
             <label><input type="checkbox" data-ind="macd"> MACD 12/26/9</label>
             <label><input type="checkbox" data-ind="stoch"> StochRSI 14/14/3/3</label>
@@ -533,6 +534,11 @@
             <label><input type="checkbox" data-ind="willr"> Williams %R</label>
             <label><input type="checkbox" data-ind="atrp"> ATR% 14</label>
             <label><input type="checkbox" data-ind="cmf"> CMF 20</label>
+            <label><input type="checkbox" data-ind="trix"> TRIX 15</label>
+            <label><input type="checkbox" data-ind="aroon"> Aroon 25</label>
+            <label><input type="checkbox" data-ind="chaikin"> Chaikin Osc 3/10</label>
+            <label><input type="checkbox" data-ind="kst"> KST</label>
+            <label><input type="checkbox" data-ind="sqzmom"> Squeeze Mom (LazyBear)</label>
             <div class="imh" style="border-top:1px solid var(--border2)">명령: HELP 입력 시 전체 목록</div>
           </div>
         </div>
@@ -782,7 +788,8 @@ const S = { // app state
         ribbon:false, vwap:false, st:false, vp:false, liqmap:false,
         macd:false, stoch:false, adx:false, oi:false,
         ichi:false, psar:false, kelt:false, don:false,
-        obv:false, mfi:false, cci:false, willr:false, atrp:false, cmf:false},
+        obv:false, mfi:false, cci:false, willr:false, atrp:false, cmf:false,
+        hma:false, trix:false, aroon:false, chaikin:false, kst:false, sqzmom:false},
   tvMode:false, sparks:{}, positions:[],
   orderApi:false, orderLive:false, orderPinReq:false, orderPin:"", tgApi:false, tgOn:true,
   hlines:[], mtf:null,
@@ -1093,6 +1100,110 @@ function donchianSeries(cs, p=20){
     up[i]=h; lo2[i]=l; mid[i]=(h+l)/2;
   }
   return {up,lo:lo2,mid};
+}
+/* ── Hull Moving Average (HMA) ── */
+function hmaSeries(values, period=20){
+  const n = values.length, out = new Array(n).fill(null);
+  if(n < period*2) return out;
+  const halfP = Math.floor(period/2);
+  const sqrtP = Math.round(Math.sqrt(period));
+  const wma1 = wmaSeries(values, halfP);
+  const wma2 = wmaSeries(values, period);
+  const diff = wma1.map((v,i) => v!=null && wma2[i]!=null ? 2*v - wma2[i] : null);
+  const hull = wmaSeries(diff, sqrtP);
+  return hull;
+}
+function wmaSeries(values, period){
+  const n = values.length, out = new Array(n).fill(null);
+  for(let i=period-1;i<n;i++){
+    let num=0, den=0;
+    for(let j=0;j<period;j++){
+      const w = j+1;
+      num += values[i-period+1+j] * w;
+      den += w;
+    }
+    out[i] = den ? num/den : null;
+  }
+  return out;
+}
+/* ── TRIX (Triple EMA Rate of Change) ── */
+function trixSeries(values, period=15){
+  const e1 = ema(values, period);
+  const e2 = ema(e1.map(v=>v||0), period);
+  const e3 = ema(e2.map(v=>v||0), period);
+  const out = new Array(values.length).fill(null);
+  for(let i=1;i<values.length;i++){
+    if(e3[i]!=null && e3[i-1]!=null && e3[i-1]!==0)
+      out[i] = (e3[i] - e3[i-1]) / e3[i-1] * 10000;
+  }
+  return out;
+}
+/* ── Aroon Oscillator ── */
+function aroonSeries(cs, period=25){
+  const n=cs.length, up=new Array(n).fill(null), dn=up.slice(), osc=up.slice();
+  for(let i=period;i<n;i++){
+    let hh=-Infinity, ll=Infinity, hhIdx=0, llIdx=0;
+    for(let j=0;j<=period;j++){
+      if(cs[i-j].h > hh){ hh=cs[i-j].h; hhIdx=j; }
+      if(cs[i-j].l < ll){ ll=cs[i-j].l; llIdx=j; }
+    }
+    up[i] = ((period - hhIdx) / period) * 100;
+    dn[i] = ((period - llIdx) / period) * 100;
+    osc[i] = up[i] - dn[i];
+  }
+  return {up, dn, osc};
+}
+/* ── Chaikin Oscillator ── */
+function chaikinSeries(cs, fast=3, slow=10){
+  const n=cs.length, ad=new Array(n).fill(0);
+  for(let i=0;i<n;i++){
+    const rng = cs[i].h - cs[i].l;
+    const mfm = rng ? ((cs[i].c - cs[i].l) - (cs[i].h - cs[i].c)) / rng : 0;
+    ad[i] = (i>0 ? ad[i-1] : 0) + mfm * cs[i].v;
+  }
+  const ef = ema(ad, fast), es = ema(ad, slow);
+  return ad.map((_,i) => ef[i]!=null && es[i]!=null ? ef[i] - es[i] : null);
+}
+/* ── Know Sure Thing (KST) ── */
+function kstSeries(values, r1=10,r2=15,r3=20,r4=30){
+  const n=values.length, out=new Array(n).fill(null), sig=out.slice();
+  const roc = (p) => {
+    const arr = new Array(n).fill(null);
+    for(let i=p;i<n;i++) arr[i] = values[i-p]!==0 ? (values[i]-values[i-p])/values[i-p]*100 : 0;
+    return arr;
+  };
+  const roc1=roc(r1), roc2=roc(r2), roc3=roc(r3), roc4=roc(r4);
+  const s1=ema(roc1.map(v=>v||0),10), s2=ema(roc2.map(v=>v||0),10);
+  const s3=ema(roc3.map(v=>v||0),10), s4=ema(roc4.map(v=>v||0),15);
+  for(let i=0;i<n;i++){
+    if(s1[i]!=null&&s2[i]!=null&&s3[i]!=null&&s4[i]!=null)
+      out[i] = s1[i]*1 + s2[i]*2 + s3[i]*3 + s4[i]*4;
+  }
+  const sigArr = ema(out.map(v=>v||0), 9);
+  return {kst:out, sig:sigArr};
+}
+/* ── Squeeze Momentum (LazyBear) ── */
+function sqzMomSeries(cs, bbLen=20, bbMult=2, kcLen=20, kcMult=1.5){
+  const closes = cs.map(c=>c.c);
+  const bb = bollinger(closes, bbLen, bbMult);
+  const kcMid = ema(closes, kcLen);
+  const atr = atrSeries(cs, kcLen);
+  const n = cs.length;
+  const sqzOn = new Array(n).fill(false);
+  const mom = new Array(n).fill(null);
+  for(let i=0;i<n;i++){
+    if(bb.up[i]!=null && kcMid[i]!=null && atr[i]!=null){
+      const kcUp = kcMid[i] + kcMult*atr[i];
+      const kcLo = kcMid[i] - kcMult*atr[i];
+      sqzOn[i] = bb.up[i] < kcUp && bb.lo[i] > kcLo;
+    }
+  }
+  for(let i=bbLen;i<n;i++){
+    if(bb.mid[i]==null) continue;
+    const val = closes[i] - (bb.mid[i] + kcMid[i])/2;
+    mom[i] = val;
+  }
+  return {sqzOn, mom};
 }
 function vwapSeries(cs){ // UTC 일간 리셋 VWAP
   const n=cs.length, out=new Array(n).fill(null);
@@ -1989,11 +2100,18 @@ function drawChart(){
   const wrArr  = S.show.willr? willrSeries(S.candles,14) : null;
   const atrpArr= S.show.atrp ? atrSeries(S.candles,14).map((v,i)=>v!=null?v/S.candles[i].c*100:null) : null;
   const cmfArr = S.show.cmf ? cmfSeries(S.candles,20) : null;
+  const hmaArr = S.show.hma ? hmaSeries(closes, 20) : null;
+  const trixArr = S.show.trix ? trixSeries(closes, 15) : null;
+  const aroonArr = S.show.aroon ? aroonSeries(S.candles, 25) : null;
+  const chaikinArr = S.show.chaikin ? chaikinSeries(S.candles) : null;
+  const kstArr = S.show.kst ? kstSeries(closes) : null;
+  const sqzmomArr = S.show.sqzmom ? sqzMomSeries(S.candles) : null;
 
   const plotW=W-CH.padR, axisB=H-CH.padB;
   /* 동적 서브패널 레이아웃 (아래에서 위로: VOL 최하단) */
   const subList=[["rsi",.13],["macd",.13],["stoch",.13],["adx",.13],["oi",.12],
                  ["obv",.11],["mfi",.11],["cci",.11],["willr",.11],["atrp",.11],["cmf",.11],
+                 ["trix",.11],["aroon",.11],["chaikin",.11],["kst",.11],["sqzmom",.13],
                  ["vol",.13]].filter(k=>S.show[k[0]]);
   const fracSum=subList.reduce((a,z)=>a+z[1],0);
   const scaleF=fracSum>0.52?0.52/fracSum:1;
@@ -2155,6 +2273,81 @@ function drawChart(){
   autoPane("willr",wrArr,"W%R14","#d68f8f",[-80,-20]);
   autoPane("atrp",atrpArr,"ATR%","#8fa8d6");
   autoPane("cmf",cmfArr,"CMF20","#d6c98f",[0]);
+  autoPane("trix",trixArr,"TRIX15","#e040fb",[0]);
+  autoPane("chaikin",chaikinArr,"CHAIKIN","#26c6da",[0]);
+
+  /* Aroon */
+  if(S.show.aroon && aroonArr && panes.aroon){
+    const P=panes.aroon;
+    let lo2=Infinity,hi2=-Infinity;
+    for(let i=start;i<end;i++){
+      if(aroonArr.up[i]!=null){ lo2=Math.min(lo2,aroonArr.up[i]); hi2=Math.max(hi2,aroonArr.up[i]); }
+      if(aroonArr.dn[i]!=null){ lo2=Math.min(lo2,aroonArr.dn[i]); hi2=Math.max(hi2,aroonArr.dn[i]); }
+    }
+    if(lo2<Infinity){
+      const ry=v=>P.bot-(v-lo2)/(hi2-lo2||1)*(P.bot-P.top-4)-2;
+      ctx.strokeStyle="#1fd3b4"; ctx.lineWidth=1; ctx.beginPath();
+      let s1=false;
+      for(let i=start;i<end;i++){const v=aroonArr.up[i];if(v==null)continue;const px=x(i);if(!s1){ctx.moveTo(px,ry(v));s1=true;}else ctx.lineTo(px,ry(v));}
+      ctx.stroke();
+      ctx.strokeStyle="#ff6b66"; ctx.beginPath();
+      s1=false;
+      for(let i=start;i<end;i++){const v=aroonArr.dn[i];if(v==null)continue;const px=x(i);if(!s1){ctx.moveTo(px,ry(v));s1=true;}else ctx.lineTo(px,ry(v));}
+      ctx.stroke();
+      paneFrame(P,"AROON","Up "+((aroonArr.up[end-1]||0).toFixed(0))+" / Dn "+((aroonArr.dn[end-1]||0).toFixed(0)),"#1fd3b4");
+    } else paneFrame(P,"AROON","—","#1fd3b4");
+  }
+
+  /* KST */
+  if(S.show.kst && kstArr && panes.kst){
+    const P=panes.kst;
+    let lo2=Infinity,hi2=-Infinity;
+    for(let i=start;i<end;i++){
+      if(kstArr.kst[i]!=null){ lo2=Math.min(lo2,kstArr.kst[i]); hi2=Math.max(hi2,kstArr.kst[i]); }
+      if(kstArr.sig[i]!=null){ lo2=Math.min(lo2,kstArr.sig[i]); hi2=Math.max(hi2,kstArr.sig[i]); }
+    }
+    if(lo2<Infinity){
+      const ry=v=>P.bot-(v-lo2)/(hi2-lo2||1)*(P.bot-P.top-4)-2;
+      if(lo2<0&&hi2>0){ctx.setLineDash([3,3]);ctx.strokeStyle="#3a3a3a";ctx.beginPath();ctx.moveTo(0,ry(0)+.5);ctx.lineTo(plotW,ry(0)+.5);ctx.stroke();ctx.setLineDash([]);}
+      ctx.strokeStyle="#ff9800"; ctx.lineWidth=1.4; ctx.beginPath();
+      let s2=false;
+      for(let i=start;i<end;i++){const v=kstArr.kst[i];if(v==null)continue;const px=x(i);if(!s2){ctx.moveTo(px,ry(v));s2=true;}else ctx.lineTo(px,ry(v));}
+      ctx.stroke();
+      ctx.strokeStyle="#ff980066"; ctx.lineWidth=1; ctx.beginPath();
+      s2=false;
+      for(let i=start;i<end;i++){const v=kstArr.sig[i];if(v==null)continue;const px=x(i);if(!s2){ctx.moveTo(px,ry(v));s2=true;}else ctx.lineTo(px,ry(v));}
+      ctx.stroke();
+      paneFrame(P,"KST",(kstArr.kst[end-1]||0).toFixed(2),"#ff9800");
+    } else paneFrame(P,"KST","—","#ff9800");
+  }
+
+  /* Squeeze Momentum */
+  if(S.show.sqzmom && sqzmomArr && panes.sqzmom){
+    const P=panes.sqzmom;
+    const moms=sqzmomArr.mom.slice(start,end);
+    const validMoms=moms.filter(v=>v!=null);
+    if(validMoms.length){
+      const hi2=Math.max(...validMoms.map(Math.abs)), rng=hi2||1;
+      const mid=(P.top+P.bot)/2;
+      const bH=(P.bot-P.top-8)/2;
+      for(let i=0;i<end-start;i++){
+        const v=moms[i]; if(v==null) continue;
+        const px=(i)*xw, h=Math.abs(v)/rng*bH;
+        const prevV=i>0?moms[i-1]:null;
+        const increasing = prevV!=null ? Math.abs(v) > Math.abs(prevV) : true;
+        if(v>=0) ctx.fillStyle = increasing ? "#1fd3b4" : "#0a5c4e";
+        else ctx.fillStyle = increasing ? "#ff6b66" : "#6b2a28";
+        ctx.fillRect(px+1, v>=0?mid-h:mid, Math.max(1,xw-2), h);
+      }
+      for(let i=0;i<end-start;i++){
+        const sq=sqzmomArr.sqzOn[start+i];
+        const px=i*xw+xw/2;
+        ctx.fillStyle = sq ? "#e5484d" : "#4ade80";
+        ctx.beginPath(); ctx.arc(px, mid, 2, 0, Math.PI*2); ctx.fill();
+      }
+      paneFrame(P,"SQZ MOM",(moms[moms.length-1]||0).toFixed(2),"#4ade80");
+    } else paneFrame(P,"SQZ MOM","—","#4ade80");
+  }
 
   /* ═══ 가격 패널 프로파일: 볼륨 프로파일(우측) · 청산맵 추정(좌측) ═══ */
   if(S.show.vp){
@@ -2281,6 +2474,17 @@ function drawChart(){
       ctx.beginPath(); ctx.moveTo(x(i-1),y(stArr.line[i-1])); ctx.lineTo(x(i),y(stArr.line[i])); ctx.stroke();
     }
     ctx.lineWidth=1;
+  }
+  /* HMA overlay */
+  if(hmaArr){
+    ctx.strokeStyle="#ff6d00"; ctx.lineWidth=1.5; ctx.beginPath();
+    let s3=false;
+    for(let i=start;i<end;i++){
+      const v=hmaArr[i]; if(v==null) continue;
+      const px=x(i);
+      if(!s3){ctx.moveTo(px,y(v));s3=true;}else ctx.lineTo(px,y(v));
+    }
+    ctx.stroke(); ctx.lineWidth=1;
   }
 
   /* EMA100 */
@@ -4317,6 +4521,9 @@ const CMD_LIST=[
   {c:"HMAP", d:"전 종목 24h 변동률 히트맵 (시총 기반)"},
   {c:"CORR", d:"BTC 대비 알트코인 상관관계 분석"},
   {c:"MTF", d:"멀티타임프레임 지표 정렬 대시보드"},
+  {c:"ONCHAIN", d:"온체인 데이터 (거래소 잔고·해시레이트·활성주소)"},
+  {c:"COMPARE ETH", d:"현재 종목과 다른 종목 24h 비교"},
+  {c:"LIQUIDMAP", d:"추정 청산 가격대 분포 (10x-100x)"},
   {c:"MOST", d:"급등 스크리너로 전환"},
   {c:"LIQ",  d:"청산맵(추정) 토글"},
   {c:"VP",   d:"볼륨 프로파일 토글"},
@@ -4487,6 +4694,10 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="SCANNER"){ scannerOverlay(); e.target.value=""; return; }
   if(raw==="PNL"){ pnlOverlay(); e.target.value=""; return; }
   if(raw==="STATUS"){ statusOverlay(); e.target.value=""; return; }
+  if(raw==="ONCHAIN"){ onchainOverlay(); e.target.value=""; return; }
+  const compm = raw.match(/^COMPARE\s+([A-Z0-9]+)$/);
+  if(compm){ compareOverlay(S.sym, compm[1]); e.target.value=""; return; }
+  if(raw==="LIQUIDMAP"||raw==="LMAP"){ liquidmapOverlay(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
   const m=raw.match(/^([A-Z0-9]{2,10})\s*(15M|1H|4H|1D)?$/);
