@@ -4732,6 +4732,9 @@ const CMD_LIST=[
   {c:"SECTOR", d:"섹터별 성과 분석 (L1·DeFi·Meme·AI 등)"},
   {c:"PATTERN", d:"캔들스틱 패턴 자동 감지 (최근 10봉)"},
   {c:"SUMMARY", d:"현재 종목 종합 요약 (한줄 분석)"},
+  {c:"PERF", d:"전 종목 멀티 타임프레임 성과 매트릭스"},
+  {c:"DIVERGE", d:"RSI·MACD 다이버전스 자동 감지"},
+  {c:"REPORT", d:"오늘의 종합 리포트 (전 지표 한눈에)"},
   {c:"HELP", d:"전체 명령 도움말"},
 ];
 let sugSel=-1, sugItems=[];
@@ -4896,6 +4899,9 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="SECTOR"){ sectorOverlay(); e.target.value=""; return; }
   if(raw==="PATTERN"){ patternOverlay(); e.target.value=""; return; }
   if(raw==="SUMMARY"||raw==="SUM"){ summaryOverlay(); e.target.value=""; return; }
+  if(raw==="PERF"){ perfOverlay(); e.target.value=""; return; }
+  if(raw==="DIVERGE"||raw==="DIV"){ divergeOverlay(); e.target.value=""; return; }
+  if(raw==="REPORT"){ reportOverlay(); e.target.value=""; return; }
   if(raw==="KRW"){ krwCalcOverlay(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
@@ -5519,6 +5525,246 @@ function summaryOverlay(){
 
   html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:9px;color:var(--ink3)">${S.tf} 타임프레임 기준 · 투자 조언이 아님</div>`;
   showOverlay(`SUMMARY · ${S.sym} 종합 분석`, html);
+}
+
+function perfOverlay(){
+  if(!S.allTickers || !S.allTickers.length){
+    showOverlay("PERF MATRIX", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
+    return;
+  }
+
+  // Use 24h data from allTickers + calculate 1h estimated from recent candles
+  const top = [...S.allTickers].sort((a,b) => b.vol - a.vol).slice(0, 25);
+
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  html += '<thead><tr><th style="text-align:left;padding:4px 6px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--panel)">SYM</th><th style="text-align:right;padding:4px 6px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">PRICE</th><th style="text-align:right;padding:4px 6px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">24H%</th><th style="text-align:right;padding:4px 6px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">VOL $</th><th style="padding:4px 6px;border-bottom:1px solid var(--border)"></th></tr></thead><tbody>';
+
+  for(const c of top){
+    const cls = c.pct >= 0 ? "u" : "d";
+    const barW = Math.min(60, Math.abs(c.pct) * 4);
+    const barColor = c.pct >= 0 ? "var(--up)" : "var(--down)";
+    const funding = c.funding != null ? `<span style="color:${Math.abs(c.funding)>0.03?(c.funding>0?'var(--down-text)':'var(--up-text)'):'var(--ink3)'};font-size:9px">${c.funding>=0?'+':''}${c.funding.toFixed(3)}%</span>` : '';
+
+    html += `<tr style="border-bottom:1px solid #0e0e0e;cursor:pointer" onclick="switchTo('${c.sym}',S.tf);$('btov').classList.remove('on');">
+      <td style="padding:3px 6px;font-weight:600;color:var(--ink)">${c.sym} ${funding}</td>
+      <td style="padding:3px 6px;text-align:right;color:var(--ink2)">${fmtPrice(c.last)}</td>
+      <td style="padding:3px 6px;text-align:right;font-weight:600" class="${cls}">${c.pct>=0?'+':''}${c.pct.toFixed(2)}%</td>
+      <td style="padding:3px 6px;text-align:right;color:var(--ink3)">${fmtBig(c.vol)}</td>
+      <td style="padding:3px 6px;width:60px"><div style="width:${barW}px;height:3px;background:${barColor};${c.pct<0?'margin-left:auto':''}"></div></td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+
+  // Summary stats
+  const avgPct = top.reduce((s,c)=>s+c.pct,0)/top.length;
+  const ups = top.filter(c=>c.pct>0).length;
+  html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3);display:flex;justify-content:space-between">
+    <span>거래량 상위 25종목</span>
+    <span>평균 ${avgPct>=0?'+':''}${avgPct.toFixed(2)}%</span>
+    <span class="u">${ups}↑</span> <span class="d">${top.length-ups}↓</span>
+  </div>`;
+
+  showOverlay("PERF MATRIX · 종목별 성과", html);
+}
+
+function divergeOverlay(){
+  if(!S.candles || S.candles.length < 30){
+    showOverlay("DIVERGENCE", '<div class="rowline"><span style="color:var(--ink3)">차트 데이터 부족 (최소 30봉 필요)</span></div>');
+    return;
+  }
+
+  const cs = S.candles;
+  const n = cs.length;
+  const closes = cs.map(c=>c.c);
+  const rsiArr = rsiSeries(closes, 14);
+  const macdData = macdSeries(closes);
+
+  const divergences = [];
+
+  // Scan for pivot highs and lows in price and RSI
+  // Look at last 50 candles, find swing highs/lows
+  const lookback = Math.min(50, n);
+  const start = n - lookback;
+
+  // Find swing highs/lows (simple: higher than 2 neighbors)
+  const swingH = [], swingL = [];
+  for(let i = start+2; i < n-2; i++){
+    if(cs[i].h > cs[i-1].h && cs[i].h > cs[i-2].h && cs[i].h > cs[i+1].h && cs[i].h > cs[i+2].h)
+      swingH.push(i);
+    if(cs[i].l < cs[i-1].l && cs[i].l < cs[i-2].l && cs[i].l < cs[i+1].l && cs[i].l < cs[i+2].l)
+      swingL.push(i);
+  }
+
+  // RSI Bearish Divergence: price makes higher high, RSI makes lower high
+  for(let i=1; i<swingH.length; i++){
+    const a = swingH[i-1], b = swingH[i];
+    if(cs[b].h > cs[a].h && rsiArr[b] != null && rsiArr[a] != null && rsiArr[b] < rsiArr[a]){
+      divergences.push({
+        type: "RSI 약세 다이버전스",
+        bias: "약세",
+        color: "var(--down-text)",
+        bar1: a, bar2: b,
+        desc: `가격 고점↑ ($${fmtPrice(cs[a].h)}→$${fmtPrice(cs[b].h)}) but RSI↓ (${rsiArr[a].toFixed(0)}→${rsiArr[b].toFixed(0)})`,
+        strength: Math.abs(rsiArr[a] - rsiArr[b])
+      });
+    }
+  }
+
+  // RSI Bullish Divergence: price makes lower low, RSI makes higher low
+  for(let i=1; i<swingL.length; i++){
+    const a = swingL[i-1], b = swingL[i];
+    if(cs[b].l < cs[a].l && rsiArr[b] != null && rsiArr[a] != null && rsiArr[b] > rsiArr[a]){
+      divergences.push({
+        type: "RSI 강세 다이버전스",
+        bias: "강세",
+        color: "var(--up-text)",
+        bar1: a, bar2: b,
+        desc: `가격 저점↓ ($${fmtPrice(cs[a].l)}→$${fmtPrice(cs[b].l)}) but RSI↑ (${rsiArr[a].toFixed(0)}→${rsiArr[b].toFixed(0)})`,
+        strength: Math.abs(rsiArr[b] - rsiArr[a])
+      });
+    }
+  }
+
+  // MACD Bearish Divergence
+  for(let i=1; i<swingH.length; i++){
+    const a = swingH[i-1], b = swingH[i];
+    if(cs[b].h > cs[a].h && macdData.hist[b] != null && macdData.hist[a] != null && macdData.hist[b] < macdData.hist[a]){
+      divergences.push({
+        type: "MACD 약세 다이버전스",
+        bias: "약세",
+        color: "var(--down-text)",
+        bar1: a, bar2: b,
+        desc: `가격 고점↑ but MACD 히스토그램↓`,
+        strength: Math.abs(macdData.hist[a] - macdData.hist[b])
+      });
+    }
+  }
+
+  // MACD Bullish Divergence
+  for(let i=1; i<swingL.length; i++){
+    const a = swingL[i-1], b = swingL[i];
+    if(cs[b].l < cs[a].l && macdData.hist[b] != null && macdData.hist[a] != null && macdData.hist[b] > macdData.hist[a]){
+      divergences.push({
+        type: "MACD 강세 다이버전스",
+        bias: "강세",
+        color: "var(--up-text)",
+        bar1: a, bar2: b,
+        desc: `가격 저점↓ but MACD 히스토그램↑`,
+        strength: Math.abs(macdData.hist[b] - macdData.hist[a])
+      });
+    }
+  }
+
+  // Sort by recency (bar2)
+  divergences.sort((a,b) => b.bar2 - a.bar2);
+
+  if(!divergences.length){
+    showOverlay(`DIVERGENCE · ${S.sym}`, '<div style="padding:10px;color:var(--ink3);text-align:center">최근 50봉에서 다이버전스 미감지<br><span style="font-size:9px">다이버전스 = 가격과 지표가 반대로 움직이는 현상 → 반전 신호</span></div>');
+    return;
+  }
+
+  let html = divergences.map(d => {
+    const t1 = fmtT(cs[d.bar1].t, true);
+    const t2 = fmtT(cs[d.bar2].t, true);
+    const barsAgo = n - 1 - d.bar2;
+    return `<div style="padding:6px 10px;border-bottom:1px solid #101010;${barsAgo<=5?'background:rgba(255,160,40,.04);border-left:2px solid var(--amber);':''}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+        <span style="font-weight:700;color:${d.color}">${d.type}</span>
+        <span style="font-size:9px;color:var(--ink3)">${barsAgo}봉 전</span>
+      </div>
+      <div style="font-size:10px;color:var(--ink2)">${d.desc}</div>
+      <div style="font-size:9px;color:var(--ink3)">${t1} → ${t2}</div>
+    </div>`;
+  }).join("");
+
+  const bullDiv = divergences.filter(d=>d.bias==="강세").length;
+  const bearDiv = divergences.filter(d=>d.bias==="약세").length;
+  html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:10px;text-align:center;color:var(--ink2)">
+    감지: <span class="u">강세 ${bullDiv}</span> · <span class="d">약세 ${bearDiv}</span> · ${S.tf} 기준
+  </div>`;
+
+  showOverlay(`DIVERGENCE · ${S.sym} 다이버전스`, html);
+}
+
+function reportOverlay(){
+  const sym = S.sym;
+  const cs = S.candles;
+  if(!cs.length){
+    showOverlay("REPORT", '<div class="rowline"><span style="color:var(--ink3)">데이터 없음</span></div>');
+    return;
+  }
+
+  const n = cs.length;
+  const closes = cs.map(c=>c.c);
+  const price = cs[n-1].c;
+  const q = S.quotes[sym];
+
+  // All indicators at once
+  const rsi = rsiSeries(closes,14)[n-1];
+  const e20=ema(closes,20)[n-1], e50=ema(closes,50)[n-1], e100=ema(closes,100)[n-1];
+  const bb=bollinger(closes,20,2);
+  const bbPos = bb.up[n-1] ? ((price-bb.lo[n-1])/(bb.up[n-1]-bb.lo[n-1])*100).toFixed(0) : "?";
+  const atr=atrSeries(cs,14)[n-1];
+  const macd=macdSeries(closes);
+  const stoch=stochRsiSeries(closes);
+  const adx=adxSeries(cs,14);
+  const volAvg=cs.slice(Math.max(0,n-20),n).reduce((s,c)=>s+c.v,0)/20;
+  const volRatio=(cs[n-1].v/(volAvg||1));
+
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}-${pad2(now.getMonth()+1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
+
+  // Trend assessment
+  const emaAligned = price>e20 && e20>e50 && e50>e100;
+  const emaReverse = price<e20 && e20<e50 && e50<e100;
+  const trend = emaAligned?"UPTREND":emaReverse?"DOWNTREND":"SIDEWAYS";
+  const trendColor = trend==="UPTREND"?"var(--up-text)":trend==="DOWNTREND"?"var(--down-text)":"var(--ink2)";
+
+  let html = `<div style="padding:8px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:16px;font-weight:700;color:var(--ink)">${sym}USDT</div>
+      <div style="font-size:11px;color:var(--ink3)">${dateStr} · ${S.tf}</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:18px;font-weight:700;color:var(--ink)">$${fmtPrice(price)}</div>
+      <div style="font-size:12px;font-weight:700;color:${trendColor}">${trend}</div>
+    </div>
+  </div>`;
+
+  // Indicator grid
+  const ind = (label, value, color) => `<div style="background:#0a0a0a;padding:4px 6px;text-align:center"><div style="color:var(--ink3);font-size:8px">${label}</div><div style="color:${color||'var(--ink)'};font-weight:600;font-size:11px">${value}</div></div>`;
+
+  html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;padding:1px">';
+  html += ind("RSI", rsi?rsi.toFixed(0):"—", rsi>70?"var(--down-text)":rsi<30?"var(--up-text)":"var(--ink)");
+  html += ind("MACD", macd.hist[n-1]>0?"▲ 양":"▼ 음", macd.hist[n-1]>0?"var(--up-text)":"var(--down-text)");
+  html += ind("BB%", bbPos+"%", +bbPos>80?"var(--down-text)":+bbPos<20?"var(--up-text)":"var(--ink)");
+  html += ind("ATR%", atr?(atr/price*100).toFixed(2)+"%":"—", "var(--ink)");
+  html += ind("StochK", stoch.K[n-1]?stoch.K[n-1].toFixed(0):"—", stoch.K[n-1]>80?"var(--down-text)":stoch.K[n-1]<20?"var(--up-text)":"var(--ink)");
+  html += ind("ADX", adx.adx&&adx.adx[n-1]?adx.adx[n-1].toFixed(0):"—", adx.adx&&adx.adx[n-1]>25?"var(--amber)":"var(--ink3)");
+  html += ind("VOL", volRatio.toFixed(1)+"x", volRatio>1.5?"var(--amber)":"var(--ink2)");
+  html += ind("EMA", emaAligned?"정배열▲":emaReverse?"역배열▼":"혼합", trendColor);
+  html += '</div>';
+
+  // Market data
+  html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border);border-top:1px solid var(--border)">MARKET</div>';
+  if(q){
+    html += `<div class="rowline"><span>24h 변동</span><b class="${q.pct>=0?'u':'d'}">${q.pct>=0?'+':''}${q.pct.toFixed(2)}%</b></div>`;
+    html += `<div class="rowline"><span>24h 고/저</span><b>$${fmtPrice(q.high)} / $${fmtPrice(q.low)}</b></div>`;
+    if(q.fundingRate!=null) html += `<div class="rowline"><span>펀딩레이트</span><b style="color:${Math.abs(q.fundingRate)>0.03?'var(--amber)':'var(--ink2)'}">${q.fundingRate>=0?'+':''}${q.fundingRate.toFixed(4)}%</b></div>`;
+  }
+  if(S.lsr) html += `<div class="rowline"><span>롱/숏 비율</span><b><span class="u">${(S.lsr.long*100).toFixed(0)}%</span> / <span class="d">${(S.lsr.short*100).toFixed(0)}%</span></b></div>`;
+  if(S.fng) html += `<div class="rowline"><span>공포/탐욕</span><b style="color:${S.fng.v<=25?'var(--down-text)':S.fng.v>=75?'var(--up-text)':'var(--ink)'}">${S.fng.v} · ${S.fng.cls}</b></div>`;
+
+  // Learn engine status
+  if(LE.signal){
+    html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border);border-top:1px solid var(--border)">LEARN ENGINE</div>';
+    html += `<div class="rowline"><span>컨플루언스 점수</span><b style="color:${LE.signal.score>=60?'var(--up-text)':LE.signal.score>=40?'var(--amber)':'var(--ink3)'}">${LE.signal.score}/100</b></div>`;
+    html += `<div class="rowline"><span>방향</span><b style="color:${LE.signal.dir>0?'var(--up-text)':LE.signal.dir<0?'var(--down-text)':'var(--ink3)'}">${LE.signal.dir>0?'LONG':LE.signal.dir<0?'SHORT':'NEUTRAL'}</b></div>`;
+    html += `<div class="rowline"><span>학습 에폭</span><b>${LE.epoch}회</b></div>`;
+  }
+
+  html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:9px;color:var(--ink3);text-align:center">MOTERA TERMINAL · ${dateStr} · 투자 조언이 아님</div>`;
+  showOverlay(`REPORT · ${sym} 종합 리포트`, html);
 }
 
 /* ══════════════════════════════════════════════════
