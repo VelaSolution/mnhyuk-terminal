@@ -597,6 +597,7 @@
         <div class="ptitle">NEWS WIRE
           <span class="ntab on" data-ntab="all">전체</span>
           <span class="ntab" data-ntab="sym" id="ntab-sym">SOL</span>
+          <span class="ntab" data-ntab="defi">DeFi</span>
           <span class="ntab" data-ntab="kr" id="ntab-kr" style="opacity:.45" title="Vercel 배포 시 활성화">한국</span>
           <span class="age" id="age-news"></span></div>
         <div class="pbody" id="news"><div class="item" style="color:var(--ink3)">로드 중…</div></div>
@@ -3880,11 +3881,70 @@ async function loadNews(){
       const j=await fetchJson("/api/rss?feed=kr");
       items=(j.items||[]).map(n=>({t:n.ts, src:n.source, title:n.title, url:n.url}));
     } else {
-      const cat=tab==="sym"?"&categories="+S.sym:"";
-      const j=await fetchJson("https://min-api.cryptocompare.com/data/v2/news/?lang=EN"+cat);
-      items=(j.Data||[]).map(n=>({t:n.published_on*1000, src:(n.source_info&&n.source_info.name)||n.source, title:n.title, url:n.url}));
+      // Multi-source news aggregation
+      const cat = tab === "sym" ? S.sym : tab === "defi" ? "DeFi" : "";
+      const sources = [];
+
+      // Source 1: CryptoCompare
+      try {
+        const catQ = cat ? "&categories=" + cat : "";
+        const j = await fetchJson("https://min-api.cryptocompare.com/data/v2/news/?lang=EN" + catQ);
+        if(j.Data) sources.push(...j.Data.map(n => ({
+          t: n.published_on * 1000,
+          src: (n.source_info && n.source_info.name) || n.source,
+          title: n.title,
+          url: n.url
+        })));
+      } catch(e){}
+
+      // Source 2: CoinGecko news (status updates)
+      try {
+        const j = await fetchJson("https://api.coingecko.com/api/v3/status_updates?per_page=10");
+        if(j.status_updates) sources.push(...j.status_updates.map(n => ({
+          t: Date.parse(n.created_at),
+          src: n.project?.name || "CoinGecko",
+          title: n.description?.slice(0, 120) || "",
+          url: n.project?.links?.homepage?.[0] || "https://coingecko.com"
+        })).filter(n => n.title));
+      } catch(e){}
+
+      // Source 3: CryptoPanic (free tier)
+      try {
+        const filter = cat ? `&currencies=${cat}` : "";
+        const j = await fetchJson("https://cryptopanic.com/api/free/v1/posts/?auth_token=free&public=true" + filter);
+        if(j.results) sources.push(...j.results.slice(0, 10).map(n => ({
+          t: Date.parse(n.published_at),
+          src: n.source?.title || "CryptoPanic",
+          title: n.title,
+          url: n.url
+        })));
+      } catch(e){}
+
+      // Source 4: RSS feeds via proxy (if available)
+      if(S.proxy){
+        try {
+          const feeds = ["coindesk", "cointelegraph", "theblock"];
+          for(const feed of feeds){
+            try {
+              const j = await fetchJson("/api/rss?feed=" + feed);
+              if(j.items) sources.push(...j.items.map(n => ({
+                t: n.ts, src: n.source || feed.toUpperCase(), title: n.title, url: n.url
+              })));
+            } catch(e){}
+          }
+        } catch(e){}
+      }
+
+      // Deduplicate by title similarity and sort by time
+      const seen = new Set();
+      items = sources.filter(n => {
+        const key = n.title.slice(0, 40).toLowerCase();
+        if(seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      }).sort((a, b) => b.t - a.t);
     }
-    items=items.slice(0,16);
+    items=items.slice(0,24);
     if(!items.length) throw 0;
     if(tab!=="kr") S.newsItems=items;
     $("news").innerHTML=items.map(n=>{
@@ -4023,6 +4083,213 @@ function exportCSV(){
   pushLog(`CSV 다운로드: ${LE.history.length}건 내보내기 완료`);
 }
 
+async function scannerOverlay(){
+  if(!S.allTickers || !S.allTickers.length){
+    showOverlay("SCANNER", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
+    return;
+  }
+
+  showOverlay("SCANNER · 조건 스캔 중", '<div class="rowline"><span style="color:var(--ink3)">상위 20종목 분석 중… (약 10초)</span></div>');
+
+  const top = [...S.allTickers].sort((a,b) => b.vol - a.vol).slice(0, 20);
+  const results = [];
+
+  for(const coin of top){
+    try {
+      const data = await firstOk(klineChain(coin.sym, "1H", 100));
+      if(!data || data.length < 30) continue;
+
+      const closes = data.map(c => c.c);
+      const n = data.length;
+      const last = n - 1;
+
+      // RSI
+      const rsiArr = rsiSeries(closes, 14);
+      const rsi = rsiArr[last];
+
+      // Volume spike
+      const volAvg = data.slice(Math.max(0,last-20), last).reduce((s,c) => s+c.v, 0) / 20;
+      const volRatio = data[last].v / (volAvg || 1);
+
+      // BB position
+      const bb = bollinger(closes, 20, 2);
+      const bbPos = bb.up[last] ? (closes[last] - bb.lo[last]) / (bb.up[last] - bb.lo[last]) : 0.5;
+
+      // Conditions
+      const conditions = [];
+      if(rsi < 30) conditions.push({label:"RSI 과매도", color:"var(--up-text)", weight:2});
+      if(rsi > 70) conditions.push({label:"RSI 과매수", color:"var(--down-text)", weight:2});
+      if(volRatio > 2) conditions.push({label:`볼륨 ${volRatio.toFixed(1)}x`, color:"var(--amber)", weight:1.5});
+      if(bbPos <= 0.05) conditions.push({label:"BB 하단터치", color:"var(--up-text)", weight:1.5});
+      if(bbPos >= 0.95) conditions.push({label:"BB 상단터치", color:"var(--down-text)", weight:1.5});
+      if(Math.abs(coin.pct) > 8) conditions.push({label:`24h ${coin.pct>0?'+':''}${coin.pct.toFixed(1)}%`, color:coin.pct>0?"var(--up-text)":"var(--down-text)", weight:1});
+
+      if(conditions.length > 0){
+        results.push({
+          sym: coin.sym,
+          price: coin.last,
+          pct: coin.pct,
+          rsi,
+          volRatio,
+          conditions,
+          score: conditions.reduce((s,c) => s + c.weight, 0),
+        });
+      }
+    } catch(e){ /* skip */ }
+  }
+
+  results.sort((a,b) => b.score - a.score);
+
+  if(!results.length){
+    showOverlay("SCANNER", '<div class="rowline"><span style="color:var(--ink3)">조건에 부합하는 종목 없음</span></div>');
+    return;
+  }
+
+  let html = results.map(r => {
+    const tags = r.conditions.map(c => `<span style="color:${c.color};font-size:9px;border:1px solid ${c.color}33;padding:0 4px;margin-right:3px">${c.label}</span>`).join("");
+    const cls = r.pct >= 0 ? "u" : "d";
+    return `<div class="rowline" style="padding:6px 10px;cursor:pointer;flex-wrap:wrap;gap:4px" onclick="switchTo('${r.sym}',S.tf);$('btov').classList.remove('on');">
+      <span style="font-weight:700;color:var(--ink);min-width:45px">${r.sym}</span>
+      <span style="color:var(--ink2);min-width:70px">${fmtPrice(r.price)}</span>
+      <span class="${cls}" style="min-width:50px">${r.pct>=0?'+':''}${r.pct.toFixed(1)}%</span>
+      <span style="flex:1">${tags}</span>
+    </div>`;
+  }).join("");
+
+  html += `<div style="padding:6px 10px;font-size:9px;color:var(--ink3)">거래량 상위 20종목 · 1H 타임프레임 기준 · 클릭하면 차트 전환</div>`;
+  showOverlay(`SCANNER · ${results.length}개 감지`, html);
+}
+
+function pnlOverlay(){
+  if(!LE.history.length){
+    showOverlay("PNL CURVE", '<div class="rowline"><span style="color:var(--ink3)">학습 거래 내역 없음</span></div>');
+    return;
+  }
+
+  // Build equity curve
+  const trades = LE.history.slice();
+  let eq = 0;
+  const points = trades.map(t => { eq += t.pnl; return {t: t.t, eq, pnl: t.pnl, sym: t.sym, win: t.win}; });
+
+  const maxEq = Math.max(...points.map(p => p.eq), 0);
+  const minEq = Math.min(...points.map(p => p.eq), 0);
+  const range = (maxEq - minEq) || 1;
+
+  // Draw ASCII-style equity curve using divs
+  const W = 300, H = 80;
+  const barW = Math.max(2, Math.min(8, W / points.length));
+
+  let bars = '';
+  for(const p of points){
+    const h = ((p.eq - minEq) / range * H);
+    const color = p.eq >= 0 ? "var(--up)" : "var(--down)";
+    bars += `<div style="width:${barW}px;height:${H}px;display:inline-flex;align-items:flex-end;" title="${p.sym} ${p.win?'WIN':'LOSS'} ${p.pnl>=0?'+':''}${p.pnl.toFixed(2)}%">
+      <div style="width:100%;height:${Math.max(1,h)}px;background:${color};opacity:0.7"></div>
+    </div>`;
+  }
+
+  // Stats
+  const wins = trades.filter(t => t.win).length;
+  const totalPnl = points.length ? points[points.length-1].eq : 0;
+  let peak = 0, mdd = 0;
+  for(const p of points){ peak = Math.max(peak, p.eq); mdd = Math.min(mdd, p.eq - peak); }
+
+  // Monthly breakdown
+  const months = {};
+  for(const t of trades){
+    const key = new Date(t.t).toISOString().slice(0,7);
+    months[key] = (months[key] || 0) + t.pnl;
+  }
+
+  let html = `<div style="padding:10px;text-align:center;">
+    <div style="font-size:10px;color:var(--ink3);margin-bottom:4px">에쿼티 커브 (${trades.length}건)</div>
+    <div style="overflow-x:auto;white-space:nowrap;border:1px solid #222;padding:2px;background:#0a0a0a;display:inline-flex;align-items:flex-end;">
+      ${bars}
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--ink3);margin-top:2px;padding:0 4px">
+      <span>최저 ${minEq.toFixed(1)}%</span>
+      <span>최고 ${maxEq.toFixed(1)}%</span>
+    </div>
+  </div>`;
+
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px;background:var(--border)">
+    <div style="background:var(--panel);padding:6px;text-align:center;font-size:10px">
+      <div style="color:var(--ink3);font-size:9px">누적</div>
+      <div style="color:${totalPnl>=0?'var(--up-text)':'var(--down-text)'};font-weight:700">${totalPnl>=0?'+':''}${totalPnl.toFixed(2)}%</div>
+    </div>
+    <div style="background:var(--panel);padding:6px;text-align:center;font-size:10px">
+      <div style="color:var(--ink3);font-size:9px">승률</div>
+      <div style="color:var(--ink);font-weight:700">${(wins/trades.length*100).toFixed(0)}%</div>
+    </div>
+    <div style="background:var(--panel);padding:6px;text-align:center;font-size:10px">
+      <div style="color:var(--ink3);font-size:9px">MDD</div>
+      <div style="color:var(--down-text);font-weight:700">${mdd.toFixed(2)}%</div>
+    </div>
+    <div style="background:var(--panel);padding:6px;text-align:center;font-size:10px">
+      <div style="color:var(--ink3);font-size:9px">거래수</div>
+      <div style="color:var(--ink);font-weight:700">${trades.length}</div>
+    </div>
+  </div>`;
+
+  // Monthly table
+  const monthKeys = Object.keys(months).sort();
+  if(monthKeys.length > 1){
+    html += '<div style="padding:4px 10px;color:var(--ink3);font-size:10px;letter-spacing:1px;border-top:1px solid var(--border);margin-top:1px">월별</div>';
+    html += monthKeys.map(k => {
+      const v = months[k];
+      return `<div class="rowline"><span style="color:var(--ink2)">${k}</span><b style="color:${v>=0?'var(--up-text)':'var(--down-text)'}">${v>=0?'+':''}${v.toFixed(2)}%</b></div>`;
+    }).join("");
+  }
+
+  showOverlay("PNL CURVE · 학습엔진 성과", html);
+}
+
+function statusOverlay(){
+  const ws = S.wsAlive;
+  const src = S.srcHealth;
+  const candles = S.candles.length;
+  const uptime = Math.round((Date.now() - (window._bootTime || Date.now())) / 60000);
+
+  const panels = Object.entries(S.lastGood).map(([k, ts]) => {
+    const age = Math.round((Date.now() - ts) / 1000);
+    const status = age < 30 ? "LIVE" : age < 120 ? "STALE" : "DEAD";
+    const color = status === "LIVE" ? "var(--up-text)" : status === "STALE" ? "var(--amber)" : "var(--down-text)";
+    return `<div class="rowline"><span style="color:var(--ink2)">${k}</span><span style="color:${color};font-weight:600">${status}</span><span style="color:var(--ink3)">${age}s</span></div>`;
+  }).join("");
+
+  let html = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px">WebSocket</div>
+      <div style="color:${ws?'var(--up-text)':'var(--down-text)'};font-weight:700;font-size:13px">${ws?'CONNECTED':'OFFLINE'}</div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px">API 소스</div>
+      <div style="color:var(--ink);font-weight:700;font-size:13px"><span class="u">${src.ok}</span> / <span class="d">${src.fail}</span></div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--ink3);font-size:9px">가동 시간</div>
+      <div style="color:var(--ink);font-weight:700;font-size:13px">${uptime}분</div>
+    </div>
+  </div>`;
+
+  html += `<div style="padding:4px 10px;color:var(--ink3);font-size:10px;letter-spacing:1px;border-bottom:1px solid var(--border)">DATA PANELS</div>`;
+  html += panels;
+
+  html += `<div style="padding:4px 10px;color:var(--ink3);font-size:10px;letter-spacing:1px;border-bottom:1px solid var(--border);border-top:1px solid var(--border)">STATE</div>`;
+  html += `<div class="rowline"><span>캔들 데이터</span><b>${candles}개</b></div>`;
+  html += `<div class="rowline"><span>심볼 / TF</span><b>${S.sym} / ${S.tf}</b></div>`;
+  html += `<div class="rowline"><span>전종목 티커</span><b>${S.allTickers?S.allTickers.length+'종':'미로드'}</b></div>`;
+  html += `<div class="rowline"><span>관심종목</span><b>${SYMBOLS.length}개</b></div>`;
+  html += `<div class="rowline"><span>포지션</span><b>${S.positions.length}개</b></div>`;
+  html += `<div class="rowline"><span>스나이퍼</span><b>${S.snipers?S.snipers.length:0}개</b></div>`;
+  html += `<div class="rowline"><span>학습 에폭</span><b>${LE.epoch}회</b></div>`;
+  html += `<div class="rowline"><span>뉴스 피드</span><b>${S.newsItems.length}건</b></div>`;
+  html += `<div class="rowline"><span>프록시 (Vercel)</span><b>${S.proxy?'연결':'미연결'}</b></div>`;
+  html += `<div class="rowline"><span>주문 API</span><b>${S.orderApi?(S.orderLive?'LIVE':'테스트넷'):'미연결'}</b></div>`;
+
+  showOverlay("STATUS · 시스템 상태", html);
+}
+
 const CMD_LIST=[
   {c:"BTC 4H",   d:"심볼·타임프레임 전환 (임의 심볼 가능)"},
   {c:"DES SOL",  d:"종목 개요 — 시총·공급량·ATH (코인게코)"},
@@ -4065,6 +4332,9 @@ const CMD_LIST=[
   {c:"MEMO", d:"현재 종목 메모 보기"},
   {c:"MEMO CLEAR", d:"현재 종목 메모 삭제"},
   {c:"EXPORT", d:"학습엔진 거래내역 CSV 다운로드"},
+  {c:"SCANNER", d:"전 종목 조건 스캐너 (RSI 과매도 + 볼륨 급증)"},
+  {c:"PNL", d:"학습엔진 에쿼티 커브 (누적 수익 그래프)"},
+  {c:"STATUS", d:"시스템 상태 대시보드 (연결·데이터·성능)"},
   {c:"HELP", d:"전체 명령 도움말"},
 ];
 let sugSel=-1, sugItems=[];
@@ -4214,6 +4484,9 @@ $("cmd").addEventListener("keydown",e=>{
   }
   if(raw==="MEMO"){ memoOverlay(); e.target.value=""; return; }
   if(raw==="EXPORT"){ exportCSV(); e.target.value=""; return; }
+  if(raw==="SCANNER"){ scannerOverlay(); e.target.value=""; return; }
+  if(raw==="PNL"){ pnlOverlay(); e.target.value=""; return; }
+  if(raw==="STATUS"){ statusOverlay(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
   const m=raw.match(/^([A-Z0-9]{2,10})\s*(15M|1H|4H|1D)?$/);
@@ -4467,6 +4740,7 @@ function billionSignalOverlay(data){
 function boot(){
 if(_booted) return;
 _booted = true;
+  window._bootTime = Date.now();
   leInit();
   requestNotifPermission();
   loadCfgFromHash();
