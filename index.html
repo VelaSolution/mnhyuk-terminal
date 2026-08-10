@@ -4723,6 +4723,9 @@ const CMD_LIST=[
   {c:"SCANNER", d:"전 종목 조건 스캐너 (RSI 과매도 + 볼륨 급증)"},
   {c:"PNL", d:"학습엔진 에쿼티 커브 (누적 수익 그래프)"},
   {c:"STATUS", d:"시스템 상태 대시보드 (연결·데이터·성능)"},
+  {c:"TIMELINE", d:"가격 히스토리 타임라인 (7일·30일·90일 변동)"},
+  {c:"VOL24", d:"전 종목 24h 변동률 순위 (변동성 랭킹)"},
+  {c:"KRW", d:"원화 환산 계산기 (현재 종목 기준)"},
   {c:"HELP", d:"전체 명령 도움말"},
 ];
 let sugSel=-1, sugItems=[];
@@ -4879,6 +4882,9 @@ $("cmd").addEventListener("keydown",e=>{
   const compm = raw.match(/^COMPARE\s+([A-Z0-9]+)$/);
   if(compm){ compareOverlay(S.sym, compm[1]); e.target.value=""; return; }
   if(raw==="LIQUIDMAP"||raw==="LMAP"){ liquidmapOverlay(); e.target.value=""; return; }
+  if(raw==="TIMELINE"){ timelineOverlay(); e.target.value=""; return; }
+  if(raw==="VOL24"){ vol24Overlay(); e.target.value=""; return; }
+  if(raw==="KRW"){ krwCalcOverlay(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
   const m=raw.match(/^([A-Z0-9]{2,10})\s*(15M|1H|4H|1D)?$/);
@@ -4909,6 +4915,139 @@ function tickClocks(){
 }
 
 /* boot */
+/* ══════════════════════════════════════════════════
+   TIMELINE · VOL24 · KRW 함수
+   ══════════════════════════════════════════════════ */
+
+async function timelineOverlay(){
+  const sym = S.sym;
+  showOverlay(`TIMELINE · ${sym}`, '<div class="rowline"><span style="color:var(--ink3)">히스토리 로드 중…</span></div>');
+
+  try {
+    const data = await firstOk(klineChain(sym, "1D", 90));
+    if(!data || data.length < 7) throw new Error("insufficient data");
+
+    const n = data.length;
+    const now = data[n-1].c;
+
+    const periods = [
+      {label:"24시간", idx:Math.max(0,n-2)},
+      {label:"7일", idx:Math.max(0,n-7)},
+      {label:"14일", idx:Math.max(0,n-14)},
+      {label:"30일", idx:Math.max(0,n-30)},
+      {label:"60일", idx:Math.max(0,n-60)},
+      {label:"90일", idx:Math.max(0,n-90)},
+    ].filter(p => p.idx >= 0 && p.idx < n);
+
+    let html = `<div style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--ink3)">${sym}USDT 현재가</div>
+      <div style="font-size:22px;font-weight:700;color:var(--ink)">$${fmtPrice(now)}</div>
+    </div>`;
+
+    // Period returns
+    html += periods.map(p => {
+      const past = data[p.idx].c;
+      const pct = (now - past) / past * 100;
+      const high = Math.max(...data.slice(p.idx).map(c=>c.h));
+      const low = Math.min(...data.slice(p.idx).map(c=>c.l));
+      const cls = pct >= 0 ? "u" : "d";
+      const barW = Math.min(100, Math.abs(pct) * 3);
+
+      return `<div class="rowline" style="padding:6px 10px;align-items:center">
+        <span style="color:var(--ink2);min-width:50px">${p.label}</span>
+        <span style="flex:1;display:flex;align-items:center;gap:4px;">
+          <span style="width:60px;height:4px;background:#1a1a1a;position:relative;display:inline-block">
+            <span style="position:absolute;${pct>=0?'left:50%':'right:50%'};width:${barW/2}%;height:100%;background:${pct>=0?'var(--up)':'var(--down)'}"></span>
+          </span>
+        </span>
+        <span class="${cls}" style="font-weight:700;min-width:60px;text-align:right">${pct>=0?'+':''}${pct.toFixed(2)}%</span>
+        <span style="color:var(--ink3);font-size:9px;min-width:90px;text-align:right">H $${fmtPrice(high)} L $${fmtPrice(low)}</span>
+      </div>`;
+    }).join("");
+
+    // Volatility
+    const returns = [];
+    for(let i=1;i<n;i++) returns.push(Math.abs((data[i].c - data[i-1].c) / data[i-1].c * 100));
+    const avgVol = returns.reduce((s,v)=>s+v,0) / returns.length;
+    const maxVol = Math.max(...returns);
+
+    html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:10px;display:flex;justify-content:space-between;color:var(--ink2)">
+      <span>평균 일간 변동: <b style="color:var(--ink)">${avgVol.toFixed(2)}%</b></span>
+      <span>최대 일간 변동: <b style="color:var(--amber)">${maxVol.toFixed(2)}%</b></span>
+    </div>`;
+
+    showOverlay(`TIMELINE · ${sym} 가격 히스토리`, html);
+  } catch(e){
+    showOverlay(`TIMELINE`, '<div class="rowline"><span style="color:var(--down-text)">데이터 로드 실패</span></div>');
+  }
+}
+
+function vol24Overlay(){
+  if(!S.allTickers || !S.allTickers.length){
+    showOverlay("VOLATILITY", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
+    return;
+  }
+
+  // Sort by absolute 24h change (most volatile first)
+  const sorted = [...S.allTickers].sort((a,b) => Math.abs(b.pct) - Math.abs(a.pct)).slice(0, 40);
+
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+  html += '<thead><tr><th style="text-align:left;padding:4px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">#</th><th style="text-align:left;padding:4px 8px;color:var(--ink3);font-weight:400">SYM</th><th style="text-align:right;padding:4px 8px;color:var(--ink3);font-weight:400">PRICE</th><th style="text-align:right;padding:4px 8px;color:var(--ink3);font-weight:400">24H%</th><th style="padding:4px 8px;color:var(--ink3);font-weight:400">|변동|</th></tr></thead><tbody>';
+
+  sorted.forEach((c, i) => {
+    const cls = c.pct >= 0 ? "u" : "d";
+    const absP = Math.abs(c.pct);
+    const barW = Math.min(100, absP * 5);
+    const barColor = c.pct >= 0 ? "var(--up)" : "var(--down)";
+
+    html += `<tr style="border-bottom:1px solid #101010;cursor:pointer" onclick="switchTo('${c.sym}',S.tf);$('btov').classList.remove('on');">
+      <td style="padding:3px 8px;color:var(--ink3)">${i+1}</td>
+      <td style="padding:3px 8px;font-weight:600;color:var(--ink)">${c.sym}</td>
+      <td style="padding:3px 8px;text-align:right;color:var(--ink2)">${fmtPrice(c.last)}</td>
+      <td style="padding:3px 8px;text-align:right;font-weight:600" class="${cls}">${c.pct>=0?'+':''}${c.pct.toFixed(2)}%</td>
+      <td style="padding:3px 8px;"><div style="width:${barW}%;height:4px;background:${barColor};min-width:2px"></div></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+
+  const avg = S.allTickers.reduce((s,c)=>s+Math.abs(c.pct),0)/S.allTickers.length;
+  html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">평균 |변동률| ${avg.toFixed(2)}% · 상위 40종목 · 절대값 기준 정렬</div>`;
+  showOverlay("VOLATILITY · 24H 변동률 순위", html);
+}
+
+function krwCalcOverlay(){
+  const q = S.quotes[S.sym];
+  const price = q ? q.last : 0;
+  const rate = S.usdkrw || 1380;
+  const krwPrice = price * rate;
+
+  const amounts = [0.01, 0.1, 0.5, 1, 5, 10, 50, 100];
+
+  let html = `<div style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;color:var(--ink3)">${S.sym} 현재가</div>
+    <div style="font-size:18px;font-weight:700;color:var(--ink)">$${fmtPrice(price)} = ₩${Math.round(krwPrice).toLocaleString()}</div>
+    <div style="font-size:10px;color:var(--ink3)">환율: $1 = ₩${Math.round(rate).toLocaleString()}</div>
+  </div>`;
+
+  html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+  html += '<thead><tr><th style="text-align:left;padding:4px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">수량</th><th style="text-align:right;padding:4px 8px;color:var(--ink3);font-weight:400">USD</th><th style="text-align:right;padding:4px 8px;color:var(--ink3);font-weight:400">KRW</th></tr></thead><tbody>';
+
+  for(const amt of amounts){
+    const usd = price * amt;
+    const krw = usd * rate;
+    html += `<tr style="border-bottom:1px solid #101010">
+      <td style="padding:3px 8px;color:var(--ink);font-weight:600">${amt} ${S.sym}</td>
+      <td style="padding:3px 8px;text-align:right;color:var(--ink2)">$${usd>=1000?usd.toLocaleString('en',{maximumFractionDigits:0}):usd.toFixed(2)}</td>
+      <td style="padding:3px 8px;text-align:right;color:var(--amber);font-weight:600">₩${Math.round(krw).toLocaleString()}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+
+  // Kimchi premium if available
+  html += '<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">환율은 실시간 추정치 · 김프는 KIMCHI 패널 참고</div>';
+  showOverlay(`KRW · ${S.sym} 원화 환산`, html);
+}
+
 /* ══════════════════════════════════════════════════
    BILLION AI AGENT 연동
    빌리언 = AI 두뇌 (분석 + 시그널)
