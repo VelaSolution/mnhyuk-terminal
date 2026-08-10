@@ -3004,6 +3004,30 @@ function billionSignalOverlay(data){
     </div>`;
   }
 
+  // 원클릭 포지션 등록 버튼
+  const posDir = decision==="BUY"?"LONG":"SHORT";
+  const entryNum = parseFloat(entry);
+  const slNum = parseFloat(sl);
+  if(!isNaN(entryNum) && !isNaN(slNum) && entryNum > 0 && slNum > 0) {
+    html += `<div style="padding:10px;border-top:1px solid var(--border);display:flex;gap:6px">
+      <button onclick="
+        S.positions.push({dir:${decision==='BUY'?1:-1},sym:'${sym}',entry:${entryNum},sl:${slNum},qty:0,hit:false});
+        renderPositions();
+        pushLog('BILLION 시그널 → 포지션 등록: ${posDir} ${sym} @ ${entry}');
+        this.textContent='등록됨 ✓'; this.disabled=true;
+      " style="flex:1;padding:8px;background:${decision==='BUY'?'#0a2920':'#2a0a0a'};border:1px solid ${decision==='BUY'?'var(--up)':'var(--down)'};color:${color};cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px">
+        ${posDir} 포지션 등록
+      </button>
+      ${S.orderApi ? `<button onclick="
+        if(confirm('${posDir} ${sym} 주문을 실행합니까?')){
+          fetch('/api/order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'order',side:'${decision==='BUY'?'Buy':'Sell'}',sym:'${sym}',type:'Limit',price:${entryNum},sl:${slNum}${!isNaN(parseFloat(tp1))?',tp:'+parseFloat(tp1):''}})}).then(r=>r.json()).then(d=>{pushLog(d.ok?'주문 전송 완료':'주문 실패: '+(d.msg||d.error));}).catch(()=>pushLog('주문 전송 실패'));
+        }
+      " style="flex:1;padding:8px;background:#1a1205;border:1px solid var(--amber);color:var(--amber);cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px">
+        주문 실행
+      </button>` : ''}
+    </div>`;
+  }
+
   // 현재 심볼 차트로 전환
   if(sym !== S.sym && ["BTC","ETH","SOL","XRP","DOGE","ADA","AVAX","LINK"].includes(sym)){
     switchTo(sym, S.tf);
