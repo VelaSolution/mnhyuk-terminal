@@ -4760,6 +4760,9 @@ const CMD_LIST=[
   {c:"GAPS", d:"가격 갭 감지 (FVG · CME 갭)"},
   {c:"VPROFILE", d:"가격대별 거래량 분포 (볼륨 프로파일 텍스트)"},
   {c:"SIGNAL", d:"학습엔진 현재 시그널 요약"},
+  {c:"MATRIX", d:"시장 조건 매트릭스 (전체 조건 한눈에)"},
+  {c:"RR 162 158 170", d:"R:R 계산기 (진입·손절·익절)"},
+  {c:"FEAR", d:"공포/탐욕 지수 상세 분석"},
 ];
 let sugSel=-1, sugItems=[];
 function renderSug(){
@@ -4963,6 +4966,10 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="GAPS"){ gapsOverlay(); e.target.value=""; return; }
   if(raw==="VPROFILE"){ vprofileOverlay(); e.target.value=""; return; }
   if(raw==="SIGNAL"||raw==="SIG"){ signalOverlay(); e.target.value=""; return; }
+  if(raw==="MATRIX"){ matrixOverlay(); e.target.value=""; return; }
+  const rrm = raw.match(/^RR\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)$/);
+  if(rrm){ rrCalcOverlay(+rrm[1], +rrm[2], +rrm[3]); e.target.value=""; return; }
+  if(raw==="FEAR"||raw==="GREED"||raw==="FNG"){ fearOverlay(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
   const m=raw.match(/^([A-Z0-9]{2,10})\s*(15M|1H|4H|1D)?$/);
@@ -7525,6 +7532,216 @@ function signalOverlay(){
   }
 
   showOverlay(`SIGNAL · ${S.sym} ${S.tf} 학습엔진 시그널`, html);
+}
+
+/* ── MATRIX: Market condition matrix ── */
+function matrixOverlay(){
+  const sym = S.sym;
+  const cs = S.candles;
+  if(!cs.length) { showOverlay("MATRIX", '<div class="rowline"><span style="color:var(--ink3)">데이터 없음</span></div>'); return; }
+
+  const n = cs.length, closes = cs.map(c=>c.c), price = cs[n-1].c;
+  const q = S.quotes[sym];
+
+  // Compute all conditions
+  const rsi = rsiSeries(closes,14)[n-1];
+  const e20=ema(closes,20)[n-1], e50=ema(closes,50)[n-1], e100=ema(closes,100)[n-1];
+  const bb=bollinger(closes,20,2);
+  const bbPos = bb.up[n-1] ? (price-bb.lo[n-1])/(bb.up[n-1]-bb.lo[n-1]) : 0.5;
+  const macd=macdSeries(closes);
+  const stoch=stochRsiSeries(closes);
+  const adx=adxSeries(cs,14);
+  const atr=atrSeries(cs,14)[n-1];
+  const volAvg=cs.slice(Math.max(0,n-20),n).reduce((s,c)=>s+c.v,0)/20;
+  const volR=cs[n-1].v/(volAvg||1);
+  const funding = q?.fundingRate;
+  const ls = S.lsr;
+  const fng = S.fng;
+
+  function cell(label, value, signal){
+    // signal: "bull", "bear", "neutral", "warn"
+    const colors = {bull:"#0a2920", bear:"#2a0a0a", neutral:"#111", warn:"#1a1205"};
+    const textColors = {bull:"var(--up-text)", bear:"var(--down-text)", neutral:"var(--ink2)", warn:"var(--amber)"};
+    const icons = {bull:"▲", bear:"▼", neutral:"—", warn:"⚠"};
+    return `<div style="background:${colors[signal]};padding:6px;text-align:center;border:1px solid ${textColors[signal]}22">
+      <div style="color:var(--ink3);font-size:8px;letter-spacing:.5px">${label}</div>
+      <div style="color:${textColors[signal]};font-weight:700;font-size:12px">${value}</div>
+      <div style="color:${textColors[signal]};font-size:10px">${icons[signal]}</div>
+    </div>`;
+  }
+
+  const rsiSig = rsi<30?"bull":rsi>70?"bear":"neutral";
+  const emaSig = price>e20&&e20>e50?"bull":price<e20&&e20<e50?"bear":"neutral";
+  const macdSig = macd.hist[n-1]>0?"bull":"bear";
+  const bbSig = bbPos<0.2?"bull":bbPos>0.8?"bear":"neutral";
+  const stochSig = stoch.K[n-1]<20?"bull":stoch.K[n-1]>80?"bear":"neutral";
+  const adxSig = adx.adx&&adx.adx[n-1]>25?(adx.pDI[n-1]>adx.mDI[n-1]?"bull":"bear"):"neutral";
+  const volSig = volR>2?"warn":volR>1.3?"bull":"neutral";
+  const fundSig = funding!=null?(Math.abs(funding)>0.03?(funding>0?"bear":"bull"):"neutral"):"neutral";
+  const lsSig = ls?(ls.long>0.65?"bear":ls.short>0.65?"bull":"neutral"):"neutral";
+  const fngSig = fng?(fng.v<25?"bull":fng.v>75?"bear":"neutral"):"neutral";
+
+  let html = `<div style="padding:6px 10px;text-align:center;border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--ink)">${sym}USDT · $${fmtPrice(price)}</div>`;
+
+  html += '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border)">';
+  html += cell("RSI", rsi?rsi.toFixed(0):"—", rsiSig);
+  html += cell("EMA", emaSig==="bull"?"정배열":"역배열", emaSig);
+  html += cell("MACD", macd.hist[n-1]>0?"양":"음", macdSig);
+  html += cell("BB%", (bbPos*100).toFixed(0)+"%", bbSig);
+  html += cell("StochK", stoch.K[n-1]?stoch.K[n-1].toFixed(0):"—", stochSig);
+  html += cell("ADX", adx.adx&&adx.adx[n-1]?adx.adx[n-1].toFixed(0):"—", adxSig);
+  html += cell("VOL", volR.toFixed(1)+"x", volSig);
+  html += cell("FUND", funding!=null?(funding>=0?"+":"")+funding.toFixed(3)+"%":"—", fundSig);
+  html += cell("L/S", ls?(ls.long*100).toFixed(0)+"/"+((ls.short)*100).toFixed(0):"—", lsSig);
+  html += cell("F&G", fng?fng.v+"":"—", fngSig);
+  html += '</div>';
+
+  // Count signals
+  const sigs = [rsiSig,emaSig,macdSig,bbSig,stochSig,adxSig,volSig,fundSig,lsSig,fngSig];
+  const bulls = sigs.filter(s=>s==="bull").length;
+  const bears = sigs.filter(s=>s==="bear").length;
+  const verdict = bulls>bears+2?"BULLISH":bears>bulls+2?"BEARISH":"MIXED";
+  const vColor = verdict==="BULLISH"?"var(--up-text)":verdict==="BEARISH"?"var(--down-text)":"var(--ink2)";
+
+  html += `<div style="padding:8px 10px;text-align:center;border-top:1px solid var(--border)">
+    <span class="u">강세 ${bulls}</span> · <span class="d">약세 ${bears}</span> · <span style="color:var(--ink3)">중립 ${10-bulls-bears}</span>
+    <div style="font-size:14px;font-weight:700;color:${vColor};margin-top:4px">${verdict}</div>
+  </div>`;
+
+  showOverlay(`MATRIX · ${sym} 조건 매트릭스`, html);
+}
+
+/* ── RR: Risk/Reward calculator ── */
+function rrCalcOverlay(entry, sl, tp){
+  const risk = Math.abs(entry - sl);
+  const reward = Math.abs(tp - entry);
+  const rr = risk > 0 ? (reward / risk).toFixed(2) : "∞";
+  const riskPct = (risk / entry * 100).toFixed(3);
+  const rewardPct = (reward / entry * 100).toFixed(3);
+  const isLong = tp > entry;
+  const dir = isLong ? "LONG" : "SHORT";
+  const dirColor = isLong ? "var(--up-text)" : "var(--down-text)";
+
+  // Break-even win rate for this R:R
+  const rrNum = parseFloat(rr);
+  const beWinRate = rrNum > 0 ? (1 / (1 + rrNum) * 100).toFixed(1) : "—";
+
+  // Multiple R targets
+  const r1 = isLong ? entry + risk : entry - risk;
+  const r2 = isLong ? entry + risk * 2 : entry - risk * 2;
+  const r3 = isLong ? entry + risk * 3 : entry - risk * 3;
+
+  let html = `<div style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;color:var(--ink3)">${dir} TRADE</div>
+    <div style="font-size:32px;font-weight:700;color:var(--amber)">${rr}R</div>
+    <div style="font-size:10px;color:var(--ink3)">손익비 (Risk:Reward)</div>
+  </div>`;
+
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--cyan-text);font-size:9px">진입</div>
+      <div style="font-weight:700;color:var(--ink)">$${fmtPrice(entry)}</div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--down-text);font-size:9px">손절</div>
+      <div style="font-weight:700;color:var(--down-text)">$${fmtPrice(sl)}</div>
+      <div style="font-size:9px;color:var(--ink3)">${riskPct}%</div>
+    </div>
+    <div style="background:var(--panel);padding:8px;text-align:center">
+      <div style="color:var(--up-text);font-size:9px">익절</div>
+      <div style="font-weight:700;color:var(--up-text)">$${fmtPrice(tp)}</div>
+      <div style="font-size:9px;color:var(--ink3)">${rewardPct}%</div>
+    </div>
+  </div>`;
+
+  // R multiple targets
+  html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">R 목표가</div>';
+  html += `<div class="rowline"><span>1R</span><b style="color:var(--ink)">$${fmtPrice(r1)}</b><span style="color:var(--ink3)">${(risk/entry*100).toFixed(2)}%</span></div>`;
+  html += `<div class="rowline"><span>2R</span><b style="color:var(--up-text)">$${fmtPrice(r2)}</b><span style="color:var(--ink3)">${(risk*2/entry*100).toFixed(2)}%</span></div>`;
+  html += `<div class="rowline"><span>3R</span><b style="color:var(--up-text)">$${fmtPrice(r3)}</b><span style="color:var(--ink3)">${(risk*3/entry*100).toFixed(2)}%</span></div>`;
+
+  html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:10px;color:var(--ink2)">
+    손익비 ${rr}R → 손익분기 승률 <b style="color:var(--amber)">${beWinRate}%</b>
+  </div>`;
+
+  showOverlay(`RR · ${dir} 손익비 ${rr}R`, html);
+}
+
+/* ── FEAR: Fear & Greed detailed breakdown ── */
+async function fearOverlay(){
+  showOverlay("FEAR & GREED", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
+
+  try {
+    const j = await fetchJson("https://api.alternative.me/fng/?limit=30");
+    const data = j.data;
+    if(!data || !data.length) throw 0;
+
+    const current = data[0];
+    const v = +current.value;
+    const map = {"Extreme Fear":"극단적 공포","Fear":"공포","Neutral":"중립","Greed":"탐욕","Extreme Greed":"극단적 탐욕"};
+    const color = v<=20?"var(--down-text)":v<=40?"#cc7a00":v<=60?"var(--ink2)":v<=80?"var(--up-text)":"var(--up-text)";
+
+    let html = `<div style="padding:12px;text-align:center;border-bottom:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--ink3)">FEAR & GREED INDEX</div>
+      <div style="font-size:48px;font-weight:700;color:${color}">${v}</div>
+      <div style="font-size:14px;color:${color}">${map[current.value_classification]||current.value_classification}</div>
+      <div style="height:10px;margin:10px auto;max-width:240px;background:linear-gradient(90deg,#e5484d 0%,#cc7a00 30%,#777 50%,#3aa06a 70%,#00a08c 100%);border:1px solid #222;position:relative">
+        <div style="position:absolute;top:-4px;left:${v}%;width:3px;height:18px;background:#fff;transform:translateX(-1px)"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;max-width:240px;margin:0 auto;font-size:8px;color:var(--ink3)">
+        <span>극단적 공포</span><span>중립</span><span>극단적 탐욕</span>
+      </div>
+    </div>`;
+
+    // 30-day history
+    html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">30일 히스토리</div>';
+
+    // Mini chart
+    const vals = data.map(d => +d.value).reverse();
+    const hi = Math.max(...vals), lo = Math.min(...vals);
+    const rng = hi - lo || 1;
+    const W = 280, H = 50;
+    let path = '';
+    vals.forEach((v, i) => {
+      const x = (i / (vals.length-1)) * W;
+      const y = H - ((v - lo) / rng * (H-6)) - 3;
+      path += (i===0?'M':'L') + x.toFixed(1) + ',' + y.toFixed(1);
+    });
+
+    html += `<div style="padding:6px 10px;text-align:center">
+      <svg width="${W}" height="${H}" style="border:1px solid #222;background:#0a0a0a">
+        <line x1="0" y1="${H-((50-lo)/rng*(H-6))-3}" x2="${W}" y2="${H-((50-lo)/rng*(H-6))-3}" stroke="#333" stroke-dasharray="3,3"/>
+        <polyline points="${path.replace(/[ML]/g,' ').trim()}" fill="none" stroke="${color}" stroke-width="2"/>
+      </svg>
+      <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--ink3);margin-top:2px">
+        <span>30일 전</span><span>오늘</span>
+      </div>
+    </div>`;
+
+    // Stats
+    const avg = vals.reduce((s,v)=>s+v,0)/vals.length;
+    const minV = Math.min(...vals), maxV = Math.max(...vals);
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">
+      <div style="background:var(--panel);padding:6px;text-align:center"><div style="color:var(--ink3);font-size:9px">30일 평균</div><div style="font-weight:700;color:var(--ink)">${avg.toFixed(0)}</div></div>
+      <div style="background:var(--panel);padding:6px;text-align:center"><div style="color:var(--ink3);font-size:9px">최저</div><div style="font-weight:700;color:var(--down-text)">${minV}</div></div>
+      <div style="background:var(--panel);padding:6px;text-align:center"><div style="color:var(--ink3);font-size:9px">최고</div><div style="font-weight:700;color:var(--up-text)">${maxV}</div></div>
+    </div>`;
+
+    // Recent daily values
+    html += '<div style="max-height:120px;overflow-y:auto">';
+    data.slice(0, 14).forEach(d => {
+      const val = +d.value;
+      const c = val<=25?"var(--down-text)":val<=45?"#cc7a00":val<=55?"var(--ink2)":"var(--up-text)";
+      const dt = new Date(+d.timestamp * 1000);
+      const ds = `${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`;
+      html += `<div class="rowline"><span style="color:var(--ink3)">${ds}</span><span style="color:${c};font-weight:700">${val}</span><span style="color:var(--ink2)">${map[d.value_classification]||d.value_classification}</span></div>`;
+    });
+    html += '</div>';
+
+    showOverlay("FEAR & GREED · 공포/탐욕 분석", html);
+  } catch(e){
+    showOverlay("FEAR & GREED", '<div class="rowline"><span style="color:var(--down-text)">데이터 로드 실패</span></div>');
+  }
 }
 </script>
 </body>
