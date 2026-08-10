@@ -4448,6 +4448,187 @@ function pnlOverlay(){
   showOverlay("PNL CURVE · 학습엔진 성과", html);
 }
 
+async function onchainOverlay(){
+  showOverlay("ONCHAIN DATA", '<div class="rowline"><span style="color:var(--ink3)">온체인 데이터 수집 중…</span></div>');
+
+  let html = '';
+
+  // BTC supply & market data from CoinGecko
+  try {
+    const j = await fetchJson("https://api.coingecko.com/api/v3/coins/bitcoin?localization=false&tickers=false&community_data=false&developer_data=false");
+    const md = j.market_data;
+    html += '<div style="padding:4px 10px;color:var(--ink3);font-size:10px;letter-spacing:1px;border-bottom:1px solid var(--border)">BITCOIN ON-CHAIN</div>';
+    html += `<div class="rowline"><span>시가총액</span><b>$${fmtBig(md.market_cap?.usd)}</b></div>`;
+    html += `<div class="rowline"><span>24h 거래량</span><b>$${fmtBig(md.total_volume?.usd)}</b></div>`;
+    html += `<div class="rowline"><span>유통 공급량</span><b>${fmtBig(md.circulating_supply)} BTC</b></div>`;
+    html += `<div class="rowline"><span>최대 공급량</span><b>21,000,000 BTC</b></div>`;
+    html += `<div class="rowline"><span>채굴율</span><b>${(md.circulating_supply/21000000*100).toFixed(2)}%</b></div>`;
+    html += `<div class="rowline"><span>ATH</span><b>$${md.ath?.usd?.toLocaleString()} <span style="color:var(--down-text)">${md.ath_change_percentage?.usd?.toFixed(1)}%</span></b></div>`;
+    html += `<div class="rowline"><span>ATH 날짜</span><b>${md.ath_date?.usd?.slice(0,10)}</b></div>`;
+    html += `<div class="rowline"><span>ATL</span><b>$${md.atl?.usd}</b></div>`;
+  } catch(e){
+    html += '<div class="rowline"><span style="color:var(--ink3)">BTC 데이터 로드 실패</span></div>';
+  }
+
+  // ETH data
+  try {
+    const j = await fetchJson("https://api.coingecko.com/api/v3/coins/ethereum?localization=false&tickers=false&community_data=false&developer_data=false");
+    const md = j.market_data;
+    html += '<div style="padding:4px 10px;color:var(--ink3);font-size:10px;letter-spacing:1px;border-bottom:1px solid var(--border);border-top:1px solid var(--border)">ETHEREUM ON-CHAIN</div>';
+    html += `<div class="rowline"><span>시가총액</span><b>$${fmtBig(md.market_cap?.usd)}</b></div>`;
+    html += `<div class="rowline"><span>유통 공급량</span><b>${fmtBig(md.circulating_supply)} ETH</b></div>`;
+    html += `<div class="rowline"><span>총 공급량</span><b>${fmtBig(md.total_supply)} ETH</b></div>`;
+    html += `<div class="rowline"><span>ATH</span><b>$${md.ath?.usd?.toLocaleString()} <span style="color:var(--down-text)">${md.ath_change_percentage?.usd?.toFixed(1)}%</span></b></div>`;
+  } catch(e){}
+
+  // Current symbol data
+  const symMap = {SOL:"solana",BTC:"bitcoin",ETH:"ethereum",DOGE:"dogecoin",ADA:"cardano",XRP:"ripple",AVAX:"avalanche-2",BNB:"binancecoin",LINK:"chainlink",SUI:"sui",LTC:"litecoin",TON:"the-open-network"};
+  const cgId = symMap[S.sym];
+  if(cgId && S.sym !== "BTC" && S.sym !== "ETH"){
+    try {
+      const j = await fetchJson(`https://api.coingecko.com/api/v3/coins/${cgId}?localization=false&tickers=false&community_data=false&developer_data=false`);
+      const md = j.market_data;
+      html += `<div style="padding:4px 10px;color:var(--ink3);font-size:10px;letter-spacing:1px;border-bottom:1px solid var(--border);border-top:1px solid var(--border)">${S.sym} ON-CHAIN</div>`;
+      html += `<div class="rowline"><span>시가총액</span><b>$${fmtBig(md.market_cap?.usd)}</b></div>`;
+      html += `<div class="rowline"><span>24h 거래량</span><b>$${fmtBig(md.total_volume?.usd)}</b></div>`;
+      html += `<div class="rowline"><span>유통/총 공급</span><b>${fmtBig(md.circulating_supply)} / ${md.total_supply?fmtBig(md.total_supply):'∞'}</b></div>`;
+      html += `<div class="rowline"><span>ATH</span><b>$${md.ath?.usd} <span style="color:var(--down-text)">${md.ath_change_percentage?.usd?.toFixed(1)}%</span></b></div>`;
+      html += `<div class="rowline"><span>시총 순위</span><b>#${md.market_cap_rank || j.market_cap_rank || '—'}</b></div>`;
+    } catch(e){}
+  }
+
+  html += '<div style="padding:6px 10px;font-size:9px;color:var(--ink3)">데이터: CoinGecko · 실시간 아님 (캐시 1-5분)</div>';
+  showOverlay("ONCHAIN DATA · 온체인 정보", html);
+}
+
+async function compareOverlay(sym1, sym2){
+  showOverlay(`COMPARE · ${sym1} vs ${sym2}`, '<div class="rowline"><span style="color:var(--ink3)">비교 데이터 로드 중…</span></div>');
+
+  try {
+    const [d1, d2] = await Promise.all([
+      firstOk(klineChain(sym1, "1D", 30)),
+      firstOk(klineChain(sym2, "1D", 30))
+    ]);
+
+    const n = Math.min(d1.length, d2.length, 30);
+    const s1 = d1.slice(-n), s2 = d2.slice(-n);
+
+    // Normalize to % from start
+    const base1 = s1[0].c, base2 = s2[0].c;
+    const pct1 = s1.map(c => (c.c - base1) / base1 * 100);
+    const pct2 = s2.map(c => (c.c - base2) / base2 * 100);
+
+    const allPct = [...pct1, ...pct2];
+    const hi = Math.max(...allPct), lo = Math.min(...allPct);
+    const rng = hi - lo || 1;
+
+    // Draw comparison chart using divs
+    const W = 280, H = 70;
+    const stepW = W / n;
+
+    function pathSvg(pcts, color){
+      let d = '';
+      for(let i = 0; i < n; i++){
+        const x = i * stepW;
+        const y = H - ((pcts[i] - lo) / rng * H);
+        d += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1);
+      }
+      return `<polyline points="${d.replace(/[ML]/g,' ').trim()}" fill="none" stroke="${color}" stroke-width="2"/>`;
+    }
+
+    const last1 = pct1[n-1], last2 = pct2[n-1];
+    const corr = (()=>{
+      const r1=pct1.slice(1).map((v,i)=>v-pct1[i]), r2=pct2.slice(1).map((v,i)=>v-pct2[i]);
+      const m1=r1.reduce((s,v)=>s+v,0)/r1.length, m2=r2.reduce((s,v)=>s+v,0)/r2.length;
+      let num=0,d1s=0,d2s=0;
+      for(let i=0;i<r1.length;i++){num+=(r1[i]-m1)*(r2[i]-m2);d1s+=(r1[i]-m1)**2;d2s+=(r2[i]-m2)**2;}
+      return d1s&&d2s? num/Math.sqrt(d1s*d2s) : 0;
+    })();
+
+    let html = `<div style="padding:10px;text-align:center;">
+      <svg width="${W}" height="${H}" style="border:1px solid #222;background:#0a0a0a;">
+        ${lo<0&&hi>0?`<line x1="0" y1="${H-(0-lo)/rng*H}" x2="${W}" y2="${H-(0-lo)/rng*H}" stroke="#333" stroke-dasharray="3,3"/>` : ''}
+        ${pathSvg(pct1, "#ffa028")}
+        ${pathSvg(pct2, "#5fc3ec")}
+      </svg>
+      <div style="display:flex;justify-content:space-between;font-size:10px;margin-top:4px">
+        <span style="color:#ffa028">● ${sym1} ${last1>=0?'+':''}${last1.toFixed(1)}%</span>
+        <span style="color:#5fc3ec">● ${sym2} ${last2>=0?'+':''}${last2.toFixed(1)}%</span>
+      </div>
+    </div>`;
+
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">
+      <div style="background:var(--panel);padding:6px;text-align:center;font-size:10px">
+        <div style="color:var(--ink3);font-size:9px">상관관계</div>
+        <div style="color:${Math.abs(corr)>0.7?'var(--up-text)':'var(--ink)'};font-weight:700">${corr.toFixed(3)}</div>
+      </div>
+      <div style="background:var(--panel);padding:6px;text-align:center;font-size:10px">
+        <div style="color:var(--ink3);font-size:9px">${sym1} 30일</div>
+        <div style="color:${last1>=0?'var(--up-text)':'var(--down-text)'};font-weight:700">${last1>=0?'+':''}${last1.toFixed(1)}%</div>
+      </div>
+      <div style="background:var(--panel);padding:6px;text-align:center;font-size:10px">
+        <div style="color:var(--ink3);font-size:9px">${sym2} 30일</div>
+        <div style="color:${last2>=0?'var(--up-text)':'var(--down-text)'};font-weight:700">${last2>=0?'+':''}${last2.toFixed(1)}%</div>
+      </div>
+    </div>`;
+
+    // Daily comparison
+    const today1 = s1[n-1], today2 = s2[n-1];
+    const vol1 = s1.slice(-7).reduce((s,c)=>s+c.v,0), vol2 = s2.slice(-7).reduce((s,c)=>s+c.v,0);
+
+    html += `<div class="rowline"><span>오늘 종가</span><span style="color:#ffa028">${sym1} $${fmtPrice(today1.c)}</span><span style="color:#5fc3ec">${sym2} $${fmtPrice(today2.c)}</span></div>`;
+    html += `<div class="rowline"><span>7일 거래량</span><span style="color:#ffa028">$${fmtBig(vol1)}</span><span style="color:#5fc3ec">$${fmtBig(vol2)}</span></div>`;
+
+    const winner = last1 > last2 ? sym1 : sym2;
+    const diff = Math.abs(last1 - last2);
+    html += `<div style="padding:8px 10px;border-top:1px solid var(--border);font-size:11px;text-align:center;color:var(--amber)">
+      30일 성과: ${winner}가 ${diff.toFixed(1)}%p 우세
+    </div>`;
+
+    showOverlay(`COMPARE · ${sym1} vs ${sym2} (30일)`, html);
+  } catch(e){
+    showOverlay(`COMPARE`, '<div class="rowline"><span style="color:var(--down-text)">데이터 로드 실패</span></div>');
+  }
+}
+
+function liquidmapOverlay(){
+  if(!S.candles.length){
+    showOverlay("LIQUIDATION MAP", '<div class="rowline"><span style="color:var(--ink3)">차트 데이터 없음</span></div>');
+    return;
+  }
+
+  const price = S.candles[S.candles.length-1].c;
+  const leverages = [5, 10, 15, 20, 25, 50, 75, 100];
+
+  let html = `<div style="padding:6px 10px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;color:var(--ink3)">현재가</div>
+    <div style="font-size:18px;font-weight:700;color:var(--ink)">$${fmtPrice(price)}</div>
+  </div>`;
+
+  html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+  html += '<thead><tr><th style="text-align:left;padding:4px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">레버리지</th><th style="text-align:right;padding:4px 8px;color:var(--up-text);font-weight:400">LONG 청산가</th><th style="text-align:right;padding:4px 8px;color:var(--ink3);font-weight:400">거리</th><th style="text-align:right;padding:4px 8px;color:var(--down-text);font-weight:400">SHORT 청산가</th><th style="text-align:right;padding:4px 8px;color:var(--ink3);font-weight:400">거리</th></tr></thead><tbody>';
+
+  for(const lev of leverages){
+    const liqLong = price * (1 - 1/lev * 0.95); // approximate with 5% maintenance margin
+    const liqShort = price * (1 + 1/lev * 0.95);
+    const distLong = ((price - liqLong) / price * 100).toFixed(1);
+    const distShort = ((liqShort - price) / price * 100).toFixed(1);
+    const danger = 100/lev < 3;
+
+    html += `<tr style="border-bottom:1px solid #101010;${danger?'background:rgba(229,72,77,.05)':''}">
+      <td style="padding:4px 8px;font-weight:700;color:${danger?'var(--down-text)':'var(--amber)'}">${lev}x</td>
+      <td style="padding:4px 8px;text-align:right;color:var(--up-text)">${fmtPrice(liqLong)}</td>
+      <td style="padding:4px 8px;text-align:right;color:var(--ink2)">${distLong}%</td>
+      <td style="padding:4px 8px;text-align:right;color:var(--down-text)">${fmtPrice(liqShort)}</td>
+      <td style="padding:4px 8px;text-align:right;color:var(--ink2)">${distShort}%</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  html += '<div style="padding:6px 10px;font-size:9px;color:var(--ink3)">근사치 (유지증거금 5% 가정) · 실제 청산가는 거래소마다 다름 · CALC 명령으로 정확한 계산</div>';
+
+  showOverlay(`LIQUIDATION MAP · ${S.sym} 청산가 분포`, html);
+}
+
 function statusOverlay(){
   const ws = S.wsAlive;
   const src = S.srcHealth;
