@@ -4769,6 +4769,9 @@ const CMD_LIST=[
   {c:"HEALTH", d:"시장 건강도 종합 체크 (10개 지표)"},
   {c:"PROFIT 162 170 10 20", d:"수익 계산기 (진입·청산·수량·레버리지)"},
   {c:"WATCHVIEW", d:"관심종목 상세 뷰 (전체 지표 포함)"},
+  {c:"BENCHMARK", d:"현재 종목 vs BTC·ETH 성과 벤치마크"},
+  {c:"SUPPLY", d:"토큰 공급량 분석 (유통·총·최대)"},
+  {c:"PIVOT", d:"피벗 포인트 계산 (R1-R3, S1-S3)"},
 ];
 let sugSel=-1, sugItems=[];
 function renderSug(){
@@ -4984,6 +4987,9 @@ $("cmd").addEventListener("keydown",e=>{
   const profm = raw.match(/^PROFIT\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+(\d+)$/);
   if(profm){ profitCalcOverlay(+profm[1], +profm[2], +profm[3], +profm[4]); e.target.value=""; return; }
   if(raw==="WATCHVIEW"||raw==="WV"){ watchviewOverlay(); e.target.value=""; return; }
+  if(raw==="BENCHMARK"||raw==="BENCH"){ benchmarkOverlay(); e.target.value=""; return; }
+  if(raw==="SUPPLY"){ supplyOverlay(); e.target.value=""; return; }
+  if(raw==="PIVOT"){ pivotOverlay(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
   const m=raw.match(/^([A-Z0-9]{2,10})\s*(15M|1H|4H|1D)?$/);
@@ -8192,6 +8198,192 @@ function watchviewOverlay(){
   </div>`;
 
   showOverlay("WATCHVIEW · 관심종목 상세", html);
+}
+
+/* ── BENCHMARK overlay ── */
+async function benchmarkOverlay(){
+  const sym = S.sym;
+  if(sym==="BTC"){showOverlay("BENCHMARK","<div class='rowline'><span style='color:var(--ink3)'>BTC는 벤치마크 대상입니다. 다른 종목에서 사용하세요.</span></div>");return;}
+
+  showOverlay(`BENCHMARK · ${sym}`, '<div class="rowline"><span style="color:var(--ink3)">벤치마크 데이터 로드 중…</span></div>');
+
+  try{
+    const [symD, btcD, ethD] = await Promise.all([
+      firstOk(klineChain(sym,"1D",30)),
+      firstOk(klineChain("BTC","1D",30)),
+      firstOk(klineChain("ETH","1D",30))
+    ]);
+
+    const periods = [7,14,30];
+
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+    html += '<thead><tr><th style="text-align:left;padding:5px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">기간</th>';
+    html += `<th style="text-align:right;padding:5px 8px;color:var(--amber);font-weight:400">${sym}</th>`;
+    html += '<th style="text-align:right;padding:5px 8px;color:var(--ink2);font-weight:400">BTC</th>';
+    html += '<th style="text-align:right;padding:5px 8px;color:var(--cyan-text);font-weight:400">ETH</th>';
+    html += `<th style="text-align:right;padding:5px 8px;color:var(--ink3);font-weight:400">${sym} 초과</th></tr></thead><tbody>`;
+
+    for(const p of periods){
+      const sn = symD.length, bn = btcD.length, en = ethD.length;
+      const sp = sn>=p ? (symD[sn-1].c - symD[sn-p].c)/symD[sn-p].c*100 : null;
+      const bp = bn>=p ? (btcD[bn-1].c - btcD[bn-p].c)/btcD[bn-p].c*100 : null;
+      const ep = en>=p ? (ethD[en-1].c - ethD[en-p].c)/ethD[en-p].c*100 : null;
+      const excess = sp!=null&&bp!=null ? sp - bp : null;
+
+      html += `<tr style="border-bottom:1px solid #101010">
+        <td style="padding:4px 8px;color:var(--ink2)">${p}일</td>
+        <td style="padding:4px 8px;text-align:right;font-weight:700;color:${sp>=0?'var(--up-text)':'var(--down-text)'}">${sp!=null?(sp>=0?'+':'')+sp.toFixed(2)+'%':'—'}</td>
+        <td style="padding:4px 8px;text-align:right;color:${bp>=0?'var(--up-text)':'var(--down-text)'}">${bp!=null?(bp>=0?'+':'')+bp.toFixed(2)+'%':'—'}</td>
+        <td style="padding:4px 8px;text-align:right;color:${ep>=0?'var(--up-text)':'var(--down-text)'}">${ep!=null?(ep>=0?'+':'')+ep.toFixed(2)+'%':'—'}</td>
+        <td style="padding:4px 8px;text-align:right;font-weight:700;color:${excess>=0?'var(--up-text)':'var(--down-text)'}">${excess!=null?(excess>=0?'+':'')+excess.toFixed(2)+'%p':'—'}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+
+    // Verdict
+    const sp30 = symD.length>=30?(symD[symD.length-1].c-symD[symD.length-30].c)/symD[symD.length-30].c*100:0;
+    const bp30 = btcD.length>=30?(btcD[btcD.length-1].c-btcD[btcD.length-30].c)/btcD[btcD.length-30].c*100:0;
+    const outperform = sp30 > bp30;
+
+    html += `<div style="padding:8px 10px;text-align:center;border-top:1px solid var(--border)">
+      <span style="color:${outperform?'var(--up-text)':'var(--down-text)'};font-weight:700;font-size:12px">${sym}은 30일간 BTC 대비 ${outperform?'아웃퍼폼':'언더퍼폼'}</span>
+    </div>`;
+
+    showOverlay(`BENCHMARK · ${sym} vs BTC·ETH`, html);
+  }catch(e){
+    showOverlay("BENCHMARK",'<div class="rowline"><span style="color:var(--down-text)">데이터 로드 실패</span></div>');
+  }
+}
+
+/* ── SUPPLY overlay ── */
+async function supplyOverlay(){
+  const sym = S.sym;
+  const cgMap = {BTC:"bitcoin",ETH:"ethereum",SOL:"solana",DOGE:"dogecoin",ADA:"cardano",XRP:"ripple",AVAX:"avalanche-2",BNB:"binancecoin",LINK:"chainlink",SUI:"sui",LTC:"litecoin",TON:"the-open-network",DOT:"polkadot",NEAR:"near",APT:"aptos",ARB:"arbitrum",ATOM:"cosmos"};
+  const cgId = cgMap[sym];
+
+  if(!cgId){
+    showOverlay("SUPPLY", `<div class="rowline"><span style="color:var(--ink3)">${sym}의 CoinGecko ID를 찾을 수 없습니다</span></div>`);
+    return;
+  }
+
+  showOverlay(`SUPPLY · ${sym}`, '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
+
+  try{
+    const j = await fetchJson(`https://api.coingecko.com/api/v3/coins/${cgId}?localization=false&tickers=false&community_data=false&developer_data=false`);
+    const md = j.market_data;
+
+    const circ = md.circulating_supply;
+    const total = md.total_supply;
+    const max = md.max_supply;
+    const mcap = md.market_cap?.usd;
+    const fdv = md.fully_diluted_valuation?.usd;
+
+    const circPct = max ? (circ/max*100).toFixed(1) : total ? (circ/total*100).toFixed(1) : "—";
+    const inflation = total && circ ? ((total-circ)/circ*100).toFixed(1) : "—";
+
+    let html = `<div style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">
+      <div style="font-size:14px;font-weight:700;color:var(--ink)">${sym} · ${j.name}</div>
+      <div style="font-size:10px;color:var(--ink3)">#${md.market_cap_rank || j.market_cap_rank || '—'} by Market Cap</div>
+    </div>`;
+
+    // Supply bar
+    if(max || total){
+      const base = max || total;
+      const circW = (circ/base*100);
+      html += `<div style="padding:6px 10px">
+        <div style="font-size:9px;color:var(--ink3);margin-bottom:3px">유통 비율 ${circPct}%</div>
+        <div style="height:10px;background:#1a1a1a;border:1px solid #222;position:relative">
+          <div style="width:${circW}%;height:100%;background:var(--amber)"></div>
+        </div>
+      </div>`;
+    }
+
+    html += `<div class="rowline"><span>유통 공급량</span><b style="color:var(--ink)">${fmtBig(circ)} ${sym}</b></div>`;
+    html += `<div class="rowline"><span>총 공급량</span><b>${total?fmtBig(total)+' '+sym:'∞'}</b></div>`;
+    html += `<div class="rowline"><span>최대 공급량</span><b>${max?fmtBig(max)+' '+sym:'무제한'}</b></div>`;
+    html += `<div class="rowline"><span>시가총액</span><b style="color:var(--ink)">$${fmtBig(mcap)}</b></div>`;
+    html += `<div class="rowline"><span>FDV (완전희석)</span><b>$${fdv?fmtBig(fdv):'—'}</b></div>`;
+    html += `<div class="rowline"><span>MCAP/FDV</span><b>${fdv&&mcap?(mcap/fdv*100).toFixed(1)+'%':'—'}</b></div>`;
+    html += `<div class="rowline"><span>미유통 비율</span><b>${inflation}%</b></div>`;
+    html += `<div class="rowline"><span>ATH</span><b style="color:var(--up-text)">$${md.ath?.usd} <span style="color:var(--down-text)">(${md.ath_change_percentage?.usd?.toFixed(1)}%)</span></b></div>`;
+    html += `<div class="rowline"><span>ATL</span><b style="color:var(--down-text)">$${md.atl?.usd}</b></div>`;
+
+    html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3);border-top:1px solid var(--border)">CoinGecko 데이터 · MCAP/FDV 낮을수록 미래 인플레이션 리스크</div>`;
+    showOverlay(`SUPPLY · ${sym} 공급량 분석`, html);
+  }catch(e){
+    showOverlay("SUPPLY",'<div class="rowline"><span style="color:var(--down-text)">데이터 로드 실패</span></div>');
+  }
+}
+
+/* ── PIVOT overlay ── */
+function pivotOverlay(){
+  if(!S.candles || S.candles.length < 2){
+    showOverlay("PIVOT", '<div class="rowline"><span style="color:var(--ink3)">차트 데이터 부족</span></div>');
+    return;
+  }
+
+  // Use previous candle for pivot calculation
+  const prev = S.candles[S.candles.length - 2];
+  const curr = S.candles[S.candles.length - 1];
+  const H = prev.h, L = prev.l, C = prev.c;
+  const price = curr.c;
+
+  // Standard Pivot Points
+  const PP = (H + L + C) / 3;
+  const R1 = 2 * PP - L;
+  const S1 = 2 * PP - H;
+  const R2 = PP + (H - L);
+  const S2 = PP - (H - L);
+  const R3 = H + 2 * (PP - L);
+  const S3 = L - 2 * (H - PP);
+
+  // Fibonacci Pivot Points
+  const range = H - L;
+  const FR1 = PP + 0.382 * range;
+  const FR2 = PP + 0.618 * range;
+  const FR3 = PP + range;
+  const FS1 = PP - 0.382 * range;
+  const FS2 = PP - 0.618 * range;
+  const FS3 = PP - range;
+
+  function row(label, value, type){
+    const dist = ((value - price) / price * 100).toFixed(2);
+    const above = value > price;
+    const color = type==="r"?"var(--down-text)":type==="s"?"var(--up-text)":"var(--amber)";
+    const isCurrent = Math.abs(value - price) / price < 0.002;
+    return `<div class="rowline" style="padding:4px 10px;${isCurrent?'background:#1a1205':''}">
+      <span style="color:${color};font-weight:700;min-width:30px">${label}</span>
+      <span style="color:var(--ink);font-weight:600;min-width:80px;text-align:right">$${fmtPrice(value)}</span>
+      <span style="color:var(--ink2);min-width:60px;text-align:right">${dist>=0?'+':''}${dist}%</span>
+    </div>`;
+  }
+
+  let html = `<div style="padding:6px 10px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;color:var(--ink3)">현재가 $${fmtPrice(price)} · 이전 봉: H $${fmtPrice(H)} L $${fmtPrice(L)} C $${fmtPrice(C)}</div>
+  </div>`;
+
+  // Standard
+  html += '<div style="padding:3px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">STANDARD PIVOT</div>';
+  html += row("R3", R3, "r");
+  html += row("R2", R2, "r");
+  html += row("R1", R1, "r");
+  html += row("PP", PP, "p");
+  html += row("S1", S1, "s");
+  html += row("S2", S2, "s");
+  html += row("S3", S3, "s");
+
+  // Fibonacci
+  html += '<div style="padding:3px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border);border-top:1px solid var(--border)">FIBONACCI PIVOT</div>';
+  html += row("FR3", FR3, "r");
+  html += row("FR2", FR2, "r");
+  html += row("FR1", FR1, "r");
+  html += row("PP", PP, "p");
+  html += row("FS1", FS1, "s");
+  html += row("FS2", FS2, "s");
+  html += row("FS3", FS3, "s");
+
+  html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3);border-top:1px solid var(--border)">이전 ${S.tf} 봉 기준 · R=저항 S=지지 PP=피벗포인트</div>`;
+  showOverlay(`PIVOT · ${S.sym} 피벗 포인트`, html);
 }
 </script>
 </body>
