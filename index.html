@@ -788,7 +788,7 @@ const S = { // app state
   oiPane:null, desCache:{},
   newsTab:"all", feedTab:"ts", newsItems:[],
   wsAlive:false, usdkrw:null, proxy:false, alertOn:false,
-  priceAlerts:[], ecoList:null, allTickers:null, qtab:"watch",
+  priceAlerts:[], snipers:[], ecoList:null, allTickers:null, qtab:"watch",
   quotes:{},             // sym -> {last, pct, high, low, fundingRate, nextFundingTime, prevLast}
   oi:[], lsr:null,
   srcHealth:{ok:0, fail:0},
@@ -2636,6 +2636,179 @@ function checkPriceAlerts(){
   if(hit.length) renderPriceAlerts();
 }
 
+/* ═══════════════ SPREAD · 거래소간 가격 비교 ═══════════════ */
+async function spreadOverlay(){
+  const sym = S.sym;
+  showOverlay(`SPREAD · ${sym} 거래소 비교`, '<div class="rowline"><span style="color:var(--ink3)">가격 수집 중…</span></div>');
+
+  const BYBIT="https://api.bybit.com", BIN="https://fapi.binance.com", OKX="https://www.okx.com";
+  const p = sym + "USDT";
+
+  const prices = [];
+
+  try {
+    const [bybit, bin, okx] = await Promise.allSettled([
+      fetchJson(`${BYBIT}/v5/market/tickers?category=linear&symbol=${p}`).then(j => {
+        const r = j.result?.list?.[0];
+        return r ? {exchange:"Bybit", price:+r.lastPrice, bid:+r.bid1Price, ask:+r.ask1Price, vol:+r.turnover24h, funding:+r.fundingRate*100} : null;
+      }),
+      fetchJson(`${BIN}/fapi/v1/ticker/bookTicker?symbol=${p}`).then(j => {
+        return j ? {exchange:"Binance", price:(+j.bidPrice + +j.askPrice)/2, bid:+j.bidPrice, ask:+j.askPrice, vol:null, funding:null} : null;
+      }),
+      fetchJson(`${OKX}/api/v5/market/ticker?instId=${sym}-USDT-SWAP`).then(j => {
+        const d = j.data?.[0];
+        return d ? {exchange:"OKX", price:+d.last, bid:+d.bidPx, ask:+d.askPx, vol:+d.volCcy24h, funding:null} : null;
+      })
+    ]);
+
+    [bybit, bin, okx].forEach(r => { if(r.status === "fulfilled" && r.value) prices.push(r.value); });
+  } catch(e){}
+
+  if(prices.length < 2){
+    showOverlay(`SPREAD · ${sym}`, '<div class="rowline"><span style="color:var(--ink3)">충분한 거래소 데이터를 수집하지 못했습니다</span></div>');
+    return;
+  }
+
+  // Calculate spreads
+  const maxPrice = Math.max(...prices.map(p => p.price));
+  const minPrice = Math.min(...prices.map(p => p.price));
+  const spreadPct = ((maxPrice - minPrice) / minPrice * 100);
+  const spreadColor = spreadPct > 0.1 ? "var(--up-text)" : spreadPct > 0.05 ? "var(--amber)" : "var(--ink2)";
+
+  let html = `<div style="padding:8px 10px;border-bottom:1px solid var(--border);text-align:center">
+    <div style="font-size:10px;color:var(--ink3)">최대 스프레드</div>
+    <div style="font-size:20px;font-weight:700;color:${spreadColor};font-variant-numeric:tabular-nums">${spreadPct.toFixed(4)}%</div>
+    <div style="font-size:10px;color:var(--ink3)">$${(maxPrice-minPrice).toFixed(maxPrice>100?2:5)} 차이</div>
+  </div>`;
+
+  html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+  html += '<thead><tr><th style="text-align:left;padding:5px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">거래소</th><th style="text-align:right;padding:5px 8px;color:var(--ink3);font-weight:400">LAST</th><th style="text-align:right;padding:5px 8px;color:var(--ink3);font-weight:400">BID</th><th style="text-align:right;padding:5px 8px;color:var(--ink3);font-weight:400">ASK</th><th style="text-align:right;padding:5px 8px;color:var(--ink3);font-weight:400">SPREAD</th></tr></thead><tbody>';
+
+  for(const p of prices){
+    const spread = p.ask - p.bid;
+    const spreadBps = (spread / p.price * 10000).toFixed(1);
+    html += `<tr style="border-bottom:1px solid #101010">
+      <td style="padding:5px 8px;font-weight:600;color:var(--amber)">${p.exchange}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--ink);font-weight:600">${fmtPrice(p.price)}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--up-text)">${fmtPrice(p.bid)}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--down-text)">${fmtPrice(p.ask)}</td>
+      <td style="padding:5px 8px;text-align:right;color:var(--ink2)">${spreadBps}bps</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+
+  if(spreadPct > 0.1){
+    html += `<div style="padding:6px 10px;background:rgba(0,160,140,.05);border-top:1px solid var(--border);font-size:10px;color:var(--up-text)">
+      재정거래 기회 감지: ${prices.reduce((a,b)=>a.price<b.price?a:b).exchange}에서 매수 → ${prices.reduce((a,b)=>a.price>b.price?a:b).exchange}에서 매도
+    </div>`;
+  }
+
+  html += '<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">선물 가격 기준 · bps = 0.01% · 수수료/슬리피지 미반영</div>';
+  showOverlay(`SPREAD · ${sym}USDT 거래소 비교`, html);
+}
+
+/* ═══════════════ TOP · 실시간 순위 ═══════════════ */
+function topOverlay(){
+  if(!S.allTickers || !S.allTickers.length){
+    showOverlay("TOP RANKING", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
+    return;
+  }
+
+  const all = S.allTickers;
+  const byVol = [...all].sort((a,b) => b.vol - a.vol).slice(0, 15);
+  const byGain = [...all].sort((a,b) => b.pct - a.pct).slice(0, 10);
+  const byLoss = [...all].sort((a,b) => a.pct - b.pct).slice(0, 10);
+
+  function rankTable(title, items, metric){
+    let h = `<div style="color:var(--ink3);font-size:10px;letter-spacing:1px;padding:6px 10px;background:var(--panel2);border-bottom:1px solid var(--border)">${title}</div>`;
+    h += items.map((c, i) => {
+      const cls = c.pct >= 0 ? "u" : "d";
+      const val = metric === "vol" ? "$" + fmtBig(c.vol) : (c.pct >= 0 ? "+" : "") + c.pct.toFixed(2) + "%";
+      const valColor = metric === "vol" ? "var(--ink)" : (c.pct >= 0 ? "var(--up-text)" : "var(--down-text)");
+      return `<div class="rowline" style="cursor:pointer" onclick="switchTo('${c.sym}',S.tf);$('btov').classList.remove('on');">
+        <span style="color:var(--ink3);min-width:20px">${i+1}</span>
+        <span style="font-weight:600;color:var(--ink);flex:1">${c.sym}</span>
+        <span style="color:var(--ink2);margin-right:10px">${fmtPrice(c.last)}</span>
+        <b style="color:${valColor};min-width:70px;text-align:right">${val}</b>
+      </div>`;
+    }).join("");
+    return h;
+  }
+
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)">';
+  html += '<div style="background:var(--panel)">' + rankTable("거래량 TOP 15", byVol, "vol") + '</div>';
+  html += '<div style="background:var(--panel);">';
+  html += rankTable("상승률 TOP 10", byGain, "pct");
+  html += rankTable("하락률 TOP 10", byLoss, "pct");
+  html += '</div></div>';
+
+  const totalVol = all.reduce((s,c) => s + c.vol, 0);
+  const avgPct = all.reduce((s,c) => s + c.pct, 0) / all.length;
+  html += `<div style="padding:6px 10px;font-size:9px;color:var(--ink3);display:flex;justify-content:space-between">
+    <span>전체 ${all.length}종목</span>
+    <span>총 거래량 $${fmtBig(totalVol)}</span>
+    <span>평균 변동 ${avgPct>=0?'+':''}${avgPct.toFixed(2)}%</span>
+  </div>`;
+
+  showOverlay("TOP RANKING · 실시간 순위", html);
+}
+
+/* ═══════════════ SNIPER · 가격 스나이퍼 ═══════════════ */
+function sniperSet(sym, price, dir){
+  S.snipers.push({sym, price, dir, fired: false, t: Date.now()});
+  pushLog(`스나이퍼 등록: ${sym} $${price} ${dir} 도달 시 알림`);
+}
+
+function sniperList(){
+  if(!S.snipers.length){
+    showOverlay("SNIPER", '<div class="rowline"><span style="color:var(--ink3)">등록된 스나이퍼 없음 · SNIPER SOL 160 LONG 으로 등록</span></div>');
+    return;
+  }
+  let html = S.snipers.map((s,i) => {
+    const q = S.quotes[s.sym];
+    const current = q ? fmtPrice(q.last) : "—";
+    const dist = q ? ((s.price - q.last) / q.last * 100).toFixed(2) : "—";
+    const dirColor = s.dir === "LONG" ? "var(--up-text)" : "var(--down-text)";
+    return `<div class="rowline">
+      <span style="font-weight:600;color:var(--ink)">${s.sym}</span>
+      <span style="color:${dirColor}">${s.dir}</span>
+      <span>목표 <b>${fmtPrice(s.price)}</b></span>
+      <span>현재 <b>${current}</b></span>
+      <span style="color:var(--ink2)">${dist}%</span>
+      <span style="color:${s.fired?'var(--up-text)':'var(--ink3)'}">${s.fired?'FIRED':'대기'}</span>
+    </div>`;
+  }).join("");
+  html += '<div class="rowline"><span style="color:var(--ink3);font-size:10px">SNIPER CLEAR = 전체 해제</span></div>';
+  showOverlay("SNIPER · 가격 스나이퍼 목록", html);
+}
+
+function checkSnipers(){
+  for(const s of S.snipers){
+    if(s.fired) continue;
+    const q = S.quotes[s.sym];
+    if(!q) continue;
+
+    const hit = (s.dir === "LONG" && q.last <= s.price) || (s.dir === "SHORT" && q.last >= s.price);
+    if(hit){
+      s.fired = true;
+      pushLog(`스나이퍼 발동! ${s.sym} $${fmtPrice(q.last)} → ${s.dir} 진입 구간`);
+      beep(); beep();
+
+      // Switch to the symbol
+      switchTo(s.sym, S.tf);
+
+      // Browser notification
+      try{
+        if("Notification" in window && Notification.permission === "granted"){
+          new Notification(`SNIPER · ${s.sym} ${s.dir}`, {
+            body: `목표가 $${fmtPrice(s.price)} 도달! 현재 $${fmtPrice(q.last)}`
+          });
+        }
+      }catch(e){}
+    }
+  }
+}
+
 /* ═══════════════ 포지션 트래커 (수동 기록 · 실시간 PnL) ═══════════════ */
 function renderPositions(){
   const el=$("positions"); if(!el) return;
@@ -3769,6 +3942,16 @@ const CMD_LIST=[
   {c:"VP",   d:"볼륨 프로파일 토글"},
   {c:"TV",   d:"TradingView 차트 전환"},
   {c:"WHALE", d:"최근 대량 체결 내역 (고래 추적)"},
+  {c:"SPREAD", d:"거래소간 가격 비교 (재정거래 기회)"},
+  {c:"TOP", d:"실시간 거래량·변동률 TOP 순위"},
+  {c:"SNIPER SOL 160 LONG", d:"스나이퍼 — 가격 도달 시 방향 알림 + 자동 계산"},
+  {c:"SNIPER", d:"스나이퍼 목록 보기"},
+  {c:"SNIPER CLEAR", d:"스나이퍼 전체 해제"},
+  {c:"RISK", d:"포지션 리스크 대시보드 (합산 손익·최대손실)"},
+  {c:"MEMO 지지 162 돌파 시 롱", d:"현재 종목 메모 저장 (localStorage)"},
+  {c:"MEMO", d:"현재 종목 메모 보기"},
+  {c:"MEMO CLEAR", d:"현재 종목 메모 삭제"},
+  {c:"EXPORT", d:"학습엔진 거래내역 CSV 다운로드"},
   {c:"HELP", d:"전체 명령 도움말"},
 ];
 let sugSel=-1, sugItems=[];
@@ -3812,6 +3995,12 @@ $("cmd").addEventListener("keydown",e=>{
     e.target.value=""; e.target.placeholder=`알림 설정: ${am[1]} ${am[2]} 도달 시`; return;
   }
   if(raw==="ALERT CLEAR"){ S.priceAlerts=[]; renderPriceAlerts(); e.target.value=""; return; }
+  if(raw==="SPREAD"){ spreadOverlay(); e.target.value=""; return; }
+  if(raw==="TOP"){ topOverlay(); e.target.value=""; return; }
+  const snm = raw.match(/^SNIPER\s+([A-Z0-9]+)\s+([\d.]+)\s+(LONG|SHORT)$/);
+  if(snm){ sniperSet(snm[1], +snm[2], snm[3]); e.target.value=""; return; }
+  if(raw==="SNIPER"||raw==="SNIPER LIST"){ sniperList(); e.target.value=""; return; }
+  if(raw==="SNIPER CLEAR"){ S.snipers=[]; pushLog("스나이퍼 전체 해제"); e.target.value=""; return; }
   const wm=raw.match(/^WATCH(?:\s+(ADD|DEL)\s+([A-Z0-9]{2,10}))?$/);
   if(wm){ watchCmd(wm[1], wm[2]); e.target.value=""; return; }
   if(raw==="POS"){
@@ -4235,7 +4424,7 @@ _booted = true;
   setInterval(loadDeriv, 60_000);
   setInterval(loadGlobals, 3*60_000);
   setInterval(loadNews, 2*60_000);
-  setInterval(()=>{tickClocks(); tickFundingCd();}, 1000);
+  setInterval(()=>{tickClocks(); tickFundingCd(); checkSnipers();}, 1000);
   setInterval(tickAges, 5000);
   tickClocks();
 }
