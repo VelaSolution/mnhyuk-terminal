@@ -4743,6 +4743,9 @@ const CMD_LIST=[
   {c:"RATIO", d:"핵심 시장 비율 (ETH/BTC·SOL/ETH·금/BTC 등)"},
   {c:"SCREENER RSI<30", d:"조건식 스크리너 (RSI<30, VOL>2 등)"},
   {c:"HELP", d:"전체 명령 도움말"},
+  {c:"NEWS BTC", d:"뉴스 키워드 검색"},
+  {c:"DASH", d:"퀵 대시보드 — 핵심 정보 한 화면"},
+  {c:"KEYS", d:"키보드 단축키 목록"},
 ];
 let sugSel=-1, sugItems=[];
 function renderSug(){
@@ -4779,6 +4782,10 @@ $("cmd").addEventListener("keydown",e=>{
   if(e.key!=="Enter") return;
   $("cmdsug").classList.remove("on");
   const raw=e.target.value.trim().toUpperCase().replace(/USDT|<GO>|GO$/g,"").trim();
+  const newsm = raw.match(/^NEWS\s+(.+)$/);
+  if(newsm){ newsSearchOverlay(newsm[1]); e.target.value=""; return; }
+  if(raw==="DASH"){ dashOverlay(); e.target.value=""; return; }
+  if(raw==="KEYS"||raw==="SHORTCUTS"){ keysOverlay(); e.target.value=""; return; }
   const am=raw.match(/^ALERT\s+([A-Z0-9]{2,10})\s+([\d.]+)$/);   // ALERT SOL 200
   if(am){
     addPriceAlert(am[1], parseFloat(am[2]));
@@ -4931,6 +4938,176 @@ document.addEventListener("keydown",e=>{
   if(t===$("cmd") || t.tagName==="INPUT" || t.tagName==="TEXTAREA" || t.isContentEditable) return;
   if(/^[a-zA-Z]$/.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey){ $("cmd").focus(); }
 });
+
+/* ── NEWS keyword search ── */
+async function newsSearchOverlay(keyword){
+  showOverlay(`NEWS · "${keyword}"`, '<div class="rowline"><span style="color:var(--ink3)">검색 중…</span></div>');
+  try {
+    const j = await fetchJson("https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories="+encodeURIComponent(keyword));
+    const items = (j.Data||[]).slice(0, 20);
+    if(!items.length) throw 0;
+
+    let html = items.map(n => {
+      const t = n.published_on * 1000;
+      const ago = Date.now() - t;
+      const agoText = ago < 3600000 ? Math.round(ago/60000)+"분 전" : ago < 86400000 ? Math.round(ago/3600000)+"시간 전" : Math.round(ago/86400000)+"일 전";
+      const src = (n.source_info && n.source_info.name) || n.source;
+
+      return `<div style="padding:5px 10px;border-bottom:1px solid #101010;line-height:1.45;">
+        <div style="color:var(--ink3);font-size:10px">${agoText} · <span style="color:var(--cyan-text)">${src}</span></div>
+        <a href="${n.url}" target="_blank" rel="noopener" style="color:var(--ink);text-decoration:none;font-size:11px">${n.title}</a>
+      </div>`;
+    }).join("");
+
+    html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">${items.length}건 · CryptoCompare 뉴스 · 키워드: ${keyword}</div>`;
+    showOverlay(`NEWS · "${keyword}" (${items.length}건)`, html);
+  } catch(e){
+    showOverlay(`NEWS · "${keyword}"`, '<div class="rowline"><span style="color:var(--ink3)">검색 결과 없음</span></div>');
+  }
+}
+
+/* ── DASH quick dashboard ── */
+function dashOverlay(){
+  const sym = S.sym;
+  const q = S.quotes[sym];
+  const price = q ? q.last : (S.candles.length ? S.candles[S.candles.length-1].c : 0);
+  const pct = q ? q.pct : 0;
+
+  // Quick data collection
+  const btc = S.quotes["BTC"];
+  const eth = S.quotes["ETH"];
+  const fng = S.fng;
+  const ls = S.lsr;
+  const funding = q ? q.fundingRate : null;
+
+  // Learn engine
+  const leScore = LE.signal ? LE.signal.score : 0;
+  const leDir = LE.signal ? (LE.signal.dir > 0 ? "LONG" : LE.signal.dir < 0 ? "SHORT" : "—") : "—";
+  const leDirColor = LE.signal ? (LE.signal.dir > 0 ? "var(--up-text)" : LE.signal.dir < 0 ? "var(--down-text)" : "var(--ink3)") : "var(--ink3)";
+
+  // Positions
+  const openPos = S.positions.filter(p => !p.hit).length;
+
+  // Snipers
+  const activeSnipers = S.snipers ? S.snipers.filter(s => !s.fired).length : 0;
+
+  let html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)">`;
+
+  // Current symbol
+  html += `<div style="background:var(--panel);padding:8px 10px">
+    <div style="color:var(--ink3);font-size:9px;letter-spacing:1px">${sym}USDT</div>
+    <div style="font-size:18px;font-weight:700;color:var(--ink)">$${fmtPrice(price)}</div>
+    <div style="color:${pct>=0?'var(--up-text)':'var(--down-text)'};font-weight:600">${pct>=0?'+':''}${pct.toFixed(2)}%</div>
+  </div>`;
+
+  // Learn Engine
+  html += `<div style="background:var(--panel);padding:8px 10px">
+    <div style="color:var(--ink3);font-size:9px;letter-spacing:1px">LEARN ENGINE</div>
+    <div style="font-size:18px;font-weight:700;color:${leDirColor}">${leDir}</div>
+    <div style="color:var(--ink2)">Score ${leScore}/100</div>
+  </div>`;
+
+  // BTC
+  html += `<div style="background:var(--panel);padding:6px 10px">
+    <div style="color:var(--ink3);font-size:9px">BTC</div>
+    <div style="font-weight:700;color:var(--ink)">${btc?'$'+fmtPrice(btc.last):'—'}</div>
+    <div class="${btc&&btc.pct>=0?'u':'d'}" style="font-size:10px">${btc?(btc.pct>=0?'+':'')+btc.pct.toFixed(2)+'%':'—'}</div>
+  </div>`;
+
+  // ETH
+  html += `<div style="background:var(--panel);padding:6px 10px">
+    <div style="color:var(--ink3);font-size:9px">ETH</div>
+    <div style="font-weight:700;color:var(--ink)">${eth?'$'+fmtPrice(eth.last):'—'}</div>
+    <div class="${eth&&eth.pct>=0?'u':'d'}" style="font-size:10px">${eth?(eth.pct>=0?'+':'')+eth.pct.toFixed(2)+'%':'—'}</div>
+  </div>`;
+
+  // Fear & Greed
+  html += `<div style="background:var(--panel);padding:6px 10px">
+    <div style="color:var(--ink3);font-size:9px">공포/탐욕</div>
+    <div style="font-weight:700;color:${fng?(fng.v<=25?'var(--down-text)':fng.v>=75?'var(--up-text)':'var(--ink)'):'var(--ink3)'}">${fng?fng.v+' · '+fng.cls:'—'}</div>
+  </div>`;
+
+  // Funding
+  html += `<div style="background:var(--panel);padding:6px 10px">
+    <div style="color:var(--ink3);font-size:9px">${sym} 펀딩</div>
+    <div style="font-weight:700;color:${funding!=null&&Math.abs(funding)>0.03?'var(--amber)':'var(--ink)'}">${funding!=null?(funding>=0?'+':'')+funding.toFixed(4)+'%':'—'}</div>
+  </div>`;
+
+  // Long/Short
+  html += `<div style="background:var(--panel);padding:6px 10px">
+    <div style="color:var(--ink3);font-size:9px">롱/숏</div>
+    <div>${ls?`<span class="u">${(ls.long*100).toFixed(0)}%</span> / <span class="d">${(ls.short*100).toFixed(0)}%</span>`:'—'}</div>
+  </div>`;
+
+  // Active items
+  html += `<div style="background:var(--panel);padding:6px 10px">
+    <div style="color:var(--ink3);font-size:9px">활성 도구</div>
+    <div style="font-size:10px;color:var(--ink2)">포지션 ${openPos} · 스나이퍼 ${activeSnipers} · 에폭 ${LE.epoch}</div>
+  </div>`;
+
+  html += `</div>`;
+
+  // Quick actions
+  html += `<div style="padding:6px 10px;border-top:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap">`;
+  const btns = [
+    {cmd:"REPORT",label:"리포트"},
+    {cmd:"MTF",label:"MTF"},
+    {cmd:"SUMMARY",label:"요약"},
+    {cmd:"LEVELS",label:"지지/저항"},
+    {cmd:"PATTERN",label:"패턴"},
+    {cmd:"DIVERGE",label:"다이버전스"},
+    {cmd:"TOP",label:"순위"},
+    {cmd:"HMAP",label:"히트맵"},
+  ];
+  for(const b of btns){
+    html += `<span style="padding:3px 8px;border:1px solid var(--border);color:var(--ink2);font-size:9px;cursor:pointer;letter-spacing:.5px" onclick="$('btov').classList.remove('on');$('cmd').value='${b.cmd}';$('cmd').dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'}))">${b.label}</span>`;
+  }
+  html += `</div>`;
+
+  showOverlay(`DASH · 퀵 대시보드`, html);
+}
+
+/* ── KEYS keyboard shortcuts panel ── */
+function keysOverlay(){
+  const shortcuts = [
+    {key:"아무 키", desc:"커맨드바 포커스"},
+    {key:"Enter", desc:"명령 실행"},
+    {key:"Esc", desc:"검색/메뉴 닫기"},
+    {key:"마우스 휠", desc:"차트 확대/축소"},
+    {key:"드래그", desc:"차트 좌우 이동"},
+    {key:"더블클릭", desc:"최신 봉으로 이동"},
+    {key:"F1", desc:"도움말"},
+    {key:"Ctrl+K", desc:"커맨드 팔레트"},
+  ];
+
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+  for(const s of shortcuts){
+    html += `<tr style="border-bottom:1px solid #101010">
+      <td style="padding:5px 10px"><kbd style="background:#1a1a1a;border:1px solid var(--border);padding:2px 8px;color:var(--amber);font-family:var(--mono);font-size:11px">${s.key}</kbd></td>
+      <td style="padding:5px 10px;color:var(--ink2)">${s.desc}</td>
+    </tr>`;
+  }
+  html += '</table>';
+
+  // Quick command reference
+  html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">자주 쓰는 명령</div>';
+  const quickCmds = [
+    "REPORT","SUMMARY","MTF","LEVELS","PATTERN","DIVERGE",
+    "HMAP","FMAP","TOP","MOMENTUM","SECTOR","ALTSEASON",
+    "SCANNER","SCREENER RSI<30","CORR","COMPARE ETH",
+    "SPREAD","DEPTH","FLOW","WHALE","ONCHAIN","TIMELINE",
+    "KRW","CONVERT 1 BTC","RATIO","VOL24","GRID 150 170 10",
+    "LIQUIDMAP","RISK","PNL","MEMO","SNIPER SOL 160 LONG",
+    "EXPORT","STATUS","DASH","HELP"
+  ];
+  html += '<div style="padding:6px 10px;display:flex;flex-wrap:wrap;gap:3px">';
+  for(const c of quickCmds){
+    html += `<span style="padding:2px 6px;border:1px solid var(--border);color:var(--ink2);font-size:9px;cursor:pointer" onclick="$('btov').classList.remove('on');$('cmd').value='${c}';$('cmd').focus();">${c}</span>`;
+  }
+  html += '</div>';
+
+  showOverlay("KEYS · 단축키 & 명령어 레퍼런스", html);
+}
 
 /* clocks */
 function tickClocks(){
