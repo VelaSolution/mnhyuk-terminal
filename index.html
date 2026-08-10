@@ -4766,6 +4766,9 @@ const CMD_LIST=[
   {c:"WHALEMAP", d:"고래 활동 맵 (대규모 체결 + 청산 종합)"},
   {c:"ETA 200", d:"목표가 도달 예상 시간 (ATR 기반)"},
   {c:"DOMINANCE", d:"도미넌스 상세 분석 (BTC·ETH·알트)"},
+  {c:"HEALTH", d:"시장 건강도 종합 체크 (10개 지표)"},
+  {c:"PROFIT 162 170 10 20", d:"수익 계산기 (진입·청산·수량·레버리지)"},
+  {c:"WATCHVIEW", d:"관심종목 상세 뷰 (전체 지표 포함)"},
 ];
 let sugSel=-1, sugItems=[];
 function renderSug(){
@@ -4977,6 +4980,10 @@ $("cmd").addEventListener("keydown",e=>{
   const etam = raw.match(/^ETA\s+([\d.]+)$/);
   if(etam){ etaOverlay(+etam[1]); e.target.value=""; return; }
   if(raw==="DOMINANCE"||raw==="DOM"){ dominanceOverlay(); e.target.value=""; return; }
+  if(raw==="HEALTH"){ healthOverlay(); e.target.value=""; return; }
+  const profm = raw.match(/^PROFIT\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+(\d+)$/);
+  if(profm){ profitCalcOverlay(+profm[1], +profm[2], +profm[3], +profm[4]); e.target.value=""; return; }
+  if(raw==="WATCHVIEW"||raw==="WV"){ watchviewOverlay(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
   const m=raw.match(/^([A-Z0-9]{2,10})\s*(15M|1H|4H|1D)?$/);
@@ -7985,6 +7992,206 @@ async function dominanceOverlay(){
   } catch(e){
     showOverlay("DOMINANCE", '<div class="rowline"><span style="color:var(--down-text)">데이터 로드 실패</span></div>');
   }
+}
+
+function healthOverlay(){
+  const all = S.allTickers || [];
+  const btc = S.quotes["BTC"];
+  const fng = S.fng;
+  const ls = S.lsr;
+
+  // 10 health metrics (0-100 each)
+  const metrics = [];
+
+  // 1. Market breadth
+  const ups = all.filter(t=>t.pct>0).length;
+  const breadth = all.length ? Math.round(ups/all.length*100) : 50;
+  metrics.push({name:"시장 참여도", value:breadth, desc:`${ups}/${all.length} 상승`, good:breadth>55});
+
+  // 2. BTC trend
+  const btcScore = btc ? (btc.pct>2?80:btc.pct>0?60:btc.pct>-2?40:20) : 50;
+  metrics.push({name:"BTC 추세", value:btcScore, desc:btc?`${btc.pct>=0?'+':''}${btc.pct.toFixed(1)}%`:"—", good:btcScore>50});
+
+  // 3. Fear & Greed
+  const fngScore = fng ? fng.v : 50;
+  metrics.push({name:"시장 심리", value:fngScore, desc:fng?fng.cls:"—", good:fngScore>40&&fngScore<75});
+
+  // 4. Volume health
+  const avgVol = all.length ? all.reduce((s,t)=>s+t.vol,0)/all.length : 0;
+  const highVolCount = all.filter(t=>t.vol>avgVol*2).length;
+  const volScore = Math.min(100, Math.round(highVolCount/Math.max(1,all.length)*500));
+  metrics.push({name:"거래량 활성도", value:volScore, desc:`${highVolCount}종목 평균 2배+`, good:volScore>30});
+
+  // 5. Extreme moves (less = healthier)
+  const extreme = all.filter(t=>Math.abs(t.pct)>10).length;
+  const stabScore = Math.max(0, 100 - extreme * 10);
+  metrics.push({name:"시장 안정성", value:stabScore, desc:`극단 이동 ${extreme}종목`, good:stabScore>50});
+
+  // 6. Funding balance
+  const fundCoins = all.filter(t=>t.funding!=null);
+  const avgFund = fundCoins.length ? fundCoins.reduce((s,t)=>s+Math.abs(t.funding),0)/fundCoins.length : 0;
+  const fundScore = Math.max(0, Math.round(100 - avgFund * 2000));
+  metrics.push({name:"펀딩 균형", value:fundScore, desc:`평균 |${avgFund.toFixed(4)}%|`, good:fundScore>60});
+
+  // 7. Long/Short balance
+  const lsScore = ls ? Math.round(100 - Math.abs(ls.long - 0.5) * 200) : 50;
+  metrics.push({name:"롱숏 균형", value:lsScore, desc:ls?`L${(ls.long*100).toFixed(0)}% S${(ls.short*100).toFixed(0)}%`:"—", good:lsScore>40});
+
+  // 8. Dispersion (variety of returns)
+  const pcts = all.map(t=>t.pct);
+  const avgPct = pcts.reduce((s,v)=>s+v,0)/pcts.length;
+  const dispersion = Math.sqrt(pcts.reduce((s,v)=>s+(v-avgPct)**2,0)/pcts.length);
+  const dispScore = Math.max(0, Math.round(100 - dispersion * 10));
+  metrics.push({name:"수익률 분산", value:dispScore, desc:`σ=${dispersion.toFixed(1)}%`, good:dispScore>40});
+
+  // 9. Current symbol RSI health
+  let rsiScore = 50;
+  if(S.candles.length > 20){
+    const rsi = rsiSeries(S.candles.map(c=>c.c), 14)[S.candles.length-1];
+    rsiScore = rsi ? Math.round(100 - Math.abs(rsi - 50) * 2) : 50;
+    metrics.push({name:`${S.sym} RSI 건강`, value:rsiScore, desc:`RSI ${rsi?rsi.toFixed(0):'—'}`, good:rsiScore>40});
+  }
+
+  // 10. WebSocket health
+  const wsScore = S.wsAlive ? 100 : 0;
+  metrics.push({name:"데이터 연결", value:wsScore, desc:S.wsAlive?"WebSocket LIVE":"OFFLINE", good:wsScore>0});
+
+  // Overall
+  const overall = Math.round(metrics.reduce((s,m)=>s+m.value,0)/metrics.length);
+  const overallColor = overall>65?"var(--up-text)":overall>45?"var(--amber)":"var(--down-text)";
+  const overallLabel = overall>70?"HEALTHY":overall>55?"FAIR":overall>40?"WEAK":"CRITICAL";
+
+  let html = `<div style="padding:12px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;color:var(--ink3)">MARKET HEALTH</div>
+    <div style="font-size:42px;font-weight:700;color:${overallColor}">${overall}</div>
+    <div style="font-size:14px;color:${overallColor};letter-spacing:1px">${overallLabel}</div>
+  </div>`;
+
+  html += metrics.map(m => {
+    const color = m.value>65?"var(--up-text)":m.value>40?"var(--amber)":"var(--down-text)";
+    return `<div style="padding:4px 10px;border-bottom:1px solid #101010">
+      <div style="display:flex;justify-content:space-between;margin-bottom:2px">
+        <span style="color:var(--ink2);font-size:10px">${m.name}</span>
+        <span style="color:${color};font-weight:700;font-size:10px">${m.value}/100 <span style="font-size:9px">${m.desc}</span></span>
+      </div>
+      <div style="height:3px;background:#1a1a1a"><div style="width:${m.value}%;height:100%;background:${color}"></div></div>
+    </div>`;
+  }).join("");
+
+  showOverlay("HEALTH · 시장 건강도", html);
+}
+
+function profitCalcOverlay(entry, exit, qty, lev){
+  const isLong = exit > entry;
+  const dir = isLong ? "LONG" : "SHORT";
+  const dirColor = isLong ? "var(--up-text)" : "var(--down-text)";
+
+  const posSize = entry * qty;
+  const margin = posSize / lev;
+  const pnlPct = isLong ? (exit - entry) / entry * 100 : (entry - exit) / entry * 100;
+  const pnlUsd = pnlPct / 100 * posSize;
+  const roe = pnlPct * lev;
+
+  // Fees (0.02% maker, 0.05% taker)
+  const feeMaker = posSize * 0.0002 * 2; // entry + exit
+  const feeTaker = posSize * 0.0005 * 2;
+  const netPnlMaker = pnlUsd - feeMaker;
+  const netPnlTaker = pnlUsd - feeTaker;
+
+  const pnlColor = pnlUsd >= 0 ? "var(--up-text)" : "var(--down-text)";
+
+  let html = `<div style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;color:var(--ink3)">${dir} · ${lev}x 레버리지</div>
+    <div style="font-size:28px;font-weight:700;color:${pnlColor}">${pnlUsd>=0?'+':''}$${Math.abs(pnlUsd).toFixed(2)}</div>
+    <div style="font-size:14px;color:${pnlColor}">ROE ${roe>=0?'+':''}${roe.toFixed(2)}%</div>
+  </div>`;
+
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border)">
+    <div style="background:var(--panel);padding:6px 10px">
+      <div style="color:var(--ink3);font-size:9px">진입가</div>
+      <div style="font-weight:700;color:var(--ink)">$${fmtPrice(entry)}</div>
+    </div>
+    <div style="background:var(--panel);padding:6px 10px">
+      <div style="color:var(--ink3);font-size:9px">청산가</div>
+      <div style="font-weight:700;color:${dirColor}">$${fmtPrice(exit)}</div>
+    </div>
+    <div style="background:var(--panel);padding:6px 10px">
+      <div style="color:var(--ink3);font-size:9px">포지션</div>
+      <div style="font-weight:700;color:var(--ink)">$${posSize.toFixed(2)}</div>
+    </div>
+    <div style="background:var(--panel);padding:6px 10px">
+      <div style="color:var(--ink3);font-size:9px">증거금</div>
+      <div style="font-weight:700;color:var(--ink)">$${margin.toFixed(2)}</div>
+    </div>
+  </div>`;
+
+  html += `<div class="rowline"><span>가격 변동</span><b style="color:${pnlColor}">${pnlPct>=0?'+':''}${pnlPct.toFixed(3)}%</b></div>`;
+  html += `<div class="rowline"><span>수익 (수수료 전)</span><b style="color:${pnlColor}">${pnlUsd>=0?'+':''}$${Math.abs(pnlUsd).toFixed(2)}</b></div>`;
+  html += `<div class="rowline"><span>메이커 수수료</span><b style="color:var(--down-text)">-$${feeMaker.toFixed(2)}</b></div>`;
+  html += `<div class="rowline"><span>테이커 수수료</span><b style="color:var(--down-text)">-$${feeTaker.toFixed(2)}</b></div>`;
+
+  const netColor = netPnlTaker >= 0 ? "var(--up-text)" : "var(--down-text)";
+  html += `<div class="rowline" style="border-top:1px solid var(--border)"><span style="font-weight:700">순수익 (테이커)</span><b style="color:${netColor};font-size:13px">${netPnlTaker>=0?'+':''}$${Math.abs(netPnlTaker).toFixed(2)}</b></div>`;
+  html += `<div class="rowline"><span style="font-weight:700">순수익 (메이커)</span><b style="color:${netPnlMaker>=0?'var(--up-text)':'var(--down-text)'}">${netPnlMaker>=0?'+':''}$${Math.abs(netPnlMaker).toFixed(2)}</b></div>`;
+
+  showOverlay(`PROFIT · ${dir} ${lev}x 수익 계산`, html);
+}
+
+function watchviewOverlay(){
+  const data = SYMBOLS.map(sym => {
+    const q = S.quotes[sym];
+    const t = S.allTickers ? S.allTickers.find(x=>x.sym===sym) : null;
+    return {
+      sym,
+      price: q?.last || t?.last || null,
+      pct: q?.pct || t?.pct || null,
+      high: q?.high,
+      low: q?.low,
+      vol: t?.vol || q?.vol,
+      funding: q?.fundingRate || t?.funding,
+    };
+  }).filter(d => d.price);
+
+  if(!data.length){
+    showOverlay("WATCHVIEW", '<div class="rowline"><span style="color:var(--ink3)">시세 데이터 로드 중…</span></div>');
+    return;
+  }
+
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+  html += '<thead><tr>';
+  html += '<th style="text-align:left;padding:3px 6px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">SYM</th>';
+  html += '<th style="text-align:right;padding:3px 6px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">PRICE</th>';
+  html += '<th style="text-align:right;padding:3px 6px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">24H%</th>';
+  html += '<th style="text-align:right;padding:3px 6px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">HIGH</th>';
+  html += '<th style="text-align:right;padding:3px 6px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">LOW</th>';
+  html += '<th style="text-align:right;padding:3px 6px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">VOL</th>';
+  html += '<th style="text-align:right;padding:3px 6px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">FUND</th>';
+  html += '</tr></thead><tbody>';
+
+  for(const d of data){
+    const cls = d.pct >= 0 ? "u" : "d";
+    const fundColor = d.funding!=null&&Math.abs(d.funding)>0.03?"var(--amber)":"var(--ink3)";
+    html += `<tr style="border-bottom:1px solid #0e0e0e;cursor:pointer" onclick="switchTo('${d.sym}',S.tf);$('btov').classList.remove('on');">
+      <td style="padding:3px 6px;font-weight:700;color:var(--ink)">${d.sym}</td>
+      <td style="padding:3px 6px;text-align:right;color:var(--ink)">$${fmtPrice(d.price)}</td>
+      <td style="padding:3px 6px;text-align:right;font-weight:600" class="${cls}">${d.pct!=null?(d.pct>=0?'+':'')+d.pct.toFixed(2)+'%':'—'}</td>
+      <td style="padding:3px 6px;text-align:right;color:var(--ink2)">${d.high?'$'+fmtPrice(d.high):'—'}</td>
+      <td style="padding:3px 6px;text-align:right;color:var(--ink2)">${d.low?'$'+fmtPrice(d.low):'—'}</td>
+      <td style="padding:3px 6px;text-align:right;color:var(--ink3)">${d.vol?'$'+fmtBig(d.vol):'—'}</td>
+      <td style="padding:3px 6px;text-align:right;color:${fundColor}">${d.funding!=null?(d.funding>=0?'+':'')+d.funding.toFixed(4)+'%':'—'}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+
+  const avgPct = data.filter(d=>d.pct!=null).reduce((s,d)=>s+d.pct,0)/data.filter(d=>d.pct!=null).length;
+  const ups = data.filter(d=>d.pct>0).length;
+  html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3);display:flex;justify-content:space-between">
+    <span>${data.length}종목</span>
+    <span>평균 ${avgPct>=0?'+':''}${avgPct.toFixed(2)}%</span>
+    <span class="u">${ups}↑</span> <span class="d">${data.length-ups}↓</span>
+  </div>`;
+
+  showOverlay("WATCHVIEW · 관심종목 상세", html);
 }
 </script>
 </body>
