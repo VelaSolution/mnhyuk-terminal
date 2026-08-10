@@ -4749,6 +4749,9 @@ const CMD_LIST=[
   {c:"MULTI BTC ETH SOL", d:"멀티 심볼 실시간 비교 테이블"},
   {c:"STATS", d:"터미널 사용 통계"},
   {c:"COLOR", d:"차트 색상 테마 변경 (CLASSIC·NEON·MONO)"},
+  {c:"PREMIUM", d:"전 종목 김치 프리미엄 순위"},
+  {c:"PULSE", d:"마켓 펄스 — 시장 건강도 체크"},
+  {c:"RANGE", d:"가격 범위 분석 (일간·주간·월간 레인지)"},
 ];
 let sugSel=-1, sugItems=[];
 function renderSug(){
@@ -4936,6 +4939,9 @@ $("cmd").addEventListener("keydown",e=>{
   const colorm = raw.match(/^COLOR\s+(CLASSIC|NEON|MONO|DEFAULT)$/i);
   if(colorm){ applyTheme(colorm[1].toUpperCase()); e.target.value=""; return; }
   if(raw==="COLOR"){ themeOverlay(); e.target.value=""; return; }
+  if(raw==="PREMIUM"||raw==="KIMCHI"){ premiumOverlay(); e.target.value=""; return; }
+  if(raw==="PULSE"){ pulseOverlay(); e.target.value=""; return; }
+  if(raw==="RANGE"){ rangeOverlay(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
   const m=raw.match(/^([A-Z0-9]{2,10})\s*(15M|1H|4H|1D)?$/);
@@ -6843,6 +6849,221 @@ _booted = true;
 }
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ loadQuotes(); loadChart(); } });
 authInit();
+
+/* ── PREMIUM overlay — 전 종목 김치 프리미엄 순위 ── */
+async function premiumOverlay(){
+  showOverlay("PREMIUM", '<div class="rowline"><span style="color:var(--ink3)">김치 프리미엄 계산 중…</span></div>');
+
+  const rate = S.usdkrw || 1380;
+
+  try {
+    // Fetch upbit KRW prices
+    const coins = ["BTC","ETH","SOL","XRP","DOGE","ADA","AVAX","LINK","SUI","LTC","DOT","NEAR","APT","ARB","SEI","ATOM","ETC","SAND","BCH","TRX"];
+    const upbitUrl = "https://api.upbit.com/v1/ticker?markets=" + coins.map(c => "KRW-" + c).join(",");
+    const upbitData = await fetchJson(upbitUrl);
+
+    if(!upbitData || !Array.isArray(upbitData)) throw new Error("upbit fail");
+
+    const results = [];
+    for(const item of upbitData){
+      const sym = item.market.replace("KRW-", "");
+      const krwPrice = item.trade_price;
+
+      // Get USD price from our data
+      const q = S.quotes[sym];
+      const t = S.allTickers ? S.allTickers.find(x => x.sym === sym) : null;
+      const usdPrice = q ? q.last : (t ? t.last : null);
+
+      if(!usdPrice || !krwPrice) continue;
+
+      const fairKrw = usdPrice * rate;
+      const premium = ((krwPrice - fairKrw) / fairKrw * 100);
+
+      results.push({
+        sym,
+        krwPrice,
+        usdPrice,
+        premium,
+        change24h: item.signed_change_rate * 100,
+      });
+    }
+
+    results.sort((a,b) => b.premium - a.premium);
+
+    const avgPrem = results.reduce((s,r) => s + r.premium, 0) / results.length;
+
+    let html = `<div style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)">
+      <div style="font-size:10px;color:var(--ink3)">평균 김치 프리미엄</div>
+      <div style="font-size:22px;font-weight:700;color:${avgPrem>0?'var(--up-text)':'var(--down-text)'}">${avgPrem>=0?'+':''}${avgPrem.toFixed(2)}%</div>
+      <div style="font-size:10px;color:var(--ink3)">환율 $1 = ₩${Math.round(rate).toLocaleString()}</div>
+    </div>`;
+
+    html += '<table style="width:100%;border-collapse:collapse;font-size:10px;">';
+    html += '<thead><tr><th style="text-align:left;padding:3px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">SYM</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">업비트(₩)</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">선물($)</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">프리미엄</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">24H%</th></tr></thead><tbody>';
+
+    for(const r of results){
+      const premColor = r.premium > 2 ? "var(--up-text)" : r.premium > 0 ? "var(--ink)" : "var(--down-text)";
+      html += `<tr style="border-bottom:1px solid #0e0e0e;cursor:pointer" onclick="switchTo('${r.sym}',S.tf);$('btov').classList.remove('on');">
+        <td style="padding:3px 8px;font-weight:600;color:var(--ink)">${r.sym}</td>
+        <td style="padding:3px 8px;text-align:right;color:var(--ink2)">₩${Math.round(r.krwPrice).toLocaleString()}</td>
+        <td style="padding:3px 8px;text-align:right;color:var(--ink2)">$${fmtPrice(r.usdPrice)}</td>
+        <td style="padding:3px 8px;text-align:right;font-weight:700;color:${premColor}">${r.premium>=0?'+':''}${r.premium.toFixed(2)}%</td>
+        <td style="padding:3px 8px;text-align:right" class="${r.change24h>=0?'u':'d'}">${r.change24h>=0?'+':''}${r.change24h.toFixed(1)}%</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">${results.length}종목 · 업비트 KRW vs 바이비트/바이낸스 선물 비교</div>`;
+
+    showOverlay("PREMIUM · 김치 프리미엄 순위", html);
+  } catch(e){
+    showOverlay("PREMIUM", '<div class="rowline"><span style="color:var(--down-text)">업비트 데이터 로드 실패</span></div>');
+  }
+}
+
+/* ── PULSE overlay — 마켓 펄스 ── */
+function pulseOverlay(){
+  if(!S.allTickers || !S.allTickers.length){
+    showOverlay("PULSE", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
+    return;
+  }
+
+  const all = S.allTickers;
+  const ups = all.filter(t => t.pct > 0).length;
+  const dns = all.filter(t => t.pct < 0).length;
+  const flat = all.length - ups - dns;
+  const upPct = (ups / all.length * 100).toFixed(0);
+
+  const avgChange = all.reduce((s,t) => s + t.pct, 0) / all.length;
+  const totalVol = all.reduce((s,t) => s + t.vol, 0);
+
+  // Extreme moves
+  const extreme5 = all.filter(t => Math.abs(t.pct) > 5).length;
+  const extreme10 = all.filter(t => Math.abs(t.pct) > 10).length;
+
+  // Market breadth score (0-100)
+  const breadth = Math.round(ups / all.length * 100);
+  const breadthLabel = breadth > 70 ? "강세 우위" : breadth > 55 ? "약간 강세" : breadth > 45 ? "중립" : breadth > 30 ? "약간 약세" : "약세 우위";
+  const breadthColor = breadth > 60 ? "var(--up-text)" : breadth > 40 ? "var(--amber)" : "var(--down-text)";
+
+  // F&G
+  const fng = S.fng;
+
+  // BTC dominance proxy
+  const btc = all.find(t => t.sym === "BTC");
+  const btcVol = btc ? btc.vol : 0;
+  const btcDomVol = totalVol > 0 ? (btcVol / totalVol * 100).toFixed(1) : "—";
+
+  let html = `<div style="padding:12px;text-align:center;border-bottom:1px solid var(--border)">
+    <div style="font-size:10px;color:var(--ink3);margin-bottom:4px">MARKET BREADTH</div>
+    <div style="font-size:36px;font-weight:700;color:${breadthColor}">${breadth}%</div>
+    <div style="font-size:12px;color:${breadthColor}">${breadthLabel}</div>
+    <div style="height:8px;margin:8px auto;max-width:200px;display:flex;border:1px solid #222;overflow:hidden">
+      <div style="width:${upPct}%;background:var(--up)"></div>
+      <div style="flex:1;background:var(--down)"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;max-width:200px;margin:0 auto;font-size:9px">
+      <span class="u">${ups} 상승</span>
+      <span style="color:var(--ink3)">${flat} 보합</span>
+      <span class="d">${dns} 하락</span>
+    </div>
+  </div>`;
+
+  html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border)">`;
+  const stat = (l,v,c) => `<div style="background:var(--panel);padding:6px;text-align:center"><div style="color:var(--ink3);font-size:8px;letter-spacing:1px">${l}</div><div style="font-weight:700;color:${c||'var(--ink)'}">${v}</div></div>`;
+
+  html += stat("평균 변동", (avgChange>=0?"+":"") + avgChange.toFixed(2)+"%", avgChange>=0?"var(--up-text)":"var(--down-text)");
+  html += stat("총 거래량", "$"+fmtBig(totalVol), "var(--ink)");
+  html += stat("BTC 볼륨점유", btcDomVol+"%", "var(--amber)");
+  html += stat("극단 이동(>5%)", extreme5+"종목", extreme5>10?"var(--amber)":"var(--ink)");
+  html += stat("폭등폭락(>10%)", extreme10+"종목", extreme10>3?"var(--down-text)":"var(--ink)");
+  html += stat("공포/탐욕", fng?fng.v+" · "+fng.cls:"—", fng?(fng.v<=25?"var(--down-text)":fng.v>=75?"var(--up-text)":"var(--ink)"):"var(--ink3)");
+  html += `</div>`;
+
+  html += `<div style="padding:6px 10px;font-size:9px;color:var(--ink3);text-align:center">전체 ${all.length}종목 · 실시간 24h 데이터 기준</div>`;
+  showOverlay("PULSE · 마켓 펄스", html);
+}
+
+/* ── RANGE overlay — 가격 범위 분석 ── */
+async function rangeOverlay(){
+  const sym = S.sym;
+  showOverlay(`RANGE · ${sym}`, '<div class="rowline"><span style="color:var(--ink3)">범위 분석 중…</span></div>');
+
+  try {
+    const daily = await firstOk(klineChain(sym, "1D", 90));
+    if(!daily || daily.length < 7) throw new Error("insufficient");
+
+    const n = daily.length;
+
+    // Calculate ranges for different periods
+    const periods = [
+      {label:"오늘", data:daily.slice(-1)},
+      {label:"3일", data:daily.slice(-3)},
+      {label:"7일", data:daily.slice(-7)},
+      {label:"14일", data:daily.slice(-14)},
+      {label:"30일", data:daily.slice(Math.max(0,n-30))},
+      {label:"90일", data:daily},
+    ];
+
+    const price = daily[n-1].c;
+
+    let html = `<div style="padding:8px 10px;text-align:center;border-bottom:1px solid var(--border)">
+      <div style="font-size:14px;font-weight:700;color:var(--ink)">${sym}USDT · $${fmtPrice(price)}</div>
+    </div>`;
+
+    html += '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+    html += '<thead><tr><th style="text-align:left;padding:4px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">기간</th><th style="text-align:right;padding:4px 8px;color:var(--up-text);font-weight:400">HIGH</th><th style="text-align:right;padding:4px 8px;color:var(--down-text);font-weight:400">LOW</th><th style="text-align:right;padding:4px 8px;color:var(--ink3);font-weight:400">RANGE</th><th style="text-align:center;padding:4px 8px;color:var(--ink3);font-weight:400">현재 위치</th></tr></thead><tbody>';
+
+    for(const p of periods){
+      const high = Math.max(...p.data.map(c=>c.h));
+      const low = Math.min(...p.data.map(c=>c.l));
+      const range = high - low;
+      const rangePct = (range / low * 100).toFixed(1);
+      const position = range > 0 ? ((price - low) / range * 100).toFixed(0) : "50";
+
+      // Position bar
+      const barColor = +position > 80 ? "var(--down-text)" : +position < 20 ? "var(--up-text)" : "var(--amber)";
+
+      html += `<tr style="border-bottom:1px solid #101010">
+        <td style="padding:4px 8px;font-weight:600;color:var(--amber)">${p.label}</td>
+        <td style="padding:4px 8px;text-align:right;color:var(--up-text)">$${fmtPrice(high)}</td>
+        <td style="padding:4px 8px;text-align:right;color:var(--down-text)">$${fmtPrice(low)}</td>
+        <td style="padding:4px 8px;text-align:right;color:var(--ink2)">${rangePct}%</td>
+        <td style="padding:4px 8px">
+          <div style="display:flex;align-items:center;gap:4px">
+            <div style="flex:1;height:4px;background:#1a1a1a;position:relative">
+              <div style="position:absolute;left:${position}%;top:-2px;width:4px;height:8px;background:${barColor};transform:translateX(-2px)"></div>
+            </div>
+            <span style="font-size:9px;color:${barColor};min-width:24px">${position}%</span>
+          </div>
+        </td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+
+    // ATR analysis
+    const atr = atrSeries(daily, 14);
+    const atrVal = atr[n-1];
+    const atrPct = atrVal ? (atrVal / price * 100).toFixed(2) : "—";
+    const avgRange = daily.slice(-14).reduce((s,c) => s + (c.h - c.l), 0) / 14;
+    const avgRangePct = (avgRange / price * 100).toFixed(2);
+
+    html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);border-top:1px solid var(--border)">
+      <div style="background:var(--panel);padding:6px 10px;text-align:center">
+        <div style="color:var(--ink3);font-size:9px">ATR(14)</div>
+        <div style="font-weight:700;color:var(--ink)">$${fmtPrice(atrVal||0)} (${atrPct}%)</div>
+      </div>
+      <div style="background:var(--panel);padding:6px 10px;text-align:center">
+        <div style="color:var(--ink3);font-size:9px">평균 일간 레인지</div>
+        <div style="font-weight:700;color:var(--ink)">$${fmtPrice(avgRange)} (${avgRangePct}%)</div>
+      </div>
+    </div>`;
+
+    html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">일봉 기준 · 위치 0%=저점, 100%=고점 · 레인지 상단 접근 시 주의</div>`;
+    showOverlay(`RANGE · ${sym} 가격 범위`, html);
+  } catch(e){
+    showOverlay(`RANGE`, '<div class="rowline"><span style="color:var(--down-text)">데이터 로드 실패</span></div>');
+  }
+}
 </script>
 </body>
 </html>
