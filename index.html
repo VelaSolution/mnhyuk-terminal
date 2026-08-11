@@ -408,6 +408,7 @@
     <div id="cmdwrap"><span>&gt;</span><input id="cmd" placeholder="입력 시 자동완성 · HELP = 전체 명령" autocomplete="off" spellcheck="false">
     <div id="cmdsug"></div></div>
     <div id="clocks">
+      <span id="billion-status" style="color:var(--ink3);cursor:pointer" onclick="billionOverlay()" title="BILLION AI Agent">AI —</span>
       <span><span id="led"></span><span id="ledtext">CONNECTING</span></span>
       <span>SEOUL <b id="clk-kst">--:--:--</b></span>
       <span>UTC <b id="clk-utc">--:--:--</b></span>
@@ -6453,6 +6454,15 @@ async function pollBillionSignal(){
 
     // LED 상태 업데이트
     $("led").className = "ok";
+
+    // 상단바 빌리언 상태
+    const bStatus = $("billion-status");
+    if (bStatus) {
+      const d = data.decision || 'IDLE';
+      const sym = data.symbol || '';
+      const col = d === 'BUY' ? 'var(--up-text)' : d === 'SELL' ? 'var(--down-text)' : 'var(--ink2)';
+      bStatus.innerHTML = `<span style="color:${col}">AI ${d}</span> ${sym}`;
+    }
 
     // 새 시그널이면 알림
     if(data.timestamp !== billionLastCheck && data.decision && data.decision !== "HOLD"){
