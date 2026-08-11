@@ -2017,6 +2017,134 @@ function sigChartOverlay(G){
   }
 }
 
+// ── BILLION AI 차트 오버레이 — 시그널 레벨 + 근거 표시 ──
+function billionChartOverlay(G){
+  if(!billionSignal || !billionSignal.team) return;
+  const {ctx, x, y, start, end, xw, plotW, plotH} = G;
+  const W = plotW || 600;
+  const H = plotH || 400;
+
+  // CEO/HEAD 텍스트에서 가격 파싱
+  const ceo = billionSignal.team.find(m => m.tier==='ceo' || m.name?.startsWith('CEO'));
+  const head = billionSignal.team.find(m => m.tier==='head' || m.name?.startsWith('HEAD'));
+  const txt = ceo?.fullText || head?.fullText || '';
+  const decision = billionSignal.decision || 'HOLD';
+
+  const parse = (rx) => { const m=txt.match(rx); return m ? parseFloat(m[1].replace(/,/g,'')) : null; };
+  const entry = parse(/진입가[:\s]*\$?([\d,]+)/);
+  const sl = parse(/손절가[:\s]*\$?([\d,]+)/);
+  const tp1 = parse(/TP1[:\s]*\$?([\d,]+)/);
+  const tp2 = parse(/TP2[:\s]*\$?([\d,]+)/);
+  const tp3 = parse(/TP3[:\s]*\$?([\d,]+)/);
+  const conf = parse(/확신도[:\s]*([\d.]+)/);
+
+  if(!entry && !sl) return;
+
+  const font = "10px " + getComputedStyle(document.body).fontFamily;
+  const fontSm = "9px " + getComputedStyle(document.body).fontFamily;
+  ctx.font = font;
+
+  // 가격 레벨 수평선 + 라벨 + 배경 영역
+  const levels = [
+    { price: entry, label: 'ENTRY', color: '#5fc3ec', bg: 'rgba(47,159,208,0.06)' },
+    { price: sl, label: 'SL', color: '#ff6b66', bg: 'rgba(229,72,77,0.06)' },
+    { price: tp1, label: 'TP1', color: '#1fd3b4', bg: 'rgba(0,160,140,0.04)' },
+    { price: tp2, label: 'TP2', color: '#1fd3b4', bg: null },
+    { price: tp3, label: 'TP3', color: '#1fd3b4', bg: null },
+  ].filter(l => l.price);
+
+  // TP 영역 배경 (Entry ~ TP3)
+  if(entry && tp1){
+    const isLong = tp1 > entry;
+    const topP = isLong ? (tp3||tp2||tp1) : entry;
+    const botP = isLong ? entry : (tp3||tp2||tp1);
+    const yTop = y(topP), yBot = y(botP);
+    ctx.fillStyle = isLong ? 'rgba(0,160,140,0.04)' : 'rgba(229,72,77,0.04)';
+    ctx.fillRect(0, yTop, W, yBot - yTop);
+  }
+
+  // SL 영역 배경
+  if(entry && sl){
+    const yE = y(entry), ySL = y(sl);
+    ctx.fillStyle = 'rgba(229,72,77,0.05)';
+    ctx.fillRect(0, Math.min(yE,ySL), W, Math.abs(yE-ySL));
+  }
+
+  // 수평선 + 라벨
+  levels.forEach(l => {
+    const py = y(l.price);
+    if(py < 0 || py > H) return;
+
+    ctx.setLineDash(l.label === 'ENTRY' ? [6,3] : [3,4]);
+    ctx.strokeStyle = l.color;
+    ctx.lineWidth = l.label === 'ENTRY' ? 1.2 : 0.8;
+    ctx.globalAlpha = 0.7;
+    ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(W, py); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+
+    // 라벨 배경
+    const lbl = `${l.label} ${fmtPrice(l.price)}`;
+    const tw = ctx.measureText(lbl).width + 10;
+    ctx.fillStyle = l.color + '20';
+    ctx.fillRect(W - tw - 4, py - 8, tw + 4, 16);
+    ctx.fillStyle = l.color;
+    ctx.textAlign = 'right';
+    ctx.fillText(lbl, W - 4, py + 3);
+  });
+
+  // 시그널 방향 화살표 + 뱃지
+  if(decision !== 'HOLD' && entry){
+    const isLong = decision === 'BUY';
+    const arrowY = y(entry);
+    const arrowColor = isLong ? '#1fd3b4' : '#ff6b66';
+    const arrowDir = isLong ? '▲' : '▼';
+
+    // 방향 뱃지 (좌측)
+    ctx.fillStyle = arrowColor + '25';
+    ctx.fillRect(4, arrowY - 12, 70, 24);
+    ctx.strokeStyle = arrowColor + '60';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(4, arrowY - 12, 70, 24);
+    ctx.fillStyle = arrowColor;
+    ctx.font = "bold 11px " + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = 'left';
+    ctx.fillText(`${arrowDir} AI ${decision}`, 10, arrowY + 4);
+    ctx.font = font;
+  }
+
+  // 확신도 표시
+  if(conf && entry){
+    ctx.font = fontSm;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = conf >= 7 ? '#1fd3b4' : conf >= 5 ? '#ffa028' : '#ff6b66';
+    ctx.fillText(`CONF: ${conf}/10`, 10, y(entry) + 20);
+    ctx.font = font;
+  }
+
+  // 분석원 핵심 근거를 차트 우측 상단에 표시
+  const analysts = billionSignal.team.filter(m => m.tier === 'analyst');
+  if(analysts.length > 0){
+    const reasonY = 16;
+    ctx.font = "9px " + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = 'right';
+
+    // 반투명 배경
+    ctx.fillStyle = 'rgba(5,5,5,0.75)';
+    ctx.fillRect(W - 220, 4, 216, Math.min(analysts.length, 4) * 14 + 8);
+
+    ctx.fillStyle = '#ffa028';
+    ctx.fillText('AI ANALYSIS', W - 8, reasonY);
+
+    analysts.slice(0, 4).forEach((a, i) => {
+      const summary = (a.summary || a.fullText || '').slice(0, 28);
+      ctx.fillStyle = '#9a9a9a';
+      ctx.fillText(`${a.name?.split(' ')[0] || ''}: ${summary}`, W - 8, reasonY + 14 + i * 14);
+    });
+    ctx.font = font;
+  }
+}
+
 function positionSize(sig){
   const cap = parseFloat($("ps-cap")?.value) || 10000;
   const riskPct = parseFloat($("ps-risk")?.value) || 1;
@@ -2525,6 +2653,7 @@ function drawChart(){
 
   /* signal engine overlay */
   sigChartOverlay({ctx, x, y, start, end, xw, plotW});
+  billionChartOverlay({ctx, x, y, start, end, xw, plotW, plotH: axisB});
 
   /* crosshair */
   if(CH.cross){
@@ -6473,6 +6602,12 @@ async function pollBillionSignal(){
       pushLog(`${emoji} BILLION AI: ${data.decision} ${data.symbol || "BTC"} 시그널`);
       beep();
 
+      // 보조지표 자동 활성화 (시그널 근거 시각화)
+      if(!S.show.rsi){ S.show.rsi=true; }
+      if(!S.show.macd){ S.show.macd=true; }
+      syncIndMenu();
+      drawChart();
+
       // 시그널 오버레이 자동 표시
       billionSignalOverlay(data);
     } else if(data.timestamp !== billionLastCheck) {
@@ -6646,6 +6781,57 @@ function billionSignalOverlay(data){
       " style="flex:1;padding:8px;background:#1a1205;border:1px solid var(--amber);color:var(--amber);cursor:pointer;font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:1px">
         주문 실행
       </button>` : ''}
+    </div>`;
+  }
+
+  // 보조지표 해석 (차트 데이터 기반)
+  if(S.candles && S.candles.length > 20){
+    const closes = S.candles.map(c => c.c);
+    const last = closes[closes.length-1];
+
+    // RSI 계산
+    let gains=0, losses=0;
+    for(let i=closes.length-14; i<closes.length; i++){
+      const d=closes[i]-closes[i-1]; if(d>0) gains+=d; else losses-=d;
+    }
+    const rsi = losses===0 ? 100 : Math.round(100 - 100/(1+gains/14/(losses/14)));
+
+    // EMA20
+    let ema20 = closes[0];
+    for(let i=1; i<closes.length; i++) ema20 = closes[i]*0.0952+ema20*0.9048;
+
+    // 변동성 (최근 20봉 ATR%)
+    const trs=[];
+    for(let i=S.candles.length-20; i<S.candles.length; i++){
+      const c=S.candles[i], pc=S.candles[i-1];
+      trs.push(Math.max(c.h-c.l, Math.abs(c.h-pc.c), Math.abs(c.l-pc.c)));
+    }
+    const atr = trs.reduce((s,v)=>s+v,0)/trs.length;
+    const atrPct = (atr/last*100).toFixed(2);
+
+    const trend = last > ema20 ? '상승' : '하락';
+    const rsiLabel = rsi > 70 ? '과매수' : rsi < 30 ? '과매도' : '중립';
+    const rsiColor = rsi > 70 ? 'var(--down-text)' : rsi < 30 ? 'var(--up-text)' : 'var(--ink2)';
+
+    html += `<div style="padding:2px 0;border-top:1px solid var(--border2)">
+      <div style="padding:4px 10px;font-size:9px;color:var(--cyan-text);letter-spacing:1px">INDICATORS</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border2)">
+        <div style="background:var(--panel);padding:6px 10px;text-align:center">
+          <div style="font-size:9px;color:var(--ink3)">RSI(14)</div>
+          <div style="font-size:14px;font-weight:700;color:${rsiColor};margin-top:2px">${rsi}</div>
+          <div style="font-size:8px;color:var(--ink3)">${rsiLabel}</div>
+        </div>
+        <div style="background:var(--panel);padding:6px 10px;text-align:center">
+          <div style="font-size:9px;color:var(--ink3)">TREND</div>
+          <div style="font-size:14px;font-weight:700;color:${trend==='상승'?'var(--up-text)':'var(--down-text)'};margin-top:2px">${trend}</div>
+          <div style="font-size:8px;color:var(--ink3)">vs EMA20</div>
+        </div>
+        <div style="background:var(--panel);padding:6px 10px;text-align:center">
+          <div style="font-size:9px;color:var(--ink3)">ATR%</div>
+          <div style="font-size:14px;font-weight:700;color:${parseFloat(atrPct)>3?'var(--amber)':'var(--ink)'};margin-top:2px">${atrPct}%</div>
+          <div style="font-size:8px;color:var(--ink3)">변동성</div>
+        </div>
+      </div>
     </div>`;
   }
 
