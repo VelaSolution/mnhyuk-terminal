@@ -158,7 +158,7 @@
   #indmenu input{accent-color:#ffa028; margin-right:5px; vertical-align:-1px;}
 
   /* ── Generic overlay ─────────────────────────── */
-  #btov{position:absolute; right:10px; top:10px; width:340px; max-height:calc(100% - 20px);
+  #btov{position:absolute; right:10px; top:10px; width:420px; max-height:calc(100% - 20px);
     background:rgba(8,8,8,.96); border:1px solid var(--amber-dim); display:none;
     flex-direction:column; z-index:5; box-shadow:0 4px 24px rgba(0,0,0,.7);}
   #btov.on{display:flex;}
@@ -3876,27 +3876,129 @@ function watchCmd(op,sym){
   renderTabs(); renderQuotes(); loadQuotes(); loadKimchi();
 }
 function helpHTML(){
-  const rows=[
-    ["SOL 4H","심볼·타임프레임 전환 (임의 심볼 가능: PEPE 1H)"],
-    ["DES [심볼]","종목 개요 — 시총·공급량·ATH 등 (코인게코)"],
-    ["POS LONG SOL 162 158","포지션 기록 — 실시간 PnL, SL 도달 알림"],
-    ["LOG","모든 알림 이력 보기"],
-    ["CALC [심볼] 진입 손절 [레버리지]","수량·증거금·수수료·펀딩·추정 청산가·R 목표 계산"],
-    ["FUND","Bybit·Binance·OKX 펀딩 비교"],
-    ["SAVE","현재 설정을 URL 해시로 저장 — 북마크하면 복원"],
-    ["QUAD","2×2 멀티차트 토글"],
-    ["OPEN","현재 심볼 Bybit 주문 페이지"],
-    ["ALERT SOL 200","가격 도달 알림 등록 · ALERT CLEAR 전체 해제"],
-    ["WATCH ADD/DEL 심볼","관심종목 편집 · WATCH = 목록"],
-    ["MOST","급등 스크리너로 전환"],
-    ["LIQ / VP","청산맵 · 볼륨 프로파일 토글"],
-    ["TV","TradingView 차트 전환 (트뷰 전체 지표 사용)"],
-    ["BRIEF","현재 데이터로 시황 브리핑 자동 생성"],
-    ["ORDER LONG SOL 162 158 [TP]","실주문 전송 (Vercel+키 필요 · 테스트넷 기본 · ORDER STATUS/CANCEL)"],
-    ["HELP","이 도움말"],
+  const groups=[
+    {cat:"CHART & NAVIGATION", color:"#ffa028", cmds:[
+      ["BTC 4H","심볼·타임프레임 전환 (임의 심볼 가능: PEPE 1H)"],
+      ["QUAD","2×2 멀티차트 토글"],
+      ["TV","TradingView 차트 전환 (트뷰 전체 지표 사용)"],
+      ["LIQ","청산맵(추정) 토글"],
+      ["VP","볼륨 프로파일 토글"],
+      ["SAVE","현재 설정을 URL 해시로 저장 (북마크 복원)"],
+      ["OPEN","현재 심볼 Bybit 주문 페이지 열기"],
+      ["COLOR","차트 색상 테마 변경 (CLASSIC·NEON·MONO)"],
+    ]},
+    {cat:"MARKET DATA", color:"#1fd3b4", cmds:[
+      ["DES SOL","종목 개요 — 시총·공급량·ATH (코인게코)"],
+      ["MOST","급등 스크리너로 전환"],
+      ["TOP","실시간 거래량·변동률 TOP 순위"],
+      ["VOL24","전 종목 24h 변동률 순위 (변동성 랭킹)"],
+      ["FUND","3개 거래소 펀딩 비교 (아비트라지)"],
+      ["FMAP","전 종목 펀딩레이트 히트맵"],
+      ["HMAP","전 종목 24h 변동률 히트맵 (시총 기반)"],
+      ["PREMIUM","전 종목 김치 프리미엄 순위"],
+      ["SPREAD","거래소간 가격 비교 (재정거래 기회)"],
+      ["FEAR","공포/탐욕 지수 상세 분석"],
+      ["DOMINANCE","도미넌스 상세 분석 (BTC·ETH·알트)"],
+      ["RATIO","핵심 시장 비율 (ETH/BTC·SOL/ETH·금/BTC 등)"],
+      ["ALTSEASON","알트시즌 지표 (BTC 도미넌스 기반)"],
+      ["SECTOR","섹터별 성과 분석 (L1·DeFi·Meme·AI 등)"],
+      ["SUPPLY","토큰 공급량 분석 (유통·총·최대)"],
+      ["NEWS BTC","뉴스 키워드 검색"],
+      ["CONVERT 1 BTC","암호화폐 단위 변환 (USD·KRW·사토시)"],
+      ["KRW","원화 환산 계산기 (현재 종목 기준)"],
+    ]},
+    {cat:"ANALYSIS & INDICATORS", color:"#5fc3ec", cmds:[
+      ["MTF","멀티타임프레임 지표 정렬 대시보드"],
+      ["CORR","BTC 대비 알트코인 상관관계 분석"],
+      ["COMPARE ETH","현재 종목과 다른 종목 24h 비교"],
+      ["MULTI BTC ETH SOL","멀티 심볼 실시간 비교 테이블"],
+      ["BENCHMARK","현재 종목 vs BTC·ETH 성과 벤치마크"],
+      ["PERF","전 종목 멀티 타임프레임 성과 매트릭스"],
+      ["TIMELINE","가격 히스토리 타임라인 (7일·30일·90일 변동)"],
+      ["PATTERN","캔들스틱 패턴 자동 감지 (최근 10봉)"],
+      ["DIVERGE","RSI·MACD 다이버전스 자동 감지"],
+      ["LEVELS","자동 지지/저항 레벨 감지"],
+      ["PIVOT","피벗 포인트 계산 (R1-R3, S1-S3)"],
+      ["RANGE","가격 범위 분석 (일간·주간·월간 레인지)"],
+      ["DEPTH","오더북 누적 깊이 차트 (매수벽/매도벽)"],
+      ["VPROFILE","가격대별 거래량 분포 (볼륨 프로파일 텍스트)"],
+      ["MOMENTUM","전 종목 모멘텀 스코어 순위"],
+      ["GAPS","가격 갭 감지 (FVG · CME 갭)"],
+      ["POWER","파워 분석 (시장 강도 + 모멘텀 + 변동성 종합)"],
+      ["HEALTH","시장 건강도 종합 체크 (10개 지표)"],
+      ["PULSE","마켓 펄스 — 시장 건강도 체크"],
+      ["MATRIX","시장 조건 매트릭스 (전체 조건 한눈에)"],
+      ["SUMMARY","현재 종목 종합 요약 (한줄 분석)"],
+      ["ONCHAIN","온체인 데이터 (거래소 잔고·해시레이트·활성주소)"],
+      ["BRIEF","현재 데이터로 시황 브리핑 자동 생성"],
+      ["REPORT","오늘의 종합 리포트 (전 지표 한눈에)"],
+      ["DASH","퀵 대시보드 — 핵심 정보 한 화면"],
+    ]},
+    {cat:"WHALE & LIQUIDATION", color:"#ff6b66", cmds:[
+      ["WHALE","최근 대량 체결 내역 (고래 추적)"],
+      ["WHALEMAP","고래 활동 맵 (대규모 체결 + 청산 종합)"],
+      ["LIQUIDMAP","추정 청산 가격대 분포 (10x-100x)"],
+      ["FLOW","매수/매도 자금 흐름 추적 (체결 기반)"],
+    ]},
+    {cat:"SCANNER & SCREENER", color:"#FACC15", cmds:[
+      ["SCANNER","전 종목 조건 스캐너 (RSI 과매도 + 볼륨 급증)"],
+      ["SCREENER RSI<30","조건식 스크리너 (RSI<30, VOL>2 등)"],
+      ["SNIPER SOL 160 LONG","스나이퍼 — 가격 도달 시 방향 알림 + 자동 계산"],
+      ["SNIPER","스나이퍼 목록 보기"],
+      ["SNIPER CLEAR","스나이퍼 전체 해제"],
+      ["ETA 200","목표가 도달 예상 시간 (ATR 기반)"],
+    ]},
+    {cat:"TRADING & POSITION", color:"#ff8a3d", cmds:[
+      ["POS LONG SOL 162 158","포지션 기록 (실시간 PnL·SL 알림)"],
+      ["POS","포지션 목록 · POS CLOSE 1 · POS CLEAR"],
+      ["CALC 162 158","수수료·펀딩·청산가·R목표 계산기"],
+      ["RR 162 158 170","R:R 계산기 (진입·손절·익절)"],
+      ["PROFIT 162 170 10 20","수익 계산기 (진입·청산·수량·레버리지)"],
+      ["GRID 150 170 10","그리드 트레이딩 계산기 (하한·상한·격자수)"],
+      ["RISK","포지션 리스크 대시보드 (합산 손익·최대손실)"],
+      ["SIGNAL","학습엔진 현재 시그널 요약"],
+      ["PNL","학습엔진 에쿼티 커브 (누적 수익 그래프)"],
+      ["EXPORT","학습엔진 거래내역 CSV 다운로드"],
+      ["PORTFOLIO","가상 포트폴리오 (보유 현황 + PnL)"],
+      ["PORTFOLIO ADD 0.5 SOL 150","포트폴리오에 종목 추가"],
+    ]},
+    {cat:"ORDER EXECUTION", color:"#e5484d", cmds:[
+      ["ORDER LONG SOL 162 158","실주문 전송 (Vercel+API키 필요, 테스트넷 기본)"],
+      ["ORDER STATUS","거래소 포지션·미체결 조회"],
+      ["ORDER CANCEL","현재 심볼 미체결 전체 취소"],
+      ["PIN 1234","주문 PIN 입력 (ORDER_PIN 설정 시)"],
+    ]},
+    {cat:"ALERTS & WATCHLIST", color:"#A78BFA", cmds:[
+      ["ALERT SOL 200","가격 도달 알림 등록"],
+      ["ALERT CLEAR","가격 알림 전체 해제"],
+      ["WATCH","관심종목 목록 보기"],
+      ["WATCH ADD PEPE","관심종목 추가 (김프 연동)"],
+      ["WATCH DEL XRP","관심종목 제거"],
+      ["WATCHVIEW","관심종목 상세 뷰 (전체 지표 포함)"],
+      ["TG OFF","텔레그램 알림 릴레이 끄기/켜기(TG ON)"],
+    ]},
+    {cat:"MEMO & SYSTEM", color:"#9a9a9a", cmds:[
+      ["MEMO 지지 162 돌파 시 롱","현재 종목 메모 저장 (localStorage)"],
+      ["MEMO","현재 종목 메모 보기"],
+      ["MEMO CLEAR","현재 종목 메모 삭제"],
+      ["LOG","알림 로그 전체 보기"],
+      ["STATUS","시스템 상태 대시보드 (연결·데이터·성능)"],
+      ["STATS","터미널 사용 통계"],
+      ["HISTORY","명령어 사용 기록"],
+      ["KEYS","키보드 단축키 목록"],
+      ["ABOUT","버전·데이터 소스 정보"],
+      ["HELP","이 도움말"],
+    ]},
   ];
-  return rows.map(r=>`<div class="rowline"><span style="color:var(--amber)">${r[0]}</span><b style="font-weight:400;text-align:right">${r[1]}</b></div>`).join("")
-    +`<div class="rowline"><span style="color:var(--ink3);font-size:10px">차트: 휠 확대 · 드래그 이동 · 더블클릭 최신 · '지표 ▾'에서 보조지표 선택</span></div>`;
+  let html='<div style="padding:6px 10px;color:var(--ink3);font-size:10px;border-bottom:1px solid #101010">전체 '+CMD_LIST.length+'개 명령어 · 카테고리별 정렬</div>';
+  groups.forEach(g=>{
+    html+=`<div style="padding:5px 10px 3px;color:${g.color};font-size:10px;font-weight:700;letter-spacing:1px;border-bottom:1px solid #101010;background:rgba(255,255,255,.02)">${g.cat} <span style="color:var(--ink3);font-weight:400">(${g.cmds.length})</span></div>`;
+    g.cmds.forEach(r=>{
+      html+=`<div class="rowline"><span style="color:var(--amber);white-space:nowrap">${r[0]}</span><b style="font-weight:400;text-align:right">${r[1]}</b></div>`;
+    });
+  });
+  html+=`<div style="padding:6px 10px;color:var(--ink3);font-size:10px;border-top:1px solid #181818">차트: 휠 확대 · 드래그 이동 · 더블클릭 최신 · '지표 ▾'에서 보조지표 선택</div>`;
+  return html;
 }
 async function showDes(sym){
   showOverlay("DES · "+sym, '<div class="rowline"><span>코인게코 조회 중…</span></div>');
@@ -6558,124 +6660,133 @@ async function screenerOverlay(condition){
 }
 
 /* ══════════════════════════════════════════════════
-   BILLION AI AGENT 연동
-   빌리언 = AI 두뇌 (분석 + 시그널)
-   MOTERA = 실행 터미널 (데이터 + 주문)
+   STANDALONE AI ENGINE
+   독립 AI 분석 시스템 (Vercel serverless)
    ══════════════════════════════════════════════════ */
 
-const BILLION_URL = localStorage.getItem("billionUrl") || "http://localhost:3847";
-let billionSignal = null;
-let billionLastCheck = 0;
+let aiSignal = null;
+let aiConnected = false;
 
-function billionConnect(){
-  // 30초마다 빌리언 시그널 폴링
-  pollBillionSignal();
-  setInterval(pollBillionSignal, 30_000);
-  pushLogLocal("BILLION AI Agent 연결 시도: " + BILLION_URL);
+function aiConnect(){
+  // 헬스체크 1회
+  fetch("/api/health",{signal:AbortSignal.timeout(3000)})
+    .then(r=>r.json()).then(()=>{
+      aiConnected=true; $("led").className="ok";
+      const bs=$("billion-status"); if(bs) bs.innerHTML='<span style="color:var(--up-text)">AI READY</span>';
+      pushLogLocal("AI Engine 연결됨");
+    }).catch(()=>{
+      $("led").className="warn";
+      const bs=$("billion-status"); if(bs) bs.innerHTML='<span style="color:var(--ink3)">AI —</span>';
+    });
 }
 
-async function pollBillionSignal(){
-  try {
-    const res = await fetch(BILLION_URL + "/api/trading-team/status", {signal: AbortSignal.timeout(5000)});
-    if(!res.ok) return;
+async function aiChat(message){
+  $("cmd").placeholder="AI 응답 대기 중...";
+  try{
+    const ctx = `심볼:${S.sym} TF:${S.tf} 가격:${S.quotes[S.sym]?fmtPrice(S.quotes[S.sym].last):"?"} 24h:${S.quotes[S.sym]?S.quotes[S.sym].pct?.toFixed(1)+"%":"?"}`;
+    const res = await fetch("/api/chat",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({message, context:ctx}), signal:AbortSignal.timeout(30000)
+    });
+    if(!res.ok) throw new Error("API 오류");
     const data = await res.json();
-    if(!data.team || !data.timestamp) return;
-
-    // LED 상태 업데이트
-    $("led").className = "ok";
-
-    // 상단바 빌리언 상태
-    const bStatus = $("billion-status");
-    if (bStatus) {
-      const d = data.decision || 'IDLE';
-      const sym = data.symbol || '';
-      const col = d === 'BUY' ? 'var(--up-text)' : d === 'SELL' ? 'var(--down-text)' : 'var(--ink2)';
-      bStatus.innerHTML = `<span style="color:${col}">AI ${d}</span> ${sym}`;
+    if(data.text){
+      showOverlay("AI",
+        `<div style="padding:10px;font-size:12px;color:var(--ink);line-height:1.8;white-space:pre-wrap;font-family:var(--mono)">${data.text}</div>`);
     }
-
-    // 새 시그널이면 알림
-    if(data.timestamp !== billionLastCheck && data.decision && data.decision !== "HOLD"){
-      billionLastCheck = data.timestamp;
-      billionSignal = data;
-
-      const emoji = data.decision === "BUY" ? "🟢" : "🔴";
-      pushLog(`${emoji} BILLION AI: ${data.decision} ${data.symbol || "BTC"} 시그널`);
-      beep();
-
-      // 보조지표 자동 활성화 (시그널 근거 시각화)
-      if(!S.show.rsi){ S.show.rsi=true; }
-      if(!S.show.macd){ S.show.macd=true; }
-      syncIndMenu();
-      drawChart();
-
-      // 시그널 오버레이 자동 표시
-      billionSignalOverlay(data);
-    } else if(data.timestamp !== billionLastCheck) {
-      billionLastCheck = data.timestamp;
-    }
-  } catch(e) {
-    // 연결 실패 — 무시 (빌리언 서버 꺼져있을 수 있음)
+    $("cmd").placeholder="";
+  }catch(e){
+    pushLog("AI: 응답 실패 — "+e.message);
+    $("cmd").placeholder="AI 응답 실패";
+    setTimeout(()=>{$("cmd").placeholder="";},2000);
   }
 }
 
 async function billionRunAnalysis(){
-  $("cmd").placeholder = "BILLION 분석 실행 중... (약 1~2분)";
-  pushLog("BILLION AI: 13명 팀 분석 시작...");
+  $("cmd").placeholder = "AI 분석 실행 중...";
+  pushLog("AI: "+S.sym+" 분석 시작...");
+  const bs=$("billion-status"); if(bs) bs.innerHTML='<span style="color:var(--amber)">AI ANALYZING...</span>';
   try {
-    const res = await fetch(BILLION_URL + "/api/trading-team/auto", {method:"POST", signal: AbortSignal.timeout(120000)});
-    if(res.ok){
-      const data = await res.json();
-      pushLog("BILLION AI: 분석 완료" + (data.hasAlert ? " — " + data.alert : ""));
-      $("cmd").placeholder = "분석 완료! BILLION 명령으로 결과 확인";
-      // 결과 자동 로딩
-      setTimeout(pollBillionSignal, 2000);
+    const res = await fetch("/api/analyze",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({symbol:S.sym}), signal:AbortSignal.timeout(30000)
+    });
+    if(!res.ok) throw new Error("API 오류");
+    const data = await res.json();
+    aiSignal = data;
+
+    if(data.decision && data.decision !== "HOLD"){
+      const emoji = data.decision==="BUY"?"🟢":"🔴";
+      pushLog(`${emoji} AI: ${data.decision} ${data.symbol||S.sym} (확신 ${data.confidence||"?"}/10)`);
+      beep();
+      if(!S.show.rsi){S.show.rsi=true;} if(!S.show.macd){S.show.macd=true;}
+      syncIndMenu(); drawChart();
     } else {
-      pushLog("BILLION AI: 분석 실패");
-      $("cmd").placeholder = "분석 실패 — 빌리언 서버 확인";
+      pushLog("AI: "+S.sym+" HOLD — "+(data.summary||""));
     }
+
+    if(bs){
+      const col=data.decision==="BUY"?"var(--up-text)":data.decision==="SELL"?"var(--down-text)":"var(--ink2)";
+      bs.innerHTML=`<span style="color:${col}">AI ${data.decision||"HOLD"}</span> ${data.symbol||S.sym}`;
+    }
+
+    billionSignalOverlay(data);
+    $("cmd").placeholder = "분석 완료!";
+    setTimeout(()=>{$("cmd").placeholder="";},2000);
   } catch(e) {
-    pushLog("BILLION AI: 연결 실패 — " + BILLION_URL);
-    $("cmd").placeholder = "빌리언 서버 연결 실패";
+    pushLog("AI: 분석 실패 — "+e.message);
+    if(bs) bs.innerHTML='<span style="color:var(--down-text)">AI ERROR</span>';
+    $("cmd").placeholder = "분석 실패";
+    setTimeout(()=>{$("cmd").placeholder="";},2000);
   }
 }
 
 async function billionScan(){
-  $("cmd").placeholder = "BILLION 멀티코인 스캔 중...";
+  $("cmd").placeholder = "AI 멀티코인 스캔 중...";
+  pushLog("AI: 8코인 스캔 시작...");
   try {
-    const res = await fetch(BILLION_URL + "/api/trading-team/scan", {signal: AbortSignal.timeout(30000)});
-    if(!res.ok) throw new Error();
+    const res = await fetch("/api/scan",{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({}), signal:AbortSignal.timeout(30000)
+    });
+    if(!res.ok) throw new Error("API 오류");
     const data = await res.json();
 
     let html = "";
     if(data.coins && data.coins.length > 0){
-      html += data.coins.map(c =>
-        `<div class="rowline"><span style="font-weight:600">${c.symbol}</span><span>${c.change24h>=0?"+":""}${c.change24h.toFixed(2)}%</span><b style="color:${c.score>=4?"var(--up-text)":c.score>=2?"var(--amber)":"var(--ink2)"}">${c.score}점 ${c.reason||""}</b></div>`
-      ).join("");
+      html += data.coins.map(c =>{
+        const dirCol = c.direction==="LONG"?"var(--up-text)":c.direction==="SHORT"?"var(--down-text)":"var(--ink2)";
+        return `<div class="rowline"><span style="font-weight:600">${c.symbol}</span><span style="color:${dirCol}">${c.direction||"—"}</span><b style="color:${c.score>=7?"var(--up-text)":c.score>=4?"var(--amber)":"var(--down-text)"}">${c.score}점 ${c.reason||""}</b></div>`;
+      }).join("");
+    }
+    if(data.best){
+      html += `<div class="rowline" style="background:#0a1a10"><span style="color:var(--up-text);font-weight:700">BEST</span><b style="color:var(--up-text);font-weight:700">${data.best}</b></div>`;
     }
     if(data.recommendation){
       html += `<div style="padding:8px 10px;margin-top:4px;border-top:1px solid var(--border);color:var(--amber);font-size:11px;line-height:1.6">${data.recommendation}</div>`;
     }
-    showOverlay("BILLION SCAN · 멀티코인 기회 탐색", html);
+    showOverlay("AI SCAN · 멀티코인 기회 탐색", html);
     $("cmd").placeholder = "";
   } catch(e) {
+    pushLog("AI: 스캔 실패 — "+e.message);
     $("cmd").placeholder = "스캔 실패";
+    setTimeout(()=>{$("cmd").placeholder="";},2000);
   }
 }
 
 function billionOverlay(){
-  if(!billionSignal || !billionSignal.team){
-    showOverlay("BILLION AI Agent",
-      `<div class="rowline"><span>상태</span><b>${billionLastCheck?"연결됨":"미연결"}</b></div>
-       <div class="rowline"><span>서버</span><b>${BILLION_URL}</b></div>
-       <div class="rowline"><span>마지막 시그널</span><b>${billionSignal?"있음":"없음"}</b></div>
+  if(!aiSignal){
+    showOverlay("AI ENGINE",
+      `<div class="rowline"><span>상태</span><b style="color:${aiConnected?"var(--up-text)":"var(--down-text)"}">${aiConnected?"연결됨":"미연결"}</b></div>
+       <div class="rowline"><span>마지막 시그널</span><b>${aiSignal?"있음":"없음"}</b></div>
        <div class="rowline"><span style="color:var(--ink3);font-size:10px;white-space:normal;line-height:1.6">
-         B RUN — AI 팀 분석 실행<br>
-         B SCAN — 멀티코인 기회 스캔<br>
-         BILLION SET [URL] — 서버 주소 변경
+         AI [메시지] — AI와 대화<br>
+         AI RUN — 현재 종목 AI 분석<br>
+         AI SCAN — 멀티코인 기회 스캔
        </span></div>`);
     return;
   }
-  billionSignalOverlay(billionSignal);
+  billionSignalOverlay(aiSignal);
 }
 
 function billionSignalOverlay(data){
