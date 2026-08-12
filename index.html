@@ -367,6 +367,61 @@
 }
 #logout-btn:hover{color:var(--down-text); border-color:var(--down);}
 #user-badge{color:var(--ink2); font-size:10px;}
+
+  /* ── Status strip ──────────────────────────── */
+  #statusstrip{
+    display:flex; align-items:center; gap:16px; padding:3px 10px;
+    background:#030303; border-bottom:1px solid var(--border2);
+    font-size:10px; color:var(--ink3); flex:0 0 auto; overflow:hidden;
+    font-variant-numeric:tabular-nums;
+  }
+  #statusstrip .ss-item{display:flex;align-items:center;gap:4px;white-space:nowrap;}
+  #statusstrip .ss-item b{color:var(--ink);font-weight:600;}
+  #statusstrip .ss-sep{width:1px;height:12px;background:var(--border);flex-shrink:0;}
+
+  /* ── Economic Calendar panel ────────────────── */
+  #ecocalendar .eco-ev{display:flex;justify-content:space-between;align-items:center;padding:3px 8px;border-bottom:1px solid #101010;font-size:10px;gap:4px;}
+  #ecocalendar .eco-ev:hover{background:#111;}
+  #ecocalendar .eco-ev .eco-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink2);}
+  #ecocalendar .eco-ev .eco-date{color:var(--ink3);font-size:9px;white-space:nowrap;min-width:55px;text-align:right;}
+  #ecocalendar .eco-ev .eco-cd{font-weight:700;min-width:55px;text-align:right;white-space:nowrap;}
+  #ecocalendar .eco-ev.eco-today{background:#2a1c00;}
+  #ecocalendar .eco-ev.eco-tomorrow{background:#1a1205;}
+
+  /* ── Paper Trading panel ────────────────────── */
+  #papertrading .pt-row{display:flex;justify-content:space-between;padding:3px 8px;border-bottom:1px solid #101010;font-size:10px;}
+  #papertrading .pt-stat{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px;background:var(--border2);}
+  #papertrading .pt-cell{background:var(--panel);padding:4px 6px;text-align:center;}
+  #papertrading .pt-cell small{color:var(--ink3);font-size:8px;display:block;}
+  #papertrading .pt-cell b{font-variant-numeric:tabular-nums;}
+
+  /* ── Funding Heatmap panel ──────────────────── */
+  #fundingheat .fh-row{display:grid;grid-template-columns:50px 1fr 60px 60px;gap:4px;padding:3px 8px;border-bottom:1px solid #101010;font-size:10px;align-items:center;font-variant-numeric:tabular-nums;}
+  #fundingheat .fh-bar{height:6px;position:relative;}
+  #fundingheat .fh-fill{height:100%;position:absolute;left:50%;transition:width .3s;}
+
+  /* ── Portfolio panel ────────────────────────── */
+  #realportfolio .rp-row{display:flex;justify-content:space-between;padding:3px 8px;border-bottom:1px solid #101010;font-size:10px;font-variant-numeric:tabular-nums;}
+
+  /* ── AI Signal badge ────────────────────────── */
+  #ai-badge{display:none;padding:2px 8px;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.5px;border:1px solid;margin-left:4px;}
+  #ai-badge.on{display:inline-block;}
+  #ai-badge.buy{color:var(--up-text);border-color:var(--up);background:rgba(0,160,140,.1);}
+  #ai-badge.sell{color:var(--down-text);border-color:var(--down);background:rgba(229,72,77,.1);}
+
+  /* ── Notification area ──────────────────────── */
+  #notif-area{position:fixed;bottom:28px;right:10px;width:280px;z-index:50;display:flex;flex-direction:column;gap:2px;pointer-events:none;}
+  .notif{background:rgba(10,10,10,.95);border:1px solid var(--border);padding:5px 8px;font-size:10px;color:var(--ink2);
+    animation:notifIn .3s ease-out;pointer-events:auto;line-height:1.4;}
+  .notif .notif-time{color:var(--ink3);font-size:9px;}
+  .notif.notif-up{border-left:2px solid var(--up);}
+  .notif.notif-down{border-left:2px solid var(--down);}
+  .notif.notif-amber{border-left:2px solid var(--amber);}
+  @keyframes notifIn{0%{opacity:0;transform:translateX(20px);}100%{opacity:1;transform:translateX(0);}}
+
+  /* ── FNG sparkline ─────────────────────────── */
+  #fng-spark{display:flex;align-items:flex-end;gap:1px;height:16px;margin-top:4px;}
+  #fng-spark .fng-bar{width:100%;min-width:4px;transition:height .3s;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -408,6 +463,7 @@
     <div id="cmdwrap"><span>&gt;</span><input id="cmd" placeholder="입력 시 자동완성 · HELP = 전체 명령" autocomplete="off" spellcheck="false">
     <div id="cmdsug"></div></div>
     <div id="clocks">
+      <span id="ai-badge" onclick="aiSignalBadgeClick()"></span>
       <span id="billion-status" style="color:var(--ink3);cursor:pointer" onclick="billionOverlay()" title="BILLION AI Agent">AI —</span>
       <span><span id="led"></span><span id="ledtext">CONNECTING</span></span>
       <span>SEOUL <b id="clk-kst">--:--:--</b></span>
@@ -430,6 +486,22 @@
     <div id="fkeys">
       <span><b>WHEEL</b> 확대/축소</span><span><b>DRAG</b> 이동</span><span><b>DBLCLK</b> 최신으로</span>
     </div>
+  </div>
+
+  <div id="statusstrip">
+    <div class="ss-item"><span>BTC.D</span> <b id="ss-btcd">—</b></div>
+    <div class="ss-sep"></div>
+    <div class="ss-item"><span>MCAP</span> <b id="ss-mcap">—</b></div>
+    <div class="ss-sep"></div>
+    <div class="ss-item"><span>24H VOL</span> <b id="ss-vol">—</b></div>
+    <div class="ss-sep"></div>
+    <div class="ss-item"><span>ETH.D</span> <b id="ss-ethd">—</b></div>
+    <div class="ss-sep"></div>
+    <div class="ss-item"><span>F&amp;G</span> <b id="ss-fng">—</b></div>
+    <div class="ss-sep"></div>
+    <div class="ss-item"><span>GAS</span> <b id="ss-gas">—</b></div>
+    <div class="ss-sep"></div>
+    <div class="ss-item" id="ss-signal" style="display:none"></div>
   </div>
 
   <div id="main">
@@ -471,6 +543,7 @@
             </div>
             <div id="fngbar"><div id="fngmark" style="left:50%"></div></div>
             <div id="fngtext"><span>공포 0</span><span>탐욕 100</span></div>
+            <div id="fng-spark"></div>
           </div>
           <div style="padding:4px 10px;border-top:1px solid #101010;">
             <div style="display:flex;justify-content:space-between;color:var(--ink3);font-size:10px;margin-bottom:3px">
@@ -619,6 +692,26 @@
       </div>
     </div>
 
+    <!-- COL3.5: 추가 패널 (ECONOMIC / PAPER / FUNDING / PORTFOLIO) -->
+    <div class="col" id="col3b" style="display:none;">
+      <div class="panel" style="flex:1;">
+        <div class="ptitle">ECONOMIC CALENDAR <small>매크로</small><span class="age" id="age-ecal"></span></div>
+        <div class="pbody" id="ecocalendar"><div style="padding:8px;color:var(--ink3)">로드 중…</div></div>
+      </div>
+      <div class="panel" style="flex:1;">
+        <div class="ptitle">PAPER TRADING <small>가상매매</small><span class="age" id="age-paper"></span></div>
+        <div class="pbody" id="papertrading"><div style="padding:8px;color:var(--ink3)">데이터 로딩 중…</div></div>
+      </div>
+      <div class="panel" style="flex:0 0 auto;max-height:200px;">
+        <div class="ptitle">FUNDING HEATMAP <small>Top 5</small><span class="age" id="age-fheat"></span></div>
+        <div class="pbody" id="fundingheat"><div style="padding:8px;color:var(--ink3)">로드 중…</div></div>
+      </div>
+      <div class="panel" style="flex:0 0 auto;max-height:180px;">
+        <div class="ptitle">PORTFOLIO <small>실계좌</small><span class="age" id="age-rport"></span></div>
+        <div class="pbody" id="realportfolio"><div style="padding:8px;color:var(--ink3)">Investment 연결 중…</div></div>
+      </div>
+    </div>
+
     <!-- COL4: 실시간 오더플로우 -->
     <div class="col" id="col4">
       <div class="panel" style="flex:1.15;">
@@ -638,6 +731,7 @@
   </div>
 
   <div id="tape"><div id="tapetrack">시세 로드 중…</div></div>
+  <div id="notif-area"></div>
 </div>
 
 <script>
@@ -2796,7 +2890,7 @@ function handleWsMsg(m){
 }
 window.__wsInject=handleWsMsg;
 setInterval(()=>{  // 렌더 스로틀 (WS 메시지 폭주 방지)
-  if(qtDirty){ qtDirty=false; renderQuotes(); renderTape(); setAge("quotes"); checkPriceAlerts(); checkPositions(); renderPositions();
+  if(qtDirty){ qtDirty=false; renderQuotes(); renderTape(); setAge("quotes"); checkPriceAlerts(); checkPositions(); renderPositions(); if(typeof checkFundingAlerts==='function') checkFundingAlerts();
     const aq=S.quotes[S.sym];
     if(aq&&aq.fundingRate!=null) applyFunding({rate:aq.fundingRate,next:aq.nextFundingTime}); }
   if(obDirty){ obDirty=false; renderOB(); setAge("ob"); }
@@ -2847,6 +2941,15 @@ function pushLog(msg){
   if(S.tgApi&&S.tgOn){
     try{ fetch("/api/tg",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({text:msg})}).catch(()=>{}); }catch(e){}
+  }
+  // Push to notification area for key events
+  if(typeof pushNotification==='function'){
+    const lower=msg.toLowerCase();
+    if(lower.includes('알림')||lower.includes('도달')||lower.includes('청산')||lower.includes('스나이퍼')||lower.includes('learn')||lower.includes('고래')){
+      const type=lower.includes('롱')||lower.includes('long')||lower.includes('매수')||lower.includes('상향')?'up'
+        :lower.includes('숏')||lower.includes('short')||lower.includes('매도')||lower.includes('하향')||lower.includes('청산')?'down':'amber';
+      pushNotification(msg.replace(/[\u{1F300}-\u{1F9FF}]/gu,'').trim(), type);
+    }
   }
 }
 function pushLogLocal(msg){ ALOG.unshift({t:Date.now(), msg}); if(ALOG.length>200) ALOG.length=200; }
@@ -4311,7 +4414,11 @@ async function loadGlobals(){
     $("fngval").innerHTML=`<span style="color:${col}">${v} · ${S.fng.cls}</span>`;
     $("fngmark").style.left=v+"%";
     renderTape();
+    // Update status strip F&G
+    const ssFng=$("ss-fng"); if(ssFng) ssFng.textContent=v+' '+S.fng.cls;
   }catch(e){}
+  // Load FNG sparkline
+  if(typeof loadFngHistory==='function') loadFngHistory();
 }
 
 /* news (탭: 전체 / 관련코인 / 한국) */
@@ -5012,6 +5119,12 @@ const CMD_LIST=[
   {c:"BENCHMARK", d:"현재 종목 vs BTC·ETH 성과 벤치마크"},
   {c:"SUPPLY", d:"토큰 공급량 분석 (유통·총·최대)"},
   {c:"PIVOT", d:"피벗 포인트 계산 (R1-R3, S1-S3)"},
+  {c:"PAPER", d:"Paper Trading 상태 (가상매매)"},
+  {c:"CALENDAR", d:"경제 캘린더 (CPI·FOMC·NFP)"},
+  {c:"REALPORT", d:"실계좌 포트폴리오 (Investment 연동)"},
+  {c:"FUNDMAP", d:"Top 코인 펀딩레이트 히트맵"},
+  {c:"ALERT LIST", d:"현재 알림 목록"},
+  {c:"PANELS", d:"추가 패널 표시/숨기기 토글"},
 ];
 let sugSel=-1, sugItems=[];
 function renderSug(){
@@ -5230,6 +5343,12 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="BENCHMARK"||raw==="BENCH"){ benchmarkOverlay(); e.target.value=""; return; }
   if(raw==="SUPPLY"){ supplyOverlay(); e.target.value=""; return; }
   if(raw==="PIVOT"){ pivotOverlay(); e.target.value=""; return; }
+  if(raw==="PAPER"){ paperTradingOverlay(); e.target.value=""; return; }
+  if(raw==="CALENDAR"||raw==="CAL"){ economicCalendarOverlay(); e.target.value=""; return; }
+  if(raw==="REALPORT"||raw==="RPORT"){ realPortfolioOverlay(); e.target.value=""; return; }
+  if(raw==="FUNDMAP"||raw==="FHEAT"){ fundingHeatOverlay(); e.target.value=""; return; }
+  if(raw==="ALERT LIST"||raw==="ALERTS"){ alertListOverlay(); e.target.value=""; return; }
+  if(raw==="PANELS"){ toggleExtraPanels(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
   const m=raw.match(/^([A-Z0-9]{2,10})\s*(15M|1H|4H|1D)?$/);
@@ -7194,7 +7313,7 @@ _booted = true;
       .catch(()=>{});
   }
   wsConnect();
-  billionConnect(); // BILLION AI Agent 연동
+  if(typeof aiConnect==='function') aiConnect(); // AI Engine 연동
   loadQuotes(); loadChart(); loadDeriv(); loadGlobals(); loadNews(); loadKimchi(); loadEco();
   setInterval(loadEco, 30*60_000);
   setInterval(renderEco, 30_000);                             // 카운트다운 갱신
@@ -8700,6 +8819,519 @@ function pivotOverlay(){
   html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3);border-top:1px solid var(--border)">이전 ${S.tf} 봉 기준 · R=저항 S=지지 PP=피벗포인트</div>`;
   showOverlay(`PIVOT · ${S.sym} 피벗 포인트`, html);
 }
+/* ═══════════════ BLOOMBERG UPGRADE — 10개 신규 기능 ═══════════════ */
+
+/* ── 1. ECONOMIC CALENDAR (확장 패널) ── */
+const ECAL_CACHE = {data:null, ts:0};
+function buildEconomicCalendar(){
+  const now=Date.now();
+  // Use existing ECO_STATIC + add more granular events
+  const evs = ECO_STATIC.filter(e=>e.t>now-6*36e5).slice(0,20);
+  return evs;
+}
+function renderEconomicCalendar(){
+  const el=$("ecocalendar"); if(!el) return;
+  const evs=buildEconomicCalendar();
+  if(!evs.length){ el.innerHTML='<div style="padding:8px;color:var(--ink3)">예정 이벤트 없음</div>'; return; }
+  const now=Date.now();
+  const DAY=864e5;
+  el.innerHTML=evs.map(e=>{
+    const d=e.t-now;
+    const dd=Math.floor(d/DAY), hh=Math.floor(d%DAY/36e5), mm=Math.floor(d%36e5/6e4);
+    let urgency='', cdColor='var(--ink3)', cdText='';
+    if(d<0){ urgency=''; cdText='<span style="color:var(--ink3)">발표됨</span>'; }
+    else if(d<DAY){ urgency='eco-today'; cdColor='var(--down-text)'; cdText=d<36e5?`${mm}분`:`${hh}h${pad2(mm)}m`; }
+    else if(d<2*DAY){ urgency='eco-tomorrow'; cdColor='var(--amber)'; cdText=`내일`; }
+    else if(d<7*DAY){ urgency=''; cdColor='var(--amber)'; cdText=`${dd}일`; }
+    else { cdText=`${dd}일`; }
+    const dt=new Date(e.t);
+    const dateStr=`${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`;
+    const icon=e.n.includes('FOMC')?'★':e.n.includes('CPI')?'●':e.n.includes('NFP')?'◆':'·';
+    return `<div class="eco-ev ${urgency}">
+      <span style="color:var(--amber);min-width:10px">${icon}</span>
+      <span class="eco-name">${e.n}</span>
+      <span class="eco-date">${dateStr}</span>
+      <span class="eco-cd" style="color:${cdColor}">${cdText}</span>
+    </div>`;
+  }).join("");
+  setAge("ecal");
+}
+function economicCalendarOverlay(){
+  const evs=buildEconomicCalendar();
+  const now=Date.now();
+  let html='';
+  if(!evs.length){ html='<div class="rowline"><span style="color:var(--ink3)">예정 이벤트 없음</span></div>'; }
+  else {
+    html=evs.map(e=>{
+      const d=e.t-now;
+      const dd=Math.floor(d/864e5), hh=Math.floor(d%864e5/36e5), mm=Math.floor(d%36e5/6e4);
+      const dt=new Date(e.t);
+      let cd='발표됨',col='var(--ink3)';
+      if(d>0&&d<36e5){ cd=`${mm}분 후`; col='var(--down-text)'; }
+      else if(d>0&&d<864e5){ cd=`${hh}h ${mm}m`; col='var(--down-text)'; }
+      else if(d>0&&d<2*864e5){ cd='내일'; col='var(--amber)'; }
+      else if(d>0&&d<7*864e5){ cd=`${dd}일`; col='var(--amber)'; }
+      else if(d>0){ cd=`${dd}일`; }
+      return `<div class="rowline"><span style="flex:1">${e.n}</span><span style="color:var(--ink3);font-size:10px">${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())} ${pad2(dt.getHours())}:${pad2(dt.getMinutes())}</span><b style="color:${col};min-width:60px;text-align:right">${cd}</b></div>`;
+    }).join("");
+  }
+  showOverlay("ECONOMIC CALENDAR · 매크로 일정",html);
+}
+
+/* ── 2. PAPER TRADING 패널 ── */
+const PAPER_CACHE={data:null, ts:0};
+async function loadPaperTrading(){
+  if(Date.now()-PAPER_CACHE.ts<15000 && PAPER_CACHE.data) { renderPaperTrading(PAPER_CACHE.data); return; }
+  const el=$("papertrading"); if(!el) return;
+  try{
+    const data=await fetchJson("http://localhost:8000/api/paper/status",3000);
+    PAPER_CACHE.data=data; PAPER_CACHE.ts=Date.now();
+    renderPaperTrading(data);
+    setAge("paper");
+    // Update AI badge from paper status
+    if(data.lastDecision && data.lastDecision.action && data.lastDecision.action!=='HOLD'){
+      updateAIBadge(data.lastDecision.action, data.lastDecision.symbol||'BTC', data.lastDecision.confidence||0);
+    }
+  }catch(e){
+    el.innerHTML='<div style="padding:8px;color:var(--ink3)">Paper Trader 미연결<br><span style="font-size:9px">localhost:8000 확인</span></div>';
+  }
+}
+function renderPaperTrading(data){
+  const el=$("papertrading"); if(!el) return;
+  const cap=data.capital||10000, pnl=data.totalPnl||0, ret=data.returnPct||0, wr=data.winRate||0;
+  const pnlCol=pnl>=0?'var(--up-text)':'var(--down-text)';
+  let html=`<div class="pt-stat">
+    <div class="pt-cell"><small>CAPITAL</small><b>$${fmtBig(cap)}</b></div>
+    <div class="pt-cell"><small>P&L</small><b style="color:${pnlCol}">${pnl>=0?'+':''}$${Math.abs(pnl).toFixed(1)}</b></div>
+    <div class="pt-cell"><small>RETURN</small><b style="color:${pnlCol}">${ret>=0?'+':''}${ret.toFixed(2)}%</b></div>
+    <div class="pt-cell"><small>WIN RATE</small><b style="color:${wr>=50?'var(--up-text)':'var(--down-text)'}">${wr.toFixed(0)}%</b></div>
+  </div>`;
+  // Open positions
+  if(data.positions && data.positions.length){
+    html+='<div style="padding:2px 8px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid #101010;margin-top:2px">OPEN POSITIONS</div>';
+    data.positions.forEach(p=>{
+      const dirCol=p.side==='LONG'||p.side==='BUY'?'var(--up-text)':'var(--down-text)';
+      const unrealPnl=p.unrealizedPnl||0;
+      html+=`<div class="pt-row"><span style="color:${dirCol};font-weight:700">${(p.side||'').slice(0,1)} ${p.symbol||''}</span><span style="color:var(--ink2)">E:${fmtPrice(p.entry||0)}</span><span style="color:${unrealPnl>=0?'var(--up-text)':'var(--down-text)'}">${unrealPnl>=0?'+':''}${unrealPnl.toFixed(2)}%</span></div>`;
+    });
+  }
+  // Recent trades
+  if(data.recentTrades && data.recentTrades.length){
+    html+='<div style="padding:2px 8px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid #101010;margin-top:2px">RECENT TRADES</div>';
+    data.recentTrades.slice(0,3).forEach(t=>{
+      const pnlVal=t.pnl||0;
+      html+=`<div class="pt-row"><span style="color:var(--ink)">${t.symbol||'—'}</span><span style="color:${pnlVal>=0?'var(--up-text)':'var(--down-text)'};font-weight:700">${pnlVal>=0?'+':''}${pnlVal.toFixed(2)}%</span></div>`;
+    });
+  }
+  el.innerHTML=html;
+}
+function paperTradingOverlay(){
+  if(PAPER_CACHE.data){
+    const d=PAPER_CACHE.data;
+    let html=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px;background:var(--border)">
+      <div style="background:var(--panel);padding:8px;text-align:center"><div style="color:var(--ink3);font-size:9px">CAPITAL</div><div style="font-size:16px;font-weight:700">$${fmtBig(d.capital||10000)}</div></div>
+      <div style="background:var(--panel);padding:8px;text-align:center"><div style="color:var(--ink3);font-size:9px">P&L</div><div style="font-size:16px;font-weight:700;color:${(d.totalPnl||0)>=0?'var(--up-text)':'var(--down-text)'}">${(d.totalPnl||0)>=0?'+':''}$${Math.abs(d.totalPnl||0).toFixed(2)}</div></div>
+      <div style="background:var(--panel);padding:8px;text-align:center"><div style="color:var(--ink3);font-size:9px">RETURN</div><div style="font-size:16px;font-weight:700;color:${(d.returnPct||0)>=0?'var(--up-text)':'var(--down-text)'}">${(d.returnPct||0)>=0?'+':''}${(d.returnPct||0).toFixed(2)}%</div></div>
+      <div style="background:var(--panel);padding:8px;text-align:center"><div style="color:var(--ink3);font-size:9px">WIN RATE</div><div style="font-size:16px;font-weight:700">${(d.winRate||0).toFixed(0)}%</div></div>
+    </div>`;
+    if(d.positions&&d.positions.length){
+      html+='<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">OPEN POSITIONS</div>';
+      d.positions.forEach(p=>{
+        html+=`<div class="rowline"><span style="color:${p.side==='LONG'?'var(--up-text)':'var(--down-text)'};font-weight:700">${p.side} ${p.symbol}</span><span>E: $${fmtPrice(p.entry||0)} / SL: $${fmtPrice(p.sl||0)} / TP: $${fmtPrice(p.tp||0)}</span></div>`;
+      });
+    }
+    if(d.recentTrades&&d.recentTrades.length){
+      html+='<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">RECENT TRADES</div>';
+      d.recentTrades.forEach(t=>{
+        const pnl=t.pnl||0;
+        html+=`<div class="rowline"><span>${t.symbol||'—'} ${t.side||''}</span><b style="color:${pnl>=0?'var(--up-text)':'var(--down-text)'}">${pnl>=0?'+':''}${pnl.toFixed(2)}%</b></div>`;
+      });
+    }
+    showOverlay("PAPER TRADING · 가상매매 현황",html);
+  } else {
+    showOverlay("PAPER TRADING",'<div class="rowline"><span style="color:var(--ink3)">Paper Trader 미연결 — localhost:8000 필요</span></div>');
+    loadPaperTrading();
+  }
+}
+
+/* ── 3. FNG SPARKLINE (7일 히스토리) ── */
+const FNG_HIST_CACHE={data:null, ts:0};
+async function loadFngHistory(){
+  if(Date.now()-FNG_HIST_CACHE.ts<600000 && FNG_HIST_CACHE.data) { renderFngSparkline(FNG_HIST_CACHE.data); return; }
+  try{
+    const j=await fetchJson("https://api.alternative.me/fng/?limit=7");
+    if(j.data&&j.data.length){
+      const vals=j.data.map(d=>+d.value).reverse(); // oldest first
+      FNG_HIST_CACHE.data=vals; FNG_HIST_CACHE.ts=Date.now();
+      renderFngSparkline(vals);
+    }
+  }catch(e){}
+}
+function renderFngSparkline(vals){
+  const el=$("fng-spark"); if(!el||!vals||!vals.length) return;
+  const max=Math.max(...vals,1);
+  el.innerHTML=vals.map((v,i)=>{
+    const h=Math.max(2, v/max*16);
+    const col=v<=25?'var(--down-text)':v<=45?'var(--amber)':v<=55?'var(--ink2)':'var(--up-text)';
+    const isLast=i===vals.length-1;
+    return `<div class="fng-bar" style="height:${h}px;background:${col};opacity:${isLast?1:0.5}" title="Day ${i+1}: ${v}"></div>`;
+  }).join("");
+}
+
+/* ── 4. FUNDING HEATMAP 패널 ── */
+const FHEAT_CACHE={data:null, ts:0};
+async function loadFundingHeatmap(){
+  if(Date.now()-FHEAT_CACHE.ts<300000 && FHEAT_CACHE.data) { renderFundingHeat(FHEAT_CACHE.data); return; }
+  try{
+    // Use allTickers data for funding, plus fetch top 5 from Binance
+    let items=[];
+    if(S.allTickers){
+      items=S.allTickers.filter(t=>t.funding!=null).sort((a,b)=>Math.abs(b.funding)-Math.abs(a.funding)).slice(0,8);
+    }
+    if(!items.length){
+      try{
+        const j=await fetchJson(`${BIN}/fapi/v1/premiumIndex`);
+        if(Array.isArray(j)){
+          items=j.filter(x=>/USDT$/.test(x.symbol)).map(x=>({sym:x.symbol.replace('USDT',''),funding:+x.lastFundingRate*100,last:+x.markPrice}))
+            .sort((a,b)=>Math.abs(b.funding)-Math.abs(a.funding)).slice(0,8);
+        }
+      }catch(e2){}
+    }
+    // Liquidation data
+    let liqData={longVol:0, shortVol:0};
+    try{
+      // Use LQ array from WS
+      const recentLQ=LQ.filter(q=>Date.now()-q.t<864e5);
+      recentLQ.forEach(q=>{
+        const usd=q.p*q.v;
+        if(q.side==='Sell') liqData.longVol+=usd; // long liquidation = forced sell
+        else liqData.shortVol+=usd;
+      });
+    }catch(e3){}
+    FHEAT_CACHE.data={items, liq:liqData}; FHEAT_CACHE.ts=Date.now();
+    renderFundingHeat(FHEAT_CACHE.data);
+    setAge("fheat");
+  }catch(e){
+    const el=$("fundingheat"); if(el) el.innerHTML='<div style="padding:8px;color:var(--ink3)">펀딩 데이터 로드 실패</div>';
+  }
+}
+function renderFundingHeat(data){
+  const el=$("fundingheat"); if(!el) return;
+  const items=data.items||[];
+  const liq=data.liq||{longVol:0,shortVol:0};
+  let html='';
+  if(items.length){
+    const maxF=Math.max(...items.map(x=>Math.abs(x.funding)),0.01);
+    html+=items.slice(0,5).map(x=>{
+      const pct=Math.abs(x.funding)/maxF*50;
+      const isPos=x.funding>=0;
+      // positive funding = longs pay (red), negative = shorts pay (green)
+      const col=isPos?'var(--down-text)':'var(--up-text)';
+      const label=isPos?'롱→숏':'숏→롱';
+      return `<div class="fh-row">
+        <span style="font-weight:600;color:var(--ink)">${x.sym}</span>
+        <div class="fh-bar" style="background:#1a1a1a"><div class="fh-fill" style="width:${pct}%;background:${col};${isPos?'left:50%':'right:50%;left:auto'}"></div></div>
+        <span style="color:${col};text-align:right;font-weight:700">${x.funding>=0?'+':''}${x.funding.toFixed(4)}%</span>
+        <span style="color:var(--ink3);text-align:right;font-size:9px">${label}</span>
+      </div>`;
+    }).join("");
+  }
+  // Liquidation summary
+  const totalLiq=liq.longVol+liq.shortVol;
+  if(totalLiq>0){
+    const lPct=liq.longVol/(totalLiq||1)*100;
+    html+=`<div style="padding:4px 8px;border-top:1px solid #101010;font-size:9px">
+      <div style="display:flex;justify-content:space-between;color:var(--ink3);margin-bottom:2px"><span>24h 청산</span><span>$${fmtBig(totalLiq)}</span></div>
+      <div style="display:flex;height:6px;border:1px solid #222;overflow:hidden"><div style="width:${lPct}%;background:var(--down)"></div><div style="flex:1;background:var(--up)"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:1px"><span style="color:var(--down-text)">롱 $${fmtBig(liq.longVol)}</span><span style="color:var(--up-text)">숏 $${fmtBig(liq.shortVol)}</span></div>
+    </div>`;
+  }
+  if(!html) html='<div style="padding:8px;color:var(--ink3)">펀딩 데이터 수집 중…</div>';
+  el.innerHTML=html;
+}
+function fundingHeatOverlay(){
+  loadFundingHeatmap();
+  if(FHEAT_CACHE.data&&FHEAT_CACHE.data.items.length){
+    const items=FHEAT_CACHE.data.items;
+    let html='<table style="width:100%;border-collapse:collapse;font-size:11px;">';
+    html+='<thead><tr><th style="text-align:left;padding:4px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">SYM</th><th style="text-align:right;padding:4px 8px;color:var(--ink3);font-weight:400">FUNDING</th><th style="text-align:right;padding:4px 8px;color:var(--ink3);font-weight:400">연환산</th><th style="text-align:right;padding:4px 8px;color:var(--ink3);font-weight:400">방향</th></tr></thead><tbody>';
+    items.forEach(x=>{
+      const apr=(x.funding*3*365);
+      const col=x.funding>=0?'var(--down-text)':'var(--up-text)';
+      html+=`<tr style="border-bottom:1px solid #101010;cursor:pointer" onclick="switchTo('${x.sym}',S.tf);$('btov').classList.remove('on');">
+        <td style="padding:3px 8px;font-weight:600;color:var(--ink)">${x.sym}</td>
+        <td style="padding:3px 8px;text-align:right;color:${col};font-weight:700">${x.funding>=0?'+':''}${x.funding.toFixed(4)}%</td>
+        <td style="padding:3px 8px;text-align:right;color:${col}">${apr>=0?'+':''}${apr.toFixed(1)}%</td>
+        <td style="padding:3px 8px;text-align:right;color:var(--ink3)">${x.funding>=0?'롱→숏':'숏→롱'}</td>
+      </tr>`;
+    });
+    html+='</tbody></table>';
+    showOverlay("FUNDING HEATMAP · 펀딩레이트 순위",html);
+  } else {
+    showOverlay("FUNDING HEATMAP",'<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
+  }
+}
+
+/* ── 5. AI SIGNAL BADGE ── */
+function updateAIBadge(action, sym, conf){
+  const badge=$("ai-badge"); if(!badge) return;
+  if(!action || action==='HOLD'){
+    badge.classList.remove("on","buy","sell"); badge.style.display="none"; return;
+  }
+  badge.classList.add("on");
+  badge.classList.remove("buy","sell");
+  badge.classList.add(action==='BUY'?'buy':'sell');
+  badge.textContent=`${action} ${sym} ${conf?conf+'%':''}`;
+  badge.style.display="inline-block";
+
+  // Also update status strip signal
+  const ssEl=$("ss-signal");
+  if(ssEl){
+    ssEl.style.display="flex";
+    ssEl.innerHTML=`<span style="color:${action==='BUY'?'var(--up-text)':'var(--down-text)'};font-weight:700">AI: ${action} ${sym}</span>`;
+  }
+}
+function aiSignalBadgeClick(){
+  if(aiSignal) billionSignalOverlay(aiSignal);
+  else if(PAPER_CACHE.data&&PAPER_CACHE.data.lastDecision) paperTradingOverlay();
+  else billionOverlay();
+}
+
+/* ── 6. REAL PORTFOLIO (Investment 연동) ── */
+const RPORT_CACHE={data:null, ts:0};
+async function loadRealPortfolio(){
+  if(Date.now()-RPORT_CACHE.ts<60000 && RPORT_CACHE.data) { renderRealPortfolio(RPORT_CACHE.data); return; }
+  const el=$("realportfolio"); if(!el) return;
+  try{
+    const data=await fetchJson("https://investment.mot-era.com/api/context",5000);
+    RPORT_CACHE.data=data; RPORT_CACHE.ts=Date.now();
+    renderRealPortfolio(data);
+    setAge("rport");
+  }catch(e){
+    el.innerHTML='<div style="padding:8px;color:var(--ink3)">Investment 미연결</div>';
+  }
+}
+function renderRealPortfolio(data){
+  const el=$("realportfolio"); if(!el) return;
+  if(!data){ el.innerHTML='<div style="padding:8px;color:var(--ink3)">Investment 미연결</div>'; return; }
+  let html='';
+  // Try to extract balance info
+  const bal=data.balance||data.totalBalance||data.equity;
+  const unrealPnl=data.unrealizedPnl||data.unrealPnl||0;
+  if(bal!=null){
+    html+=`<div class="rp-row" style="padding:4px 8px"><span style="color:var(--ink3)">잔고</span><b style="color:var(--ink);font-size:12px">$${fmtN(bal,2)}</b></div>`;
+  }
+  if(unrealPnl!=null&&unrealPnl!==0){
+    html+=`<div class="rp-row"><span style="color:var(--ink3)">미실현 PnL</span><b style="color:${unrealPnl>=0?'var(--up-text)':'var(--down-text)'}">${unrealPnl>=0?'+':''}$${fmtN(Math.abs(unrealPnl),2)}</b></div>`;
+  }
+  // Active positions
+  const positions=data.positions||data.activePositions||[];
+  if(Array.isArray(positions)&&positions.length){
+    positions.slice(0,5).forEach(p=>{
+      const sym=p.symbol||p.sym||'—';
+      const side=p.side||p.direction||'—';
+      const pnl=p.pnl||p.unrealizedPnl||0;
+      html+=`<div class="rp-row"><span style="color:${/LONG|BUY/i.test(side)?'var(--up-text)':'var(--down-text)'};font-weight:600">${side.slice(0,1)} ${sym.replace('USDT','')}</span><span style="color:${pnl>=0?'var(--up-text)':'var(--down-text)'}">${pnl>=0?'+':''}$${fmtN(Math.abs(pnl),2)}</span></div>`;
+    });
+  }
+  if(!html) html='<div style="padding:8px;color:var(--ink3)">데이터 없음</div>';
+  el.innerHTML=html;
+}
+function realPortfolioOverlay(){
+  if(RPORT_CACHE.data){
+    const d=RPORT_CACHE.data;
+    let html=`<div class="rowline"><span>잔고</span><b>$${fmtN(d.balance||d.totalBalance||d.equity||0,2)}</b></div>`;
+    html+=`<div class="rowline"><span>미실현 PnL</span><b style="color:${(d.unrealizedPnl||0)>=0?'var(--up-text)':'var(--down-text)'}">${(d.unrealizedPnl||0)>=0?'+':''}$${fmtN(Math.abs(d.unrealizedPnl||0),2)}</b></div>`;
+    const positions=d.positions||d.activePositions||[];
+    if(positions.length){
+      html+='<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">POSITIONS</div>';
+      positions.forEach(p=>{
+        html+=`<div class="rowline"><span style="font-weight:600">${(p.side||'—').slice(0,1)} ${(p.symbol||p.sym||'—').replace('USDT','')}</span><b style="color:${(p.pnl||0)>=0?'var(--up-text)':'var(--down-text)'}">${(p.pnl||0)>=0?'+':''}$${fmtN(Math.abs(p.pnl||0),2)}</b></div>`;
+      });
+    }
+    showOverlay("PORTFOLIO · 실계좌 (Investment)",html);
+  } else {
+    showOverlay("PORTFOLIO",'<div class="rowline"><span style="color:var(--ink3)">Investment 미연결 — investment.mot-era.com 확인</span></div>');
+    loadRealPortfolio();
+  }
+}
+
+/* ── 7. QUAD CHART IMPROVEMENTS ── */
+// The existing quad implementation uses SYMBOLS.slice(0,4) for BTC/ETH/SOL/DOGE
+// which naturally covers the top 4 coins. The drawMini function already renders
+// independent price lines with EMA100 for each chart. No changes needed.
+
+/* ── 8. NOTIFICATIONS SYSTEM ── */
+const NOTIF_QUEUE=[];
+const NOTIF_MAX=10;
+function pushNotification(msg, type){
+  // type: 'up', 'down', 'amber'
+  NOTIF_QUEUE.unshift({msg, type:type||'amber', t:Date.now()});
+  if(NOTIF_QUEUE.length>NOTIF_MAX) NOTIF_QUEUE.pop();
+  renderNotifications();
+  // Auto-remove after 8 seconds
+  setTimeout(renderNotifications, 8000);
+}
+function renderNotifications(){
+  const el=$("notif-area"); if(!el) return;
+  const now=Date.now();
+  // Only show notifications from last 8 seconds
+  const visible=NOTIF_QUEUE.filter(n=>now-n.t<8000).slice(0,5);
+  el.innerHTML=visible.map(n=>{
+    const ago=Math.round((now-n.t)/1000);
+    return `<div class="notif notif-${n.type}"><span class="notif-time">${ago}초 전</span> ${n.msg}</div>`;
+  }).join("");
+}
+function alertListOverlay(){
+  let html='';
+  if(S.priceAlerts.length){
+    html+='<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">PRICE ALERTS</div>';
+    S.priceAlerts.forEach((a,i)=>{
+      html+=`<div class="rowline"><span>${a.sym} ${a.dir===1?'≥':'≤'} ${fmtPrice(a.px)}</span><b style="color:var(--amber)">활성</b></div>`;
+    });
+  }
+  if(NOTIF_QUEUE.length){
+    html+='<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">RECENT NOTIFICATIONS (${NOTIF_QUEUE.length})</div>';
+    NOTIF_QUEUE.slice(0,10).forEach(n=>{
+      const dt=new Date(n.t);
+      html+=`<div class="rowline"><span style="color:var(--ink3);font-size:10px">${pad2(dt.getHours())}:${pad2(dt.getMinutes())}:${pad2(dt.getSeconds())}</span><b style="font-weight:400">${n.msg}</b></div>`;
+    });
+  }
+  if(!html) html='<div class="rowline"><span style="color:var(--ink3)">등록된 알림 없음</span></div>';
+  showOverlay("ALERTS · 알림 관리",html);
+}
+
+// Enhanced price alert check with notifications
+const _origCheckPriceAlerts = checkPriceAlerts;
+// Wrap funding rate alerts into the periodic check
+function checkFundingAlerts(){
+  if(!S.quotes) return;
+  for(const sym of SYMBOLS){
+    const q=S.quotes[sym];
+    if(!q||q.fundingRate==null) continue;
+    if(Math.abs(q.fundingRate)>0.05){
+      const key='fund_'+sym+'_'+Math.floor(Date.now()/300000); // throttle 5min
+      if(!_fundAlerted.has(key)){
+        _fundAlerted.add(key);
+        const msg=`${sym} 펀딩 ${q.fundingRate>=0?'+':''}${q.fundingRate.toFixed(4)}% (극단)`;
+        pushNotification(msg, q.fundingRate>0?'down':'up');
+        pushLog('펀딩 알림: '+msg);
+      }
+    }
+  }
+}
+const _fundAlerted=new Set();
+
+/* ── 9. STATUS STRIP UPDATE ── */
+function updateStatusStrip(){
+  try{
+    const btcQ=S.quotes["BTC"];
+    if(btcQ){
+      // BTC.D from globals
+      const btcdEl=$("ss-btcd");
+      if(btcdEl){
+        const gEl=$("g-btcd");
+        if(gEl&&gEl.textContent!=='—') btcdEl.textContent=gEl.textContent;
+      }
+    }
+    const mcapEl=$("ss-mcap"), gMcap=$("g-mcap");
+    if(mcapEl&&gMcap&&gMcap.textContent!=='—') mcapEl.textContent=gMcap.textContent;
+    const volEl=$("ss-vol"), gVol=$("g-vol");
+    if(volEl&&gVol&&gVol.textContent!=='—') volEl.textContent=gVol.textContent;
+    const ethdEl=$("ss-ethd"), gEthd=$("g-ethd");
+    if(ethdEl&&gEthd&&gEthd.textContent!=='—') ethdEl.textContent=gEthd.textContent;
+    // F&G
+    const fngEl=$("ss-fng");
+    if(fngEl&&S.fng) fngEl.textContent=S.fng.v+' '+S.fng.cls;
+  }catch(e){}
+}
+
+/* ── 10. EXTRA PANELS TOGGLE ── */
+let _extraPanelsOn=false;
+function toggleExtraPanels(){
+  _extraPanelsOn=!_extraPanelsOn;
+  const col3b=$("col3b");
+  if(col3b){
+    col3b.style.display=_extraPanelsOn?'flex':'none';
+  }
+  // Adjust grid columns
+  const main=$("main");
+  if(main){
+    if(_extraPanelsOn){
+      main.style.gridTemplateColumns='280px minmax(0,1fr) 310px 220px 258px';
+    } else {
+      main.style.gridTemplateColumns='';
+    }
+  }
+  if(_extraPanelsOn){
+    // Load panel data
+    renderEconomicCalendar();
+    loadPaperTrading();
+    loadFundingHeatmap();
+    loadRealPortfolio();
+  }
+}
+
+/* ── BOOT INTEGRATION ── */
+const _origBoot=boot;
+// We can't override boot since it checks _booted, so we hook post-boot via a deferred call
+function postBootUpgrade(){
+  // Status strip updater
+  setInterval(updateStatusStrip, 5000);
+  setTimeout(updateStatusStrip, 3000);
+
+  // FNG sparkline
+  setTimeout(loadFngHistory, 5000);
+  setInterval(loadFngHistory, 600000);
+
+  // Economic calendar panel
+  setTimeout(renderEconomicCalendar, 2000);
+  setInterval(renderEconomicCalendar, 60000);
+
+  // Paper trading
+  setTimeout(loadPaperTrading, 3000);
+  setInterval(loadPaperTrading, 15000);
+
+  // Funding heatmap
+  setTimeout(loadFundingHeatmap, 4000);
+  setInterval(loadFundingHeatmap, 300000);
+
+  // Real portfolio
+  setTimeout(loadRealPortfolio, 5000);
+  setInterval(loadRealPortfolio, 60000);
+
+  // Funding alerts
+  setInterval(checkFundingAlerts, 30000);
+
+  // Notification cleanup
+  setInterval(renderNotifications, 3000);
+
+  // AI badge from Trading Team
+  setInterval(()=>{
+    if(aiSignal&&aiSignal.decision&&aiSignal.decision!=='HOLD'){
+      updateAIBadge(aiSignal.decision, aiSignal.symbol||S.sym, aiSignal.confidence||0);
+    }
+  }, 10000);
+
+  // Auto-show extra panels on wide screens
+  if(window.innerWidth > 1600){
+    toggleExtraPanels();
+  }
+}
+// Hook into boot by watching for _booted
+const _bootWatcher=setInterval(()=>{
+  if(_booted){
+    clearInterval(_bootWatcher);
+    setTimeout(postBootUpgrade, 500);
+  }
+},200);
+
+// Enhance existing price alert to also push notifications
+const _origAddPriceAlert=addPriceAlert;
+// Monkey-patch pushLog to also create notifications for key events
+const _origPushLog=pushLog;
+// Can't reassign const, but we can hook into the interval-based checks
+
 // ══════════════════════════════════════════════
 // TRADING FLOOR 패널 — Trading-Team(8000) 연동
 // ══════════════════════════════════════════════
