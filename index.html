@@ -5124,7 +5124,16 @@ const CMD_LIST=[
   {c:"REALPORT", d:"실계좌 포트폴리오 (Investment 연동)"},
   {c:"FUNDMAP", d:"Top 코인 펀딩레이트 히트맵"},
   {c:"ALERT LIST", d:"현재 알림 목록"},
+  {c:"ALERT SET BTC 65000", d:"가격 알림 설정 (심볼 목표가)"},
   {c:"PANELS", d:"추가 패널 표시/숨기기 토글"},
+  {c:"INVEST", d:"Investment PnL 분석 (오늘/주간/월간)"},
+  {c:"ISTATS", d:"Investment 트레이딩 통계"},
+  {c:"ICALC", d:"포지션 계산기 (진입/레버리지/증거금/방향)"},
+  {c:"IWATCH", d:"즐겨찾기 워치리스트 (별표 코인만)"},
+  {c:"IWATCH ADD SOL", d:"워치리스트에 코인 추가"},
+  {c:"IWATCH DEL SOL", d:"워치리스트에서 코인 제거"},
+  {c:"IPORT", d:"실계좌 포트폴리오 (잔고/포지션/PnL)"},
+  {c:"ICAL", d:"트레이딩 캘린더 (일별 손익)"},
 ];
 let sugSel=-1, sugItems=[];
 function renderSug(){
@@ -5348,6 +5357,14 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="REALPORT"||raw==="RPORT"){ realPortfolioOverlay(); e.target.value=""; return; }
   if(raw==="FUNDMAP"||raw==="FHEAT"){ fundingHeatOverlay(); e.target.value=""; return; }
   if(raw==="ALERT LIST"||raw==="ALERTS"){ alertListOverlay(); e.target.value=""; return; }
+  const alertSetM=raw.match(/^ALERT\s+SET\s+([A-Z0-9]{2,10})\s+([\d.]+)$/);
+  if(alertSetM){ addPersistentAlert(alertSetM[1], parseFloat(alertSetM[2])); e.target.value=""; return; }
+  if(raw==="INVEST"||raw==="IPNL"){ investPnlOverlay(); e.target.value=""; return; }
+  if(raw==="ISTATS"){ investStatsOverlay(); e.target.value=""; return; }
+  if(raw==="ICALC"){ investCalcOverlay(); e.target.value=""; return; }
+  if(raw==="IWATCH"){ investWatchOverlay(); e.target.value=""; return; }
+  if(raw==="IPORT"){ investPortOverlay(); e.target.value=""; return; }
+  if(raw==="ICAL"){ investCalendarOverlay(); e.target.value=""; return; }
   if(raw==="PANELS"){ toggleExtraPanels(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
@@ -9331,6 +9348,530 @@ const _origAddPriceAlert=addPriceAlert;
 // Monkey-patch pushLog to also create notifications for key events
 const _origPushLog=pushLog;
 // Can't reassign const, but we can hook into the interval-based checks
+
+// ══════════════════════════════════════════════════════════════
+// INVESTMENT INTEGRATION — PnL / Stats / Calc / Watch / Port / Calendar
+// ══════════════════════════════════════════════════════════════
+const INV_API = "https://investment.mot-era.com/api/context";
+const INV_CACHE = { data: null, ts: 0, TTL: 60000 };
+
+async function fetchInvestContext() {
+  if (Date.now() - INV_CACHE.ts < INV_CACHE.TTL && INV_CACHE.data) return INV_CACHE.data;
+  try {
+    const data = await fetchJson(INV_API, 8000);
+    INV_CACHE.data = data;
+    INV_CACHE.ts = Date.now();
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
+const _invFmt = (n) => n == null || isNaN(n) ? "—" : (n >= 0 ? "+" : "") + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const _invFmtAbs = (n) => "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const _invClr = (n) => n >= 0 ? "var(--up-text)" : "var(--down-text)";
+
+/* ── 1. INVEST (PnL) Overlay ── */
+async function investPnlOverlay() {
+  showOverlay("INVEST · PnL 분석", '<div class="rowline"><span style="color:var(--ink3)">Investment 데이터 로드 중...</span></div>');
+  const data = await fetchInvestContext();
+  if (!data || data.status === "no_keys") {
+    showOverlay("INVEST", '<div class="rowline"><span style="color:var(--down-text)">Investment 미연결 — API 키 확인</span></div>');
+    return;
+  }
+  const pnl = data.recentPnl || {};
+  const bal = data.balance || {};
+
+  // PnL stat boxes
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">';
+  const box = (label, val) => `<div style="background:var(--panel);padding:8px;text-align:center">
+    <div style="color:var(--ink3);font-size:8px;letter-spacing:1px">${label}</div>
+    <div style="font-size:16px;font-weight:700;color:${_invClr(val)}">${_invFmt(val)}</div>
+    <div style="font-size:9px;color:var(--ink3)">${_invFmtAbs(val)}</div>
+  </div>`;
+  html += box("TODAY PNL", pnl.today || 0);
+  html += box("WEEK PNL", pnl.week || 0);
+  html += box("MONTH PNL", pnl.month || 0);
+  html += '</div>';
+
+  // Balance summary
+  if (bal.totalWalletBalance != null) {
+    html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border);margin-top:1px">ACCOUNT</div>';
+    html += `<div class="rowline"><span>지갑 잔고</span><b>$${fmtN(bal.totalWalletBalance)}</b></div>`;
+    html += `<div class="rowline"><span>미실현 PnL</span><b style="color:${_invClr(bal.totalUnrealizedProfit)}">${_invFmt(bal.totalUnrealizedProfit)}</b></div>`;
+    html += `<div class="rowline"><span>가용 잔고</span><b>$${fmtN(bal.availableBalance)}</b></div>`;
+  }
+
+  // Simple bar chart of daily PnL (today / 7d / 30d as bars)
+  const barMax = Math.max(Math.abs(pnl.today || 0), Math.abs(pnl.week || 0), Math.abs(pnl.month || 0), 1);
+  html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border);margin-top:1px">PNL CHART</div>';
+  html += '<div style="padding:8px 10px">';
+  [{label: "오늘", v: pnl.today}, {label: "7일", v: pnl.week}, {label: "30일", v: pnl.month}].forEach(item => {
+    const v = item.v || 0;
+    const w = Math.abs(v) / barMax * 100;
+    const col = v >= 0 ? "var(--up)" : "var(--down)";
+    html += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+      <span style="width:30px;text-align:right;color:var(--ink2);font-size:10px">${item.label}</span>
+      <div style="flex:1;height:14px;background:#111;position:relative">
+        <div style="position:absolute;left:${v >= 0 ? '50%' : (50 - w / 2) + '%'};width:${w / 2}%;height:100%;background:${col};opacity:0.7"></div>
+        <div style="position:absolute;left:50%;width:1px;height:100%;background:var(--border)"></div>
+      </div>
+      <span style="width:70px;text-align:right;color:${_invClr(v)};font-size:10px;font-weight:600">${_invFmt(v)}</span>
+    </div>`;
+  });
+  html += '</div>';
+
+  // Positions summary
+  const positions = data.positions || [];
+  if (positions.length) {
+    html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">OPEN POSITIONS (' + positions.length + ')</div>';
+    positions.forEach(p => {
+      const pnlVal = p.unrealizedProfit || 0;
+      html += `<div class="rowline"><span style="color:${p.side === 'LONG' ? 'var(--up-text)' : 'var(--down-text)'};font-weight:600">${p.side.slice(0, 1)} ${p.symbol.replace('USDT', '')} ${p.leverage}x</span><b style="color:${_invClr(pnlVal)}">${_invFmt(pnlVal)}</b></div>`;
+    });
+  }
+
+  html += `<div class="rowline"><span style="font-size:9px;color:var(--ink3)">갱신: ${new Date(data.timestamp).toLocaleTimeString('ko-KR')} · 60초 캐시</span></div>`;
+  showOverlay("INVEST · PnL 분석", html);
+}
+
+/* ── 2. ISTATS (Trading Stats) Overlay ── */
+async function investStatsOverlay() {
+  showOverlay("ISTATS · 트레이딩 통계", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중...</span></div>');
+  const data = await fetchInvestContext();
+  if (!data || data.status === "no_keys") {
+    showOverlay("ISTATS", '<div class="rowline"><span style="color:var(--down-text)">Investment 미연결</span></div>');
+    return;
+  }
+  const pnl = data.recentPnl || {};
+  const bal = data.balance || {};
+  const positions = data.positions || [];
+
+  // Compute what we can from context data
+  const totalUnrealized = positions.reduce((s, p) => s + (p.unrealizedProfit || 0), 0);
+  const winPositions = positions.filter(p => (p.unrealizedProfit || 0) > 0);
+  const losePositions = positions.filter(p => (p.unrealizedProfit || 0) < 0);
+  const winRate = positions.length > 0 ? (winPositions.length / positions.length * 100).toFixed(0) : "—";
+  const avgLeverage = positions.length > 0 ? (positions.reduce((s, p) => s + (p.leverage || 1), 0) / positions.length).toFixed(0) : "—";
+
+  // Profit factor estimate from PnL periods
+  const profitDays = [pnl.today, pnl.week, pnl.month].filter(v => v > 0);
+  const lossDays = [pnl.today, pnl.week, pnl.month].filter(v => v < 0);
+  const grossProfit = profitDays.reduce((s, v) => s + v, 0);
+  const grossLoss = Math.abs(lossDays.reduce((s, v) => s + v, 0));
+  const pf = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : grossProfit > 0 ? "∞" : "—";
+
+  // Best/worst period
+  const periods = [{label: "오늘", v: pnl.today || 0}, {label: "7일", v: pnl.week || 0}, {label: "30일", v: pnl.month || 0}];
+  const best = periods.reduce((a, b) => b.v > a.v ? b : a);
+  const worst = periods.reduce((a, b) => b.v < a.v ? b : a);
+
+  let html = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border)">';
+  const stat = (label, value, color) => `<div style="background:var(--panel);padding:8px;text-align:center">
+    <div style="color:var(--ink3);font-size:8px;letter-spacing:1px">${label}</div>
+    <div style="font-size:16px;font-weight:700;color:${color || 'var(--ink)'}">${value}</div>
+  </div>`;
+
+  html += stat("포지션 수", positions.length + "개");
+  html += stat("활성 승률", winRate + "%", positions.length > 0 && winPositions.length / positions.length >= 0.5 ? "var(--up-text)" : "var(--down-text)");
+  html += stat("PROFIT FACTOR", pf, pf !== "—" && parseFloat(pf) >= 1 ? "var(--up-text)" : "var(--down-text)");
+  html += stat("미실현 PnL", _invFmt(totalUnrealized), _invClr(totalUnrealized));
+  html += stat("평균 레버리지", avgLeverage + "x", "var(--amber)");
+  html += stat("월간 PnL", _invFmt(pnl.month || 0), _invClr(pnl.month || 0));
+  html += '</div>';
+
+  // Best/Worst
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);margin-top:1px">';
+  html += `<div style="background:var(--panel);padding:8px"><div style="color:var(--ink3);font-size:8px;letter-spacing:1px">BEST PERIOD</div>
+    <div style="font-size:14px;font-weight:700;color:var(--up-text)">${_invFmt(best.v)}</div>
+    <div style="color:var(--ink3);font-size:9px">${best.label}</div></div>`;
+  html += `<div style="background:var(--panel);padding:8px"><div style="color:var(--ink3);font-size:8px;letter-spacing:1px">WORST PERIOD</div>
+    <div style="font-size:14px;font-weight:700;color:var(--down-text)">${_invFmt(worst.v)}</div>
+    <div style="color:var(--ink3);font-size:9px">${worst.label}</div></div>`;
+  html += '</div>';
+
+  // Position detail table
+  if (positions.length) {
+    html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border);margin-top:1px">포지션 상세</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:10px">';
+    html += '<tr><th style="text-align:left;padding:3px 8px;color:var(--ink3);font-weight:400">SYM</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">SIDE</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">LEV</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">ENTRY</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">PNL</th></tr>';
+    positions.forEach(p => {
+      const pnlV = p.unrealizedProfit || 0;
+      html += `<tr style="border-bottom:1px solid #101010">
+        <td style="padding:3px 8px;font-weight:600">${p.symbol.replace('USDT', '')}</td>
+        <td style="padding:3px 8px;text-align:right;color:${p.side === 'LONG' ? 'var(--up-text)' : 'var(--down-text)'}">${p.side}</td>
+        <td style="padding:3px 8px;text-align:right;color:var(--amber)">${p.leverage}x</td>
+        <td style="padding:3px 8px;text-align:right">${fmtPrice(p.entryPrice)}</td>
+        <td style="padding:3px 8px;text-align:right;font-weight:700;color:${_invClr(pnlV)}">${_invFmt(pnlV)}</td>
+      </tr>`;
+    });
+    html += '</table>';
+  }
+
+  html += `<div class="rowline"><span style="font-size:9px;color:var(--ink3)">통계는 현재 포지션 및 최근 PnL 기반 · /api/context</span></div>`;
+  showOverlay("ISTATS · 트레이딩 통계", html);
+}
+
+/* ── 3. ICALC (Position Calculator) Overlay ── */
+function investCalcOverlay() {
+  const sym = S.sym;
+  const q = S.quotes[sym];
+  const curPrice = q ? q.last : 0;
+
+  let html = `<div style="padding:10px">
+    <div style="margin-bottom:8px;color:var(--amber);font-size:11px;font-weight:700">포지션 계산기</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">
+      <div><label style="color:var(--ink3);font-size:9px;display:block;margin-bottom:2px">진입가</label>
+        <input id="ic-entry" type="number" step="any" value="${curPrice || 100000}" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);padding:4px 6px;font-family:var(--mono);font-size:11px"></div>
+      <div><label style="color:var(--ink3);font-size:9px;display:block;margin-bottom:2px">레버리지</label>
+        <input id="ic-lev" type="number" value="10" min="1" max="125" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);padding:4px 6px;font-family:var(--mono);font-size:11px"></div>
+      <div><label style="color:var(--ink3);font-size:9px;display:block;margin-bottom:2px">증거금 (USDT)</label>
+        <input id="ic-margin" type="number" value="1000" min="1" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);padding:4px 6px;font-family:var(--mono);font-size:11px"></div>
+      <div><label style="color:var(--ink3);font-size:9px;display:block;margin-bottom:2px">방향</label>
+        <select id="ic-side" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);padding:4px 6px;font-family:var(--mono);font-size:11px">
+          <option value="long">LONG</option><option value="short">SHORT</option>
+        </select></div>
+      <div><label style="color:var(--ink3);font-size:9px;display:block;margin-bottom:2px">목표가</label>
+        <input id="ic-target" type="number" step="any" value="${curPrice ? (curPrice * 1.05).toFixed(2) : 105000}" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);padding:4px 6px;font-family:var(--mono);font-size:11px"></div>
+      <div><label style="color:var(--ink3);font-size:9px;display:block;margin-bottom:2px">손절가</label>
+        <input id="ic-sl" type="number" step="any" value="${curPrice ? (curPrice * 0.97).toFixed(2) : 97000}" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);padding:4px 6px;font-family:var(--mono);font-size:11px"></div>
+    </div>
+    <button onclick="calcPositionResult()" style="width:100%;padding:6px;background:var(--amber);color:#000;font-weight:700;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:1px">계산</button>
+    <div id="ic-result" style="margin-top:8px"></div>
+  </div>`;
+
+  showOverlay("ICALC · 포지션 계산기 (" + sym + ")", html);
+  // Auto-calc on load
+  setTimeout(calcPositionResult, 50);
+}
+
+function calcPositionResult() {
+  const entry = parseFloat(document.getElementById("ic-entry")?.value) || 0;
+  const lev = parseInt(document.getElementById("ic-lev")?.value) || 10;
+  const margin = parseFloat(document.getElementById("ic-margin")?.value) || 0;
+  const side = document.getElementById("ic-side")?.value || "long";
+  const target = parseFloat(document.getElementById("ic-target")?.value) || 0;
+  const sl = parseFloat(document.getElementById("ic-sl")?.value) || 0;
+  const el = document.getElementById("ic-result");
+  if (!el || entry <= 0 || margin <= 0) return;
+
+  const posSize = margin * lev;
+  const qty = posSize / entry;
+  const mmr = 0.004;
+  const liqPrice = side === "long"
+    ? entry * (1 - 1 / lev + mmr)
+    : entry * (1 + 1 / lev - mmr);
+
+  const targetPnl = side === "long" ? (target - entry) * qty : (entry - target) * qty;
+  const slPnl = side === "long" ? (sl - entry) * qty : (entry - sl) * qty;
+  const targetRoe = (targetPnl / margin) * 100;
+  const slRoe = (slPnl / margin) * 100;
+  const rr = slPnl !== 0 ? Math.abs(targetPnl / slPnl) : 0;
+
+  const takerFee = posSize * 0.0005;
+  const makerFee = posSize * 0.0002;
+  const netTargetPnl = targetPnl - takerFee * 2;
+
+  const row = (k, v, cls) => `<div class="rowline"><span>${k}</span><b${cls ? ` style="color:${cls}"` : ""}>${v}</b></div>`;
+
+  el.innerHTML =
+    '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">RESULT</div>' +
+    row("포지션 사이즈", "$" + fmtN(posSize)) +
+    row("수량", qty.toFixed(6) + " " + S.sym) +
+    row("필요 증거금", "$" + fmtN(margin)) +
+    row("추정 청산가", fmtPrice(liqPrice), "var(--amber)") +
+    row("목표 수익", _invFmt(targetPnl) + " (" + targetRoe.toFixed(1) + "%)", _invClr(targetPnl)) +
+    row("손절 손실", _invFmt(slPnl) + " (" + slRoe.toFixed(1) + "%)", _invClr(slPnl)) +
+    row("R:R 비율", rr.toFixed(2), rr >= 2 ? "var(--up-text)" : rr >= 1 ? "var(--amber)" : "var(--down-text)") +
+    row("수수료 (테이커 왕복)", "$" + (takerFee * 2).toFixed(2), "var(--down-text)") +
+    row("수수료 (메이커 왕복)", "$" + (makerFee * 2).toFixed(2), "var(--down-text)") +
+    row("순수익 (테이커)", _invFmt(netTargetPnl), _invClr(netTargetPnl)) +
+    `<div class="rowline"><span style="font-size:9px;color:var(--ink3)">청산가는 격리·MMR 0.4% 가정 근사치</span></div>`;
+}
+
+/* ── 4. IWATCH (Watchlist) Overlay ── */
+function getWatchlist() {
+  try { return JSON.parse(localStorage.getItem("inv_watchlist") || "[]"); } catch { return []; }
+}
+function saveWatchlist(list) {
+  localStorage.setItem("inv_watchlist", JSON.stringify(list));
+}
+
+function investWatchOverlay() {
+  const wl = getWatchlist();
+  if (!wl.length) {
+    showOverlay("IWATCH · 워치리스트",
+      `<div style="padding:12px;color:var(--ink3);text-align:center">
+        <div style="margin-bottom:6px">즐겨찾기 코인이 없습니다</div>
+        <div style="font-size:10px;color:var(--amber)">IWATCH ADD SOL</div> — 추가<br>
+        <div style="font-size:10px;color:var(--amber)">IWATCH DEL SOL</div> — 제거
+      </div>`);
+    return;
+  }
+
+  let html = '<table style="width:100%;border-collapse:collapse;font-size:11px">';
+  html += '<tr><th style="text-align:left;padding:3px 8px;color:var(--ink3);font-weight:400;border-bottom:1px solid var(--border)">SYM</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">PRICE</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">24H%</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">VOL</th><th style="text-align:center;padding:3px 8px;color:var(--ink3);font-weight:400">DEL</th></tr>';
+  wl.forEach(sym => {
+    const q = S.quotes[sym];
+    if (q) {
+      const col = q.pct >= 0 ? "var(--up-text)" : "var(--down-text)";
+      html += `<tr style="border-bottom:1px solid #101010;cursor:pointer" onclick="switchTo('${sym}',S.tf);$('btov').classList.remove('on');">
+        <td style="padding:3px 8px;font-weight:600;color:var(--amber)">${sym}</td>
+        <td style="padding:3px 8px;text-align:right">${fmtPrice(q.last)}</td>
+        <td style="padding:3px 8px;text-align:right;color:${col}">${q.pct >= 0 ? '+' : ''}${q.pct.toFixed(2)}%</td>
+        <td style="padding:3px 8px;text-align:right;color:var(--ink2)">${fmtBig(q.vol24 || 0)}</td>
+        <td style="padding:3px 8px;text-align:center"><span style="cursor:pointer;color:var(--down-text)" onclick="event.stopPropagation();removeFromWatchlist('${sym}')">✕</span></td>
+      </tr>`;
+    } else {
+      html += `<tr style="border-bottom:1px solid #101010"><td style="padding:3px 8px;font-weight:600;color:var(--amber)">${sym}</td><td colspan="4" style="padding:3px 8px;color:var(--ink3)">시세 미수신</td></tr>`;
+    }
+  });
+  html += '</table>';
+  html += `<div class="rowline"><span style="font-size:9px;color:var(--ink3)">IWATCH ADD/DEL [심볼] · localStorage 저장</span></div>`;
+  showOverlay("IWATCH · 워치리스트 (" + wl.length + ")", html);
+}
+
+function removeFromWatchlist(sym) {
+  const wl = getWatchlist().filter(s => s !== sym);
+  saveWatchlist(wl);
+  investWatchOverlay();
+}
+
+/* ── 5. IPORT (Portfolio) Overlay ── */
+async function investPortOverlay() {
+  showOverlay("IPORT · 실계좌 포트폴리오", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중...</span></div>');
+  const data = await fetchInvestContext();
+  if (!data || data.status === "no_keys") {
+    showOverlay("IPORT", '<div class="rowline"><span style="color:var(--down-text)">Investment 미연결</span></div>');
+    return;
+  }
+  const bal = data.balance || {};
+  const positions = data.positions || [];
+  const totalUnrealized = positions.reduce((s, p) => s + (p.unrealizedProfit || 0), 0);
+  const totalEquity = (bal.totalWalletBalance || 0) + totalUnrealized;
+
+  // Summary stat boxes
+  let html = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">';
+  const box = (label, val, color) => `<div style="background:var(--panel);padding:8px;text-align:center">
+    <div style="color:var(--ink3);font-size:8px;letter-spacing:1px">${label}</div>
+    <div style="font-size:15px;font-weight:700;color:${color || 'var(--ink)'}">$${fmtN(val)}</div>
+  </div>`;
+  html += box("지갑 잔고", bal.totalWalletBalance || 0);
+  html += box("가용 잔고", bal.availableBalance || 0);
+  html += box("미실현 PnL", totalUnrealized, _invClr(totalUnrealized));
+  html += '</div>';
+
+  // Allocation bar
+  if (positions.length && bal.totalWalletBalance) {
+    const usedMargin = (bal.totalWalletBalance || 0) - (bal.availableBalance || 0);
+    const usedPct = (usedMargin / bal.totalWalletBalance * 100).toFixed(1);
+    const availPct = (100 - parseFloat(usedPct)).toFixed(1);
+    html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border);margin-top:1px">ALLOCATION</div>';
+    html += `<div style="padding:6px 10px"><div style="display:flex;height:12px;border:1px solid #222">
+      <div style="width:${usedPct}%;background:var(--amber);opacity:0.7" title="사용 ${usedPct}%"></div>
+      <div style="width:${availPct}%;background:#1a1a1a" title="가용 ${availPct}%"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--ink3);margin-top:2px">
+      <span>사용 $${fmtN(usedMargin)} (${usedPct}%)</span>
+      <span>가용 $${fmtN(bal.availableBalance || 0)} (${availPct}%)</span>
+    </div></div>`;
+  }
+
+  // Positions table
+  if (positions.length) {
+    html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">POSITIONS (' + positions.length + ')</div>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:10px">';
+    html += '<tr><th style="text-align:left;padding:3px 8px;color:var(--ink3);font-weight:400">SYM</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">SIDE</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">LEV</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">ENTRY</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">MARK</th><th style="text-align:right;padding:3px 8px;color:var(--ink3);font-weight:400">PNL</th></tr>';
+    positions.forEach(p => {
+      const pnlV = p.unrealizedProfit || 0;
+      const roe = p.entryPrice > 0 ? (((p.side === 'LONG' ? p.markPrice - p.entryPrice : p.entryPrice - p.markPrice) / p.entryPrice) * p.leverage * 100) : 0;
+      html += `<tr style="border-bottom:1px solid #101010;cursor:pointer" onclick="switchTo('${p.symbol.replace('USDT','')}',S.tf);$('btov').classList.remove('on');">
+        <td style="padding:3px 8px;font-weight:600">${p.symbol.replace('USDT', '')}</td>
+        <td style="padding:3px 8px;text-align:right;color:${p.side === 'LONG' ? 'var(--up-text)' : 'var(--down-text)'};font-weight:600">${p.side}</td>
+        <td style="padding:3px 8px;text-align:right;color:var(--amber)">${p.leverage}x</td>
+        <td style="padding:3px 8px;text-align:right">${fmtPrice(p.entryPrice)}</td>
+        <td style="padding:3px 8px;text-align:right">${fmtPrice(p.markPrice)}</td>
+        <td style="padding:3px 8px;text-align:right;font-weight:700;color:${_invClr(pnlV)}">${_invFmt(pnlV)} <span style="font-size:9px;font-weight:400">(${roe >= 0 ? '+' : ''}${roe.toFixed(1)}%)</span></td>
+      </tr>`;
+    });
+    html += '</table>';
+  } else {
+    html += '<div class="rowline"><span style="color:var(--ink3)">열린 포지션 없음</span></div>';
+  }
+
+  // Recent PnL
+  const pnl = data.recentPnl || {};
+  html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border);margin-top:1px">RECENT PNL</div>';
+  html += `<div class="rowline"><span>오늘</span><b style="color:${_invClr(pnl.today || 0)}">${_invFmt(pnl.today || 0)}</b></div>`;
+  html += `<div class="rowline"><span>7일</span><b style="color:${_invClr(pnl.week || 0)}">${_invFmt(pnl.week || 0)}</b></div>`;
+  html += `<div class="rowline"><span>30일</span><b style="color:${_invClr(pnl.month || 0)}">${_invFmt(pnl.month || 0)}</b></div>`;
+
+  html += `<div class="rowline"><span style="font-size:9px;color:var(--ink3)">총 자산 추정: $${fmtN(totalEquity)}</span></div>`;
+  showOverlay("IPORT · 실계좌 포트폴리오", html);
+}
+
+/* ── 6. Enhanced Alert System (ALERT SET) ── */
+function getPersistentAlerts() {
+  try { return JSON.parse(localStorage.getItem("inv_alerts") || "[]"); } catch { return []; }
+}
+function savePersistentAlerts(list) {
+  localStorage.setItem("inv_alerts", JSON.stringify(list));
+}
+
+function addPersistentAlert(sym, px) {
+  const alerts = getPersistentAlerts();
+  const q = S.quotes[sym];
+  const dir = q && q.last ? (px >= q.last ? 1 : -1) : 1;
+  alerts.push({ sym, px, dir, created: Date.now(), triggered: false });
+  savePersistentAlerts(alerts);
+  // Also add to S.priceAlerts for real-time checking
+  addPriceAlert(sym, px);
+  pushLog(`알림 설정: ${sym} ${dir === 1 ? "≥" : "≤"} ${fmtPrice(px)} (저장됨)`);
+  pushNotification(`알림 설정: ${sym} ${dir === 1 ? "≥" : "≤"} ${fmtPrice(px)}`, "amber");
+}
+
+// Restore persistent alerts on boot
+function restorePersistentAlerts() {
+  const alerts = getPersistentAlerts();
+  alerts.forEach(a => {
+    if (!a.triggered) {
+      const exists = S.priceAlerts.some(pa => pa.sym === a.sym && pa.px === a.px);
+      if (!exists) {
+        S.priceAlerts.push({ sym: a.sym, px: a.px, dir: a.dir });
+      }
+    }
+  });
+  renderPriceAlerts();
+}
+setTimeout(restorePersistentAlerts, 3000);
+
+// Check persistent alerts every 30s
+setInterval(() => {
+  const alerts = getPersistentAlerts();
+  let changed = false;
+  alerts.forEach(a => {
+    if (a.triggered) return;
+    const q = S.quotes[a.sym];
+    if (!q || !q.last) return;
+    const trig = a.dir === 1 ? q.last >= a.px : q.last <= a.px;
+    if (trig) {
+      a.triggered = true;
+      changed = true;
+      pushNotification(`알림 도달: ${a.sym} ${a.dir === 1 ? "상향" : "하향"} ${fmtPrice(a.px)} (현재 ${fmtPrice(q.last)})`, a.dir === 1 ? "up" : "down");
+      pushLog(`저장 알림 도달: ${a.sym} ${fmtPrice(a.px)}`);
+      beep();
+    }
+  });
+  if (changed) savePersistentAlerts(alerts);
+}, 30000);
+
+/* ── 7. ICAL (Trade Calendar) Overlay ── */
+async function investCalendarOverlay() {
+  showOverlay("ICAL · 트레이딩 캘린더", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중...</span></div>');
+  const data = await fetchInvestContext();
+  if (!data || data.status === "no_keys") {
+    showOverlay("ICAL", '<div class="rowline"><span style="color:var(--down-text)">Investment 미연결</span></div>');
+    return;
+  }
+
+  const pnl = data.recentPnl || {};
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const today = now.getDate();
+
+  const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+  const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+  let html = `<div style="padding:6px 10px;text-align:center;font-weight:700;color:var(--amber);font-size:13px">${year}년 ${monthNames[month]}</div>`;
+
+  // Monthly summary
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border);margin-bottom:1px">';
+  const mbox = (label, val) => `<div style="background:var(--panel);padding:6px;text-align:center">
+    <div style="color:var(--ink3);font-size:8px;letter-spacing:1px">${label}</div>
+    <div style="font-size:13px;font-weight:700;color:${_invClr(val)}">${_invFmt(val)}</div>
+  </div>`;
+  html += mbox("오늘", pnl.today || 0);
+  html += mbox("7일", pnl.week || 0);
+  html += mbox("30일(월)", pnl.month || 0);
+  html += '</div>';
+
+  // Calendar grid
+  html += '<div style="padding:4px 10px">';
+  html += '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center">';
+
+  // Day headers
+  dayNames.forEach(d => {
+    html += `<div style="padding:3px;color:var(--ink3);font-size:9px;font-weight:600">${d}</div>`;
+  });
+
+  // Empty cells before first day
+  for (let i = 0; i < firstDay; i++) {
+    html += '<div style="padding:4px"></div>';
+  }
+
+  // Day cells - since we only have today/week/month aggregates, color today and estimate
+  // We'll color today green/red based on pnl.today, and show the current month at bottom
+  for (let d = 1; d <= daysInMonth; d++) {
+    const isToday = d === today;
+    const isFuture = d > today;
+    let bg = "transparent";
+    let textCol = "var(--ink2)";
+    let border = "1px solid transparent";
+
+    if (isToday && pnl.today !== 0) {
+      bg = pnl.today > 0 ? "rgba(0,160,140,0.15)" : "rgba(229,72,77,0.15)";
+      textCol = pnl.today > 0 ? "var(--up-text)" : "var(--down-text)";
+      border = "1px solid " + (pnl.today > 0 ? "var(--up)" : "var(--down)");
+    } else if (isToday) {
+      border = "1px solid var(--amber)";
+      textCol = "var(--amber)";
+    } else if (isFuture) {
+      textCol = "var(--ink3)";
+    }
+
+    html += `<div style="padding:4px 2px;background:${bg};border:${border};font-size:10px;color:${textCol};font-weight:${isToday ? '700' : '400'}">
+      ${d}${isToday && pnl.today !== 0 ? '<div style="font-size:7px;margin-top:1px">' + (pnl.today > 0 ? '+' : '') + pnl.today.toFixed(0) + '</div>' : ''}
+    </div>`;
+  }
+  html += '</div></div>';
+
+  // Note about data limitation
+  html += `<div class="rowline"><span style="font-size:9px;color:var(--ink3)">상세 일별 PnL은 Investment 앱에서 확인 · 현재 오늘/주간/월간 합산만 제공</span></div>`;
+  showOverlay("ICAL · 트레이딩 캘린더", html);
+}
+
+/* ── IWATCH ADD/DEL command handlers ── */
+// These are handled in the command parser further up by matching patterns
+// We need to add those in the keydown handler
+const _origCmdHandler = $("cmd").onkeydown; // won't work since addEventListener was used
+// Instead, we'll hook by adding another listener that runs first
+document.getElementById("cmd").addEventListener("keydown", function(e) {
+  if (e.key !== "Enter") return;
+  const raw = e.target.value.trim().toUpperCase().replace(/USDT|<GO>|GO$/g, "").trim();
+  const iwm = raw.match(/^IWATCH\s+(ADD|DEL)\s+([A-Z0-9]{2,10})$/);
+  if (iwm) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    const op = iwm[1];
+    const sym = iwm[2];
+    const wl = getWatchlist();
+    if (op === "ADD" && !wl.includes(sym)) {
+      wl.push(sym);
+      saveWatchlist(wl);
+      pushLog(`워치리스트 추가: ${sym}`);
+      e.target.placeholder = `${sym} 워치리스트에 추가됨`;
+    } else if (op === "DEL") {
+      saveWatchlist(wl.filter(s => s !== sym));
+      pushLog(`워치리스트 제거: ${sym}`);
+      e.target.placeholder = `${sym} 워치리스트에서 제거됨`;
+    }
+    e.target.value = "";
+    return;
+  }
+}, true); // capture phase to run before existing handler
 
 // ══════════════════════════════════════════════
 // TRADING FLOOR 패널 — Trading-Team(8000) 연동
