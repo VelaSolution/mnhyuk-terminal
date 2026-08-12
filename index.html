@@ -600,6 +600,14 @@
           <div id="ps-result" style="font-size:10px; color:var(--ink2); line-height:1.5;">신호 선택 시 자동 계산</div>
         </div>
       </div>
+      <div class="panel" style="flex:0 0 auto; max-height:140px;">
+        <div class="ptitle">TRADING FLOOR <small>13-agent 엔진</small>
+          <span class="age" id="age-tt"></span>
+        </div>
+        <div class="pbody" id="tt-panel" style="padding:6px 8px; font-size:10px; line-height:1.6;">
+          <div style="color:var(--ink3)">연결 대기 중…</div>
+        </div>
+      </div>
       <div class="panel" style="flex:1;">
         <div class="ptitle">NEWS WIRE
           <span class="ntab on" data-ntab="all">전체</span>
@@ -8692,6 +8700,65 @@ function pivotOverlay(){
   html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3);border-top:1px solid var(--border)">이전 ${S.tf} 봉 기준 · R=저항 S=지지 PP=피벗포인트</div>`;
   showOverlay(`PIVOT · ${S.sym} 피벗 포인트`, html);
 }
+// ══════════════════════════════════════════════
+// TRADING FLOOR 패널 — Trading-Team(8000) 연동
+// ══════════════════════════════════════════════
+(function initTradingFloorPanel() {
+  const TT_URL = 'http://localhost:8000';
+  const panel = document.getElementById('tt-panel');
+  const ageEl = document.getElementById('age-tt');
+  if (!panel) return;
+
+  async function updateTTPanel() {
+    try {
+      const [statusRes, tapeRes] = await Promise.allSettled([
+        fetch(`${TT_URL}/api/status`, { signal: AbortSignal.timeout(3000) }).then(r => r.json()),
+        fetch(`${TT_URL}/api/health`, { signal: AbortSignal.timeout(3000) }).then(r => r.json()),
+      ]);
+
+      const status = statusRes.status === 'fulfilled' ? statusRes.value : null;
+      const health = tapeRes.status === 'fulfilled' ? tapeRes.value : null;
+
+      if (!status && !health) {
+        panel.innerHTML = `<div style="color:var(--down-text)">⊘ Trading-Team 오프라인</div>
+          <div style="color:var(--ink3);margin-top:4px">node server/server.js 실행 필요</div>`;
+        if (ageEl) ageEl.textContent = 'OFFLINE';
+        return;
+      }
+
+      let html = '';
+      const statusColor = status?.status === 'RUNNING' ? 'var(--amber)' : 'var(--up-text)';
+      html += `<div style="display:flex;justify-content:space-between;margin-bottom:4px">`;
+      html += `<span style="color:${statusColor};font-weight:700">${status?.status || 'CONNECTED'}</span>`;
+      if (status?.currentSymbol) html += `<span style="color:var(--amber)">${status.currentSymbol}</span>`;
+      html += `</div>`;
+
+      if (status?.lastDecision) {
+        const d = status.lastDecision;
+        const actionColor = d.action === 'BUY' ? 'var(--up-text)' : d.action === 'SELL' ? 'var(--down-text)' : 'var(--ink2)';
+        html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin:4px 0">`;
+        html += `<div style="text-align:center;padding:3px;background:rgba(255,255,255,.03)">`;
+        html += `<div style="color:var(--ink3)">판정</div><div style="color:${actionColor};font-weight:700;font-size:13px">${d.action || '-'}</div></div>`;
+        html += `<div style="text-align:center;padding:3px;background:rgba(255,255,255,.03)">`;
+        html += `<div style="color:var(--ink3)">확신</div><div style="font-weight:700;font-size:13px">${d.confidence ?? '-'}%</div></div>`;
+        html += `<div style="text-align:center;padding:3px;background:rgba(255,255,255,.03)">`;
+        html += `<div style="color:var(--ink3)">진입</div><div style="font-size:11px">${d.entry || '-'}</div></div>`;
+        html += `</div>`;
+        if (d.verdict) html += `<div style="color:var(--ink2)">PM: ${d.verdict}</div>`;
+      } else {
+        html += `<div style="color:var(--ink3)">최근 판정 없음</div>`;
+      }
+
+      panel.innerHTML = html;
+      if (ageEl) ageEl.textContent = status?.status === 'RUNNING' ? 'LIVE' : 'IDLE';
+    } catch {
+      panel.innerHTML = `<div style="color:var(--ink3)">연결 확인 중…</div>`;
+    }
+  }
+
+  updateTTPanel();
+  setInterval(updateTTPanel, 15000);
+})();
 </script>
 </body>
 </html>
