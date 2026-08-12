@@ -54,6 +54,8 @@ async function fetchPrices() {
 }
 
 // ── 뉴스 (RSS) ──
+// NOTE: Mirrors parsing logic from api/rss.js. Kept inline because serverless
+// functions can't easily call each other and module-level cache doesn't persist.
 async function fetchNews() {
   const feeds = [
     { url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', source: 'CoinDesk' },

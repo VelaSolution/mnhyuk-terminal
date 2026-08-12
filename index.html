@@ -947,6 +947,34 @@ async function fetchJson(url, timeout=8000){
     return await r.json();
   } finally { clearTimeout(to); }
 }
+
+/* ── Cached API wrappers (reduce duplicate calls) ── */
+const _apiCache = {};
+async function cachedFetchJson(url, ttlMs = 300000, timeout = 8000) {
+  const entry = _apiCache[url];
+  if (entry && Date.now() - entry.ts < ttlMs) return entry.data;
+  const data = await fetchJson(url, timeout);
+  _apiCache[url] = { data, ts: Date.now() };
+  return data;
+}
+
+// F&G: fetch limit=30 once and slice for all callers (10min cache)
+const _fngCache = { data: null, ts: 0 };
+async function getCachedFNG(limit = 1) {
+  if (!_fngCache.data || Date.now() - _fngCache.ts > 600000) {
+    try {
+      const j = await fetchJson("https://api.alternative.me/fng/?limit=30");
+      if (j && j.data) { _fngCache.data = j.data; _fngCache.ts = Date.now(); }
+    } catch(e) { if (!_fngCache.data) throw e; }
+  }
+  return { data: _fngCache.data.slice(0, limit) };
+}
+
+// CoinGecko /global: 5min cache
+async function getCachedGlobal() {
+  return cachedFetchJson("https://api.coingecko.com/api/v3/global", 300000);
+}
+
 async function firstOk(chain){ // chain: [{url, parse}] → parsed value of first success
   let lastErr;
   for(const c of chain){
@@ -4375,7 +4403,7 @@ function drawOISpark(){
 /* globals + F&G */
 async function loadGlobals(){
   try{
-    const j=await fetchJson("https://api.coingecko.com/api/v3/global");
+    const j=await getCachedGlobal();
     const d=j.data;
     $("g-mcap").textContent="$"+fmtBig(d.total_market_cap.usd);
     $("g-vol").textContent="$"+fmtBig(d.total_volume.usd);
@@ -4406,7 +4434,7 @@ async function loadGlobals(){
     }
   }catch(e){}
   try{
-    const j=await fetchJson("https://api.alternative.me/fng/?limit=1");
+    const j=await getCachedFNG(1);
     const d=j.data[0], v=+d.value;
     const map={ "Extreme Fear":"극단적 공포","Fear":"공포","Neutral":"중립","Greed":"탐욕","Extreme Greed":"극단적 탐욕" };
     S.fng={v, cls:map[d.value_classification]||d.value_classification};
@@ -8143,7 +8171,7 @@ async function fearOverlay(){
   showOverlay("FEAR & GREED", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
 
   try {
-    const j = await fetchJson("https://api.alternative.me/fng/?limit=30");
+    const j = await getCachedFNG(30);
     const data = j.data;
     if(!data || !data.length) throw 0;
 
@@ -8384,7 +8412,7 @@ async function dominanceOverlay(){
   showOverlay("DOMINANCE", '<div class="rowline"><span style="color:var(--ink3)">도미넌스 데이터 로드 중…</span></div>');
 
   try {
-    const j = await fetchJson("https://api.coingecko.com/api/v3/global");
+    const j = await getCachedGlobal();
     const d = j.data;
     const mcPct = d.market_cap_percentage;
 
@@ -8976,7 +9004,7 @@ const FNG_HIST_CACHE={data:null, ts:0};
 async function loadFngHistory(){
   if(Date.now()-FNG_HIST_CACHE.ts<600000 && FNG_HIST_CACHE.data) { renderFngSparkline(FNG_HIST_CACHE.data); return; }
   try{
-    const j=await fetchJson("https://api.alternative.me/fng/?limit=7");
+    const j=await getCachedFNG(7);
     if(j.data&&j.data.length){
       const vals=j.data.map(d=>+d.value).reverse(); // oldest first
       FNG_HIST_CACHE.data=vals; FNG_HIST_CACHE.ts=Date.now();
@@ -9301,21 +9329,19 @@ function postBootUpgrade(){
   setTimeout(loadFngHistory, 5000);
   setInterval(loadFngHistory, 600000);
 
-  // Economic calendar panel
-  setTimeout(renderEconomicCalendar, 2000);
-  setInterval(renderEconomicCalendar, 60000);
-
-  // Paper trading
-  setTimeout(loadPaperTrading, 3000);
-  setInterval(loadPaperTrading, 15000);
-
-  // Funding heatmap
-  setTimeout(loadFundingHeatmap, 4000);
-  setInterval(loadFundingHeatmap, 300000);
-
-  // Real portfolio
-  setTimeout(loadRealPortfolio, 5000);
-  setInterval(loadRealPortfolio, 60000);
+  // Extra panel loaders — only fetch when panels are visible
+  function loadExtraPanelsIfVisible(){
+    if(!_extraPanelsOn) return;
+    renderEconomicCalendar();
+    loadPaperTrading();
+    loadFundingHeatmap();
+    loadRealPortfolio();
+  }
+  setTimeout(loadExtraPanelsIfVisible, 2000);
+  setInterval(()=>{ if(_extraPanelsOn) renderEconomicCalendar(); }, 60000);
+  setInterval(()=>{ if(_extraPanelsOn) loadPaperTrading(); }, 15000);
+  setInterval(()=>{ if(_extraPanelsOn) loadFundingHeatmap(); }, 300000);
+  setInterval(()=>{ if(_extraPanelsOn) loadRealPortfolio(); }, 60000);
 
   // Funding alerts
   setInterval(checkFundingAlerts, 30000);
