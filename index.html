@@ -2356,7 +2356,12 @@ function drawChart(){
   const ribArr = S.show.ribbon ? {e20:ema(closes,20), e50:ema(closes,50), e200:ema(closes,200)} : null;
   const vwapArr= S.show.vwap ? vwapSeries(S.candles) : null;
   const stArr  = S.show.st ? supertrendSeries(S.candles,10,3) : null;
-  const rsiArr = S.show.rsi ? rsiSeries(closes,14) : null;
+  /* always-on EMA20/50 overlays */
+  const ema20Arr = ema(closes,20);
+  const ema50Arr = ema(closes,50);
+  /* auto-show RSI when chart height > 400px */
+  const autoRsi = H > 400;
+  const rsiArr = (S.show.rsi || autoRsi) ? rsiSeries(closes,14) : null;
   const macdArr= S.show.macd ? macdSeries(closes) : null;
   const stochArr=S.show.stoch? stochRsiSeries(closes) : null;
   const adxArr = S.show.adx ? adxSeries(S.candles,14) : null;
@@ -2383,7 +2388,7 @@ function drawChart(){
   const subList=[["rsi",.13],["macd",.13],["stoch",.13],["adx",.13],["oi",.12],
                  ["obv",.11],["mfi",.11],["cci",.11],["willr",.11],["atrp",.11],["cmf",.11],
                  ["trix",.11],["aroon",.11],["chaikin",.11],["kst",.11],["sqzmom",.13],
-                 ["vol",.13]].filter(k=>S.show[k[0]]);
+                 ["vol",.13]].filter(k=>S.show[k[0]]||(k[0]==="rsi"&&autoRsi));
   const fracSum=subList.reduce((a,z)=>a+z[1],0);
   const scaleF=fracSum>0.52?0.52/fracSum:1;
   const panes={}; let yCur=axisB;
@@ -2401,6 +2406,8 @@ function drawChart(){
   for(let i=start;i<end;i++){
     if(emaArr&&emaArr[i]!=null){ lo=Math.min(lo,emaArr[i]); hi=Math.max(hi,emaArr[i]); }
     if(bbArr&&bbArr.up[i]!=null){ lo=Math.min(lo,bbArr.lo[i]); hi=Math.max(hi,bbArr.up[i]); }
+    if(ema20Arr[i]!=null){ lo=Math.min(lo,ema20Arr[i]); hi=Math.max(hi,ema20Arr[i]); }
+    if(ema50Arr[i]!=null){ lo=Math.min(lo,ema50Arr[i]); hi=Math.max(hi,ema50Arr[i]); }
   }
   const padY=(hi-lo)*0.06||hi*0.01; lo-=padY; hi+=padY;
   const y = p => priceH*(1-(p-lo)/(hi-lo)) + 4;
@@ -2466,9 +2473,10 @@ function drawChart(){
   }
   if(panes.rsi&&rsiArr){
     const P=panes.rsi;
-    const ry=lineIn(P,rsiArr,0,100,"#9575cd",1.5);
-    ctx.setLineDash([3,3]); ctx.strokeStyle="#333";
-    for(const lv of [30,70]){ ctx.beginPath(); ctx.moveTo(0,ry(lv)+.5); ctx.lineTo(plotW,ry(lv)+.5); ctx.stroke(); }
+    const ry=lineIn(P,rsiArr,0,100,"#4a8ef5",1.5);
+    ctx.setLineDash([3,3]);
+    ctx.strokeStyle="rgba(76,175,80,.6)"; ctx.beginPath(); ctx.moveTo(0,ry(30)+.5); ctx.lineTo(plotW,ry(30)+.5); ctx.stroke();
+    ctx.strokeStyle="rgba(229,72,77,.6)"; ctx.beginPath(); ctx.moveTo(0,ry(70)+.5); ctx.lineTo(plotW,ry(70)+.5); ctx.stroke();
     ctx.setLineDash([]);
     paneFrame(P,"RSI14",rsiArr[end-1]?.toFixed(1),"#9575cd");
   }
@@ -2690,6 +2698,20 @@ function drawChart(){
     path(bbArr.mid); ctx.strokeStyle="rgba(138,138,138,.55)"; ctx.stroke();
   }
 
+  /* always-on volume bars (bottom 20% of price chart, semi-transparent background) */
+  {
+    let vmax=0; data.forEach(c=>vmax=Math.max(vmax,c.v));
+    if(vmax>0){
+      const volZoneH=priceH*0.20;
+      data.forEach((c,i)=>{
+        const vh=(c.v/vmax)*volZoneH;
+        ctx.fillStyle=c.c>=c.o?"rgba(0,160,140,.12)":"rgba(229,72,77,.12)";
+        const bw2=Math.max(1,xw*0.6);
+        ctx.fillRect(x(start+i)-bw2/2, priceH-vh+4, bw2, vh);
+      });
+    }
+  }
+
   /* candles: up = hollow teal, down = filled red (CVD-safe secondary encoding) */
   const bw=Math.max(1.5, Math.min(13, xw*0.62));
   data.forEach((c,i)=>{
@@ -2702,6 +2724,28 @@ function drawChart(){
             ctx.strokeRect(xx-bw/2+.5,top+.5,bw-1,Math.max(1,hgt-1)); }
     else  { ctx.fillStyle=CH.colors.down; ctx.fillRect(xx-bw/2,top,bw,hgt); }
   });
+
+  /* always-on EMA20 (yellow) & EMA50 (cyan) overlays */
+  const drawSmoothLine=(arr,color,lw)=>{
+    ctx.strokeStyle=color; ctx.lineWidth=lw; ctx.beginPath(); let st0=false;
+    for(let i=start;i<end;i++){
+      if(arr[i]==null) continue;
+      const xx=x(i), yy=y(arr[i]);
+      st0?ctx.lineTo(xx,yy):(ctx.moveTo(xx,yy),st0=true);
+    }
+    ctx.stroke(); ctx.lineWidth=1;
+  };
+  drawSmoothLine(ema20Arr,"#e8c840",1.3);  // EMA20 yellow
+  drawSmoothLine(ema50Arr,"#00c8d0",1.3);  // EMA50 cyan
+  /* EMA20/50 labels */
+  if(ema20Arr[end-1]!=null){
+    ctx.fillStyle="#e8c840"; ctx.textAlign="left"; ctx.textBaseline="middle"; ctx.font=fam9;
+    ctx.fillText("EMA20", Math.min(plotW-82, x(end-1)+6), y(ema20Arr[end-1])-1);
+  }
+  if(ema50Arr[end-1]!=null){
+    ctx.fillStyle="#00c8d0"; ctx.textAlign="left"; ctx.textBaseline="middle"; ctx.font=fam9;
+    ctx.fillText("EMA50", Math.min(plotW-82, x(end-1)+6), y(ema50Arr[end-1])-1);
+  }
 
   /* EMA 리본 / VWAP / 슈퍼트렌드 */
   const drawLineP=(arr,color,w,dash)=>{
@@ -2813,7 +2857,9 @@ function drawChart(){
       }
       // OHLC readout
       const pct=((c.c-c.o)/c.o*100);
-      const em=emaArr&&emaArr[idx]!=null?`  EMA100 ${fmtPrice(emaArr[idx])}`:"";
+      const emaInfo=(ema20Arr[idx]!=null?`  EMA20 ${fmtPrice(ema20Arr[idx])}`:"")
+                   +(ema50Arr[idx]!=null?`  EMA50 ${fmtPrice(ema50Arr[idx])}`:"");
+      const em=(emaArr&&emaArr[idx]!=null?`  EMA100 ${fmtPrice(emaArr[idx])}`:"")+emaInfo;
       const bb=(bbArr&&bbArr.up[idx]!=null?`  BB ${fmtPrice(bbArr.lo[idx])}/${fmtPrice(bbArr.mid[idx])}/${fmtPrice(bbArr.up[idx])}`:"")
               +(rsiArr&&rsiArr[idx]!=null?`  RSI ${rsiArr[idx].toFixed(1)}`:"");
       $("ohlc").innerHTML =
