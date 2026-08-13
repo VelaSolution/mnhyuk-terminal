@@ -592,7 +592,7 @@
         <div id="chartwrap">
           <canvas id="chart"></canvas>
           <div id="chartmsg">데이터 로드 중…</div>
-          <iframe id="tvframe" style="display:none;position:absolute;inset:0;width:100%;height:100%;border:0;z-index:3;background:#0a0a0a" allowfullscreen></iframe>
+          <div id="tv-container" style="display:none;position:absolute;inset:0;width:100%;height:100%;z-index:3;background:#050505"></div>
           <div id="quad"></div>
           <div id="btov">
             <div id="btov-head"><b id="btov-title">오버레이</b><span id="btov-x">✕ 닫기</span></div>
@@ -743,6 +743,7 @@
   <div id="notif-area"></div>
 </div>
 
+<script src="https://s3.tradingview.com/tv.js"></script>
 <script>
 "use strict";
 
@@ -7314,15 +7315,39 @@ _booted = true;
       drawChart();
     };
   });
-  /* TradingView 차트 전환 */
-  const tvSrc=()=>{
-    const iv={"15M":"15","1H":"60","4H":"240","1D":"D"}[S.tf];
-    return `https://www.tradingview.com/widgetembed/?symbol=BYBIT%3A${pair(S.sym)}.P&interval=${iv}&theme=dark&style=1&locale=kr&withdateranges=1&hide_side_toolbar=0&allow_symbol_change=1&saveimage=0`;
-  };
+  /* TradingView Advanced Chart 전환 */
+  let tvWidget=null;
+  const tvInterval=()=>({"15M":"15","1H":"60","4H":"240","1D":"D"}[S.tf]||"60");
   window.__applyTv=()=>{
-    const f=$("tvframe");
-    if(S.tvMode){ f.src=tvSrc(); f.style.display="block"; $("tvbtn").classList.remove("off"); $("tvbtn").style.color="var(--amber)"; }
-    else { f.style.display="none"; f.src="about:blank"; $("tvbtn").style.color=""; }
+    const c=$("tv-container");
+    if(S.tvMode){
+      c.style.display="block";
+      $("tvbtn").classList.remove("off"); $("tvbtn").style.color="var(--amber)";
+      /* destroy previous widget if symbol/tf changed */
+      if(tvWidget){ try{ tvWidget.remove(); }catch(e){} tvWidget=null; c.innerHTML=""; }
+      if(typeof TradingView!=="undefined"){
+        tvWidget=new TradingView.widget({
+          container_id:"tv-container",
+          symbol:"BINANCE:"+pair(S.sym)+".P",
+          interval:tvInterval(),
+          theme:"dark",
+          style:"1",
+          locale:"kr",
+          toolbar_bg:"#050505",
+          hide_side_toolbar:false,
+          allow_symbol_change:true,
+          save_image:false,
+          autosize:true,
+          backgroundColor:"#050505",
+          gridColor:"#161616",
+          withdateranges:true,
+        });
+      }
+    } else {
+      c.style.display="none";
+      if(tvWidget){ try{ tvWidget.remove(); }catch(e){} tvWidget=null; c.innerHTML=""; }
+      $("tvbtn").style.color="";
+    }
   };
   $("tvbtn").onclick=()=>{ S.tvMode=!S.tvMode; window.__applyTv(); };
   document.querySelectorAll("[data-qtab]").forEach(el=>el.onclick=()=>{
