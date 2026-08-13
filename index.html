@@ -2159,16 +2159,16 @@ function sigChartOverlay(G){
 
 // ── BILLION AI 차트 오버레이 — 시그널 레벨 + 근거 표시 ──
 function billionChartOverlay(G){
-  if(!billionSignal || !billionSignal.team) return;
+  if(!aiSignal || !aiSignal.team) return;
   const {ctx, x, y, start, end, xw, plotW, plotH} = G;
   const W = plotW || 600;
   const H = plotH || 400;
 
   // CEO/HEAD 텍스트에서 가격 파싱
-  const ceo = billionSignal.team.find(m => m.tier==='ceo' || m.name?.startsWith('CEO'));
-  const head = billionSignal.team.find(m => m.tier==='head' || m.name?.startsWith('HEAD'));
+  const ceo = aiSignal.team.find(m => m.tier==='ceo' || m.name?.startsWith('CEO'));
+  const head = aiSignal.team.find(m => m.tier==='head' || m.name?.startsWith('HEAD'));
   const txt = ceo?.fullText || head?.fullText || '';
-  const decision = billionSignal.decision || 'HOLD';
+  const decision = aiSignal.decision || 'HOLD';
 
   const parse = (rx) => { const m=txt.match(rx); return m ? parseFloat(m[1].replace(/,/g,'')) : null; };
   const entry = parse(/진입가[:\s]*\$?([\d,]+)/);
@@ -2263,7 +2263,7 @@ function billionChartOverlay(G){
   }
 
   // 분석원 핵심 근거를 차트 우측 상단에 표시
-  const analysts = billionSignal.team.filter(m => m.tier === 'analyst');
+  const analysts = aiSignal.team.filter(m => m.tier === 'analyst');
   if(analysts.length > 0){
     const reasonY = 16;
     ctx.font = "9px " + getComputedStyle(document.body).fontFamily;
