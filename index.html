@@ -72,7 +72,7 @@
   /* ── Main grid ───────────────────────────────── */
   #main{
     flex:1 1 auto; display:grid; min-height:0;
-    grid-template-columns:280px minmax(0,1fr) 310px 258px; gap:1px; background:var(--border2); padding:1px;
+    grid-template-columns:240px minmax(0,1fr) 280px 240px; gap:1px; background:var(--border2); padding:1px;
   }
   .col{display:flex; flex-direction:column; gap:1px; min-width:0; min-height:0;}
   .panel{
@@ -281,12 +281,25 @@
   #signals .le-wt .wr .vl{min-width:36px;text-align:right;font-variant-numeric:tabular-nums;}
 
   /* responsive fallback */
-  @media (max-width:1380px){ #col4{display:none;} #main{grid-template-columns:280px minmax(0,1fr) 310px;} }
+  @media (max-width:1380px){ #col4{display:none;} #main{grid-template-columns:240px minmax(0,1fr) 280px;} }
   @media (max-width:1100px){
-    #main{grid-template-columns:240px 1fr; grid-template-rows:1fr 1fr;}
-    #rightcol{grid-column:1 / -1; flex-direction:row;}
-    #rightcol .panel{flex:1;}
+    #rightcol{display:none;} #main{grid-template-columns:240px minmax(0,1fr);}
   }
+  @media (max-width:800px){
+    #leftcol{display:none;} #main{grid-template-columns:1fr;}
+  }
+
+  /* ── Col3 (RIGHT) compact Bloomberg density ──── */
+  #rightcol>.panel{flex:0 0 auto !important; max-height:none;}
+  #rightcol{overflow-y:auto;}
+  #rightcol .ptitle{padding:3px 6px; font-size:10px;}
+  #rightcol .pbody{font-size:10px;}
+  #rightcol #papertrading .pt-row{padding:2px 6px;}
+  #rightcol #papertrading .pt-cell{padding:3px 4px;}
+  #rightcol #papertrading .pt-cell small{font-size:7px;}
+  #rightcol #ecocalendar .eco-ev{padding:2px 6px; font-size:9px;}
+  #rightcol #fundingheat .fh-row{padding:2px 6px; font-size:9px;}
+  #rightcol #realportfolio .rp-row{padding:2px 6px; font-size:9px;}
 
 /* ── Auth Gate ─────────────────────────────── */
 #auth-gate{
@@ -651,37 +664,53 @@
       </div>
     </div>
 
-    <!-- RIGHT -->
+    <!-- RIGHT: Bloomberg-style stacked panels -->
     <div class="col" id="rightcol">
-      <div class="panel" style="flex:1.4;">
+      <div class="panel">
+        <div class="ptitle">PAPER TRADING <small>가상매매</small><span class="age" id="age-paper"></span></div>
+        <div class="pbody" id="papertrading"><div style="padding:6px;color:var(--ink3)">데이터 로딩 중…</div></div>
+      </div>
+      <div class="panel">
         <div class="ptitle">LEARN ENGINE <small>학습형 AI</small>
           <span class="ntab on" data-sigtab="live">실시간</span>
           <span class="ntab" data-sigtab="hist">학습기록</span>
           <span class="ntab" data-sigtab="wt">가중치</span>
           <span class="age" id="age-sig"></span>
         </div>
-        <div class="pbody" id="signals"><div style="padding:8px;color:var(--ink3)">엔진 초기화 중…</div></div>
+        <div class="pbody" id="signals"><div style="padding:6px;color:var(--ink3)">엔진 초기화 중…</div></div>
       </div>
-      <div class="panel" style="flex:0 0 auto; max-height:120px;">
-        <div class="ptitle">POSITION SIZER <small>레버리지 계산</small></div>
-        <div class="pbody" id="psizer" style="padding:6px 8px;">
-          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; font-size:10px; margin-bottom:4px;">
-            <div><span style="color:var(--ink3)">자본</span><br><input id="ps-cap" value="10000" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:2px 4px;text-align:right;"></div>
-            <div><span style="color:var(--ink3)">리스크%</span><br><input id="ps-risk" value="1" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:2px 4px;text-align:right;"></div>
-            <div><span style="color:var(--ink3)">레버리지</span><br><input id="ps-lev" value="20" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:11px;padding:2px 4px;text-align:right;"></div>
-          </div>
-          <div id="ps-result" style="font-size:10px; color:var(--ink2); line-height:1.5;">신호 선택 시 자동 계산</div>
-        </div>
-      </div>
-      <div class="panel" style="flex:0 0 auto; max-height:140px;">
-        <div class="ptitle">TRADING FLOOR <small>13-agent 엔진</small>
+      <div class="panel">
+        <div class="ptitle">TRADING FLOOR <small>13-agent</small>
           <span class="age" id="age-tt"></span>
         </div>
-        <div class="pbody" id="tt-panel" style="padding:6px 8px; font-size:10px; line-height:1.6;">
+        <div class="pbody" id="tt-panel" style="padding:4px 6px; font-size:10px; line-height:1.5;">
           <div style="color:var(--ink3)">연결 대기 중…</div>
         </div>
       </div>
-      <div class="panel" style="flex:1;">
+      <div class="panel">
+        <div class="ptitle">ECONOMIC CALENDAR <small>매크로</small><span class="age" id="age-ecal"></span></div>
+        <div class="pbody" id="ecocalendar"><div style="padding:6px;color:var(--ink3)">로드 중…</div></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle">FUNDING HEATMAP <small>Top 5</small><span class="age" id="age-fheat"></span></div>
+        <div class="pbody" id="fundingheat"><div style="padding:6px;color:var(--ink3)">로드 중…</div></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle">PORTFOLIO <small>실계좌</small><span class="age" id="age-rport"></span></div>
+        <div class="pbody" id="realportfolio"><div style="padding:6px;color:var(--ink3)">Investment 연결 중…</div></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle">POSITION SIZER <small>레버리지</small></div>
+        <div class="pbody" id="psizer" style="padding:4px 6px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px; font-size:9px; margin-bottom:3px;">
+            <div><span style="color:var(--ink3)">자본</span><br><input id="ps-cap" value="10000" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:2px 3px;text-align:right;"></div>
+            <div><span style="color:var(--ink3)">리스크%</span><br><input id="ps-risk" value="1" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:2px 3px;text-align:right;"></div>
+            <div><span style="color:var(--ink3)">레버리지</span><br><input id="ps-lev" value="20" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:2px 3px;text-align:right;"></div>
+          </div>
+          <div id="ps-result" style="font-size:9px; color:var(--ink2); line-height:1.4;">신호 선택 시 자동 계산</div>
+        </div>
+      </div>
+      <div class="panel" style="flex:1 1 auto !important;">
         <div class="ptitle">NEWS WIRE
           <span class="ntab on" data-ntab="all">전체</span>
           <span class="ntab" data-ntab="sym" id="ntab-sym">SOL</span>
@@ -689,26 +718,6 @@
           <span class="ntab" data-ntab="kr" id="ntab-kr" style="opacity:.45" title="Vercel 배포 시 활성화">한국</span>
           <span class="age" id="age-news"></span></div>
         <div class="pbody" id="news"><div class="item" style="color:var(--ink3)">로드 중…</div></div>
-      </div>
-    </div>
-
-    <!-- COL3.5: 추가 패널 (ECONOMIC / PAPER / FUNDING / PORTFOLIO) -->
-    <div class="col" id="col3b" style="display:none;">
-      <div class="panel" style="flex:1;">
-        <div class="ptitle">ECONOMIC CALENDAR <small>매크로</small><span class="age" id="age-ecal"></span></div>
-        <div class="pbody" id="ecocalendar"><div style="padding:8px;color:var(--ink3)">로드 중…</div></div>
-      </div>
-      <div class="panel" style="flex:1;">
-        <div class="ptitle">PAPER TRADING <small>가상매매</small><span class="age" id="age-paper"></span></div>
-        <div class="pbody" id="papertrading"><div style="padding:8px;color:var(--ink3)">데이터 로딩 중…</div></div>
-      </div>
-      <div class="panel" style="flex:0 0 auto;max-height:200px;">
-        <div class="ptitle">FUNDING HEATMAP <small>Top 5</small><span class="age" id="age-fheat"></span></div>
-        <div class="pbody" id="fundingheat"><div style="padding:8px;color:var(--ink3)">로드 중…</div></div>
-      </div>
-      <div class="panel" style="flex:0 0 auto;max-height:180px;">
-        <div class="ptitle">PORTFOLIO <small>실계좌</small><span class="age" id="age-rport"></span></div>
-        <div class="pbody" id="realportfolio"><div style="padding:8px;color:var(--ink3)">Investment 연결 중…</div></div>
       </div>
     </div>
 
@@ -5153,7 +5162,6 @@ const CMD_LIST=[
   {c:"FUNDMAP", d:"Top 코인 펀딩레이트 히트맵"},
   {c:"ALERT LIST", d:"현재 알림 목록"},
   {c:"ALERT SET BTC 65000", d:"가격 알림 설정 (심볼 목표가)"},
-  {c:"PANELS", d:"추가 패널 표시/숨기기 토글"},
   {c:"INVEST", d:"Investment PnL 분석 (오늘/주간/월간)"},
   {c:"ISTATS", d:"Investment 트레이딩 통계"},
   {c:"ICALC", d:"포지션 계산기 (진입/레버리지/증거금/방향)"},
@@ -5393,7 +5401,6 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="IWATCH"){ investWatchOverlay(); e.target.value=""; return; }
   if(raw==="IPORT"){ investPortOverlay(); e.target.value=""; return; }
   if(raw==="ICAL"){ investCalendarOverlay(); e.target.value=""; return; }
-  if(raw==="PANELS"){ toggleExtraPanels(); e.target.value=""; return; }
   const dm=raw.match(/^DES(?:\s+([A-Z0-9]{2,10}))?$/);
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
   const m=raw.match(/^([A-Z0-9]{2,10})\s*(15M|1H|4H|1D)?$/);
@@ -9291,32 +9298,6 @@ function updateStatusStrip(){
   }catch(e){}
 }
 
-/* ── 10. EXTRA PANELS TOGGLE ── */
-let _extraPanelsOn=false;
-function toggleExtraPanels(){
-  _extraPanelsOn=!_extraPanelsOn;
-  const col3b=$("col3b");
-  if(col3b){
-    col3b.style.display=_extraPanelsOn?'flex':'none';
-  }
-  // Adjust grid columns
-  const main=$("main");
-  if(main){
-    if(_extraPanelsOn){
-      main.style.gridTemplateColumns='280px minmax(0,1fr) 310px 220px 258px';
-    } else {
-      main.style.gridTemplateColumns='';
-    }
-  }
-  if(_extraPanelsOn){
-    // Load panel data
-    renderEconomicCalendar();
-    loadPaperTrading();
-    loadFundingHeatmap();
-    loadRealPortfolio();
-  }
-}
-
 /* ── BOOT INTEGRATION ── */
 const _origBoot=boot;
 // We can't override boot since it checks _booted, so we hook post-boot via a deferred call
@@ -9329,19 +9310,17 @@ function postBootUpgrade(){
   setTimeout(loadFngHistory, 5000);
   setInterval(loadFngHistory, 600000);
 
-  // Extra panel loaders — only fetch when panels are visible
-  function loadExtraPanelsIfVisible(){
-    if(!_extraPanelsOn) return;
+  // All panels always visible — load immediately
+  setTimeout(()=>{
     renderEconomicCalendar();
     loadPaperTrading();
     loadFundingHeatmap();
     loadRealPortfolio();
-  }
-  setTimeout(loadExtraPanelsIfVisible, 2000);
-  setInterval(()=>{ if(_extraPanelsOn) renderEconomicCalendar(); }, 60000);
-  setInterval(()=>{ if(_extraPanelsOn) loadPaperTrading(); }, 15000);
-  setInterval(()=>{ if(_extraPanelsOn) loadFundingHeatmap(); }, 300000);
-  setInterval(()=>{ if(_extraPanelsOn) loadRealPortfolio(); }, 60000);
+  }, 2000);
+  setInterval(()=>{ renderEconomicCalendar(); }, 60000);
+  setInterval(()=>{ loadPaperTrading(); }, 15000);
+  setInterval(()=>{ loadFundingHeatmap(); }, 300000);
+  setInterval(()=>{ loadRealPortfolio(); }, 60000);
 
   // Funding alerts
   setInterval(checkFundingAlerts, 30000);
@@ -9355,11 +9334,6 @@ function postBootUpgrade(){
       updateAIBadge(aiSignal.decision, aiSignal.symbol||S.sym, aiSignal.confidence||0);
     }
   }, 10000);
-
-  // Auto-show extra panels on wide screens
-  if(window.innerWidth > 1600){
-    toggleExtraPanels();
-  }
 }
 // Hook into boot by watching for _booted
 const _bootWatcher=setInterval(()=>{
