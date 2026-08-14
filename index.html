@@ -536,6 +536,98 @@
   /* ── FNG sparkline ─────────────────────────── */
   #fng-spark{display:flex;align-items:flex-end;gap:1px;height:16px;margin-top:4px;}
   #fng-spark .fng-bar{width:100%;min-width:4px;transition:height .3s;}
+
+  /* ── AI Signal Overlay Badge (on chart) ───── */
+  #ai-signal-overlay{position:absolute;top:8px;left:8px;z-index:6;display:none;pointer-events:auto;}
+  #ai-signal-overlay.on{display:flex;flex-direction:column;gap:4px;}
+  .ai-sig-badge{
+    display:flex;align-items:center;gap:6px;padding:5px 10px;
+    background:rgba(8,8,8,.88);border:1px solid var(--border);
+    backdrop-filter:blur(4px);cursor:pointer;user-select:none;
+    transition:border-color .3s;
+  }
+  .ai-sig-badge:hover{border-color:var(--amber);}
+  .ai-sig-badge.buy{border-left:3px solid var(--up);}
+  .ai-sig-badge.sell{border-left:3px solid var(--down);}
+  .ai-sig-badge.hold{border-left:3px solid var(--ink3);}
+  .ai-sig-badge .sig-action{font-weight:700;font-size:13px;letter-spacing:1px;min-width:32px;}
+  .ai-sig-badge .sig-conf{flex:1;}
+  .ai-sig-badge .sig-conf-bar{height:4px;background:#222;border-radius:2px;overflow:hidden;width:80px;}
+  .ai-sig-badge .sig-conf-fill{height:100%;border-radius:2px;transition:width .5s;}
+  .ai-sig-badge .sig-conf-text{font-size:9px;color:var(--ink3);margin-top:1px;}
+  .ai-sig-badge .sig-time{font-size:9px;color:var(--ink3);white-space:nowrap;}
+
+  /* AI detail popup */
+  #ai-detail-popup{
+    position:absolute;top:60px;left:8px;z-index:7;width:320px;
+    background:rgba(8,8,8,.96);border:1px solid var(--amber-dim);
+    display:none;flex-direction:column;
+    box-shadow:0 6px 24px rgba(0,0,0,.8);
+  }
+  #ai-detail-popup.on{display:flex;}
+  #ai-detail-popup .adp-head{
+    display:flex;justify-content:space-between;padding:6px 10px;
+    background:#181205;color:var(--amber);font-weight:700;font-size:11px;
+    border-bottom:1px solid var(--border2);
+  }
+  #ai-detail-popup .adp-close{cursor:pointer;color:var(--ink2);}
+  #ai-detail-popup .adp-close:hover{color:var(--ink);}
+  #ai-detail-popup .adp-body{padding:8px 10px;font-size:10px;color:var(--ink2);line-height:1.6;max-height:300px;overflow-y:auto;}
+
+  /* ── Mini Multi-Timeframe Charts ──────────── */
+  #mtf-mini-panel{
+    position:absolute;top:8px;right:60px;z-index:5;display:none;
+    flex-direction:column;gap:2px;pointer-events:auto;
+  }
+  #mtf-mini-panel.on{display:flex;}
+  .mtf-mini{
+    background:rgba(8,8,8,.9);border:1px solid var(--border);width:160px;height:80px;
+    backdrop-filter:blur(4px);cursor:pointer;position:relative;overflow:hidden;
+  }
+  .mtf-mini:hover{border-color:var(--amber-dim);}
+  .mtf-mini .mtf-label{position:absolute;top:2px;left:4px;font-size:9px;color:var(--amber);z-index:1;letter-spacing:1px;}
+  .mtf-mini .mtf-price{position:absolute;top:2px;right:4px;font-size:9px;z-index:1;font-variant-numeric:tabular-nums;}
+  .mtf-mini canvas{width:100%;height:100%;display:block;}
+
+  /* ── Alert Center (right feed) ────────────── */
+  #alert-center{
+    position:fixed;bottom:28px;right:10px;width:260px;z-index:50;
+    display:flex;flex-direction:column;gap:0;pointer-events:none;
+    max-height:300px;overflow:hidden;
+  }
+  .ac-item{
+    background:rgba(10,10,10,.96);border:1px solid var(--border);
+    border-bottom:none;padding:6px 8px;font-size:10px;color:var(--ink2);
+    pointer-events:auto;animation:notifIn .3s ease-out;line-height:1.4;
+    display:flex;flex-direction:column;gap:2px;
+  }
+  .ac-item:last-child{border-bottom:1px solid var(--border);}
+  .ac-item .ac-head{display:flex;justify-content:space-between;align-items:center;}
+  .ac-item .ac-type{font-weight:700;font-size:9px;letter-spacing:.5px;}
+  .ac-item .ac-time{font-size:8px;color:var(--ink3);}
+  .ac-item .ac-body{color:var(--ink);font-size:10px;}
+  .ac-item.ac-buy{border-left:2px solid var(--up);}
+  .ac-item.ac-sell{border-left:2px solid var(--down);}
+  .ac-item.ac-info{border-left:2px solid var(--amber);}
+  .ac-item.ac-close{border-left:2px solid var(--cyan);}
+  @keyframes acSlide{0%{opacity:0;transform:translateY(10px);}100%{opacity:1;transform:translateY(0);}}
+
+  /* ── One-Click Analysis Button ─────────────── */
+  #ai-analyze-btn{
+    padding:3px 10px;font-size:10px;font-weight:700;letter-spacing:.5px;
+    background:transparent;border:1px solid var(--amber-dim);color:var(--amber);
+    cursor:pointer;font-family:var(--mono);white-space:nowrap;
+    transition:all .2s;
+  }
+  #ai-analyze-btn:hover{background:var(--amber);color:#000;}
+  #ai-analyze-btn:disabled{opacity:.4;cursor:default;background:transparent;color:var(--amber);}
+  #ai-analyze-btn.loading{animation:pulse 1s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+  /* ── MTF toggle button ─────────────────────── */
+  #mtf-toggle{cursor:pointer;padding:1px 6px;border:1px solid var(--border);color:var(--ink2);font-size:10px;letter-spacing:.5px;}
+  #mtf-toggle:hover{color:var(--ink);border-color:var(--amber-dim);}
+  #mtf-toggle.on{color:var(--amber);border-color:var(--amber-dim);}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -691,12 +783,36 @@
             <span class="lgd" id="indbtn" style="border-color:var(--amber-dim);color:var(--amber)">지표 ▾</span>
             <span class="lgd" id="tvbtn" title="TradingView 차트로 전환 (모든 트뷰 지표 사용 가능)">TV</span>
             <span class="lgd" id="quadbtn" title="2×2 멀티차트 (관심종목 상위 4개)">◱4</span>
+            <span id="mtf-toggle" onclick="toggleMtfMiniPanel()" title="멀티 타임프레임 미니차트">MTF</span>
+            <button id="ai-analyze-btn" onclick="oneClickAnalyze()" title="현재 종목 AI 분석 실행">AI 분석</button>
           </span>
         </div>
         <div id="chartwrap">
           <canvas id="chart"></canvas>
           <div id="chartmsg">데이터 로드 중…</div>
           <div id="tv-container" style="display:none;position:absolute;inset:0;width:100%;height:100%;z-index:3;background:#050505"></div>
+          <!-- AI Signal Overlay Badge -->
+          <div id="ai-signal-overlay">
+            <div class="ai-sig-badge hold" id="ai-sig-main" onclick="toggleAIDetailPopup()">
+              <span class="sig-action" id="ai-sig-action">HOLD</span>
+              <span class="sig-conf">
+                <div class="sig-conf-bar"><div class="sig-conf-fill" id="ai-sig-confbar" style="width:0%;background:var(--ink3)"></div></div>
+                <div class="sig-conf-text" id="ai-sig-conftext">-- %</div>
+              </span>
+              <span class="sig-time" id="ai-sig-time">--:--</span>
+            </div>
+          </div>
+          <!-- AI Detail Popup -->
+          <div id="ai-detail-popup">
+            <div class="adp-head"><span>AI SIGNAL DETAIL</span><span class="adp-close" onclick="$('ai-detail-popup').classList.remove('on')">x 닫기</span></div>
+            <div class="adp-body" id="ai-detail-body">분석 데이터 없음</div>
+          </div>
+          <!-- Mini Multi-Timeframe Charts -->
+          <div id="mtf-mini-panel">
+            <div class="mtf-mini" data-mtf-tf="15M"><span class="mtf-label">15M</span><span class="mtf-price" id="mtf-p-15m">--</span><canvas id="mtf-cv-15m"></canvas></div>
+            <div class="mtf-mini" data-mtf-tf="1H"><span class="mtf-label">1H</span><span class="mtf-price" id="mtf-p-1h">--</span><canvas id="mtf-cv-1h"></canvas></div>
+            <div class="mtf-mini" data-mtf-tf="4H"><span class="mtf-label">4H</span><span class="mtf-price" id="mtf-p-4h">--</span><canvas id="mtf-cv-4h"></canvas></div>
+          </div>
           <div id="quad"></div>
           <div id="btov">
             <div id="btov-head"><b id="btov-title">오버레이</b><span id="btov-x">✕ 닫기</span></div>
@@ -857,6 +973,7 @@
 
   <div id="tape"><div id="tapetrack">시세 로드 중…</div></div>
   <div id="notif-area"></div>
+  <div id="alert-center"></div>
 </div>
 
 <script src="https://s3.tradingview.com/tv.js"></script>
@@ -10350,6 +10467,589 @@ document.getElementById("cmd").addEventListener("keydown", function(e) {
   window.addEventListener('resize',()=>{
     if(isMob()){renderMobQuotes(); renderMobPanel();}
   });
+})();
+
+// ══════════════════════════════════════════════════════════════
+// ENHANCED FEATURES — AI Signal Overlay, Paper Position Markers,
+// Multi-TF Mini Charts, Alert Center, One-Click Analysis
+// ══════════════════════════════════════════════════════════════
+(function initEnhancedFeatures() {
+  const TT = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:8000' : 'https://trading-team.mot-era.com';
+
+  // ═══ 1. AI SIGNAL OVERLAY — 차트 위 반투명 뱃지 ═══
+  const AI_OVL = { data: null, ts: 0 };
+
+  async function fetchAISignalOverlay() {
+    const sym = (typeof S !== 'undefined' && S.sym) ? S.sym : '';
+    if (!sym) return;
+    try {
+      const [sigRes, paperRes, decRes] = await Promise.allSettled([
+        fetch(`${TT}/api/signal?symbol=${sym}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+        fetch(`${TT}/api/paper/status`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+        fetch(`${TT}/api/paper/signal/${sym}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+      ]);
+      const signal = sigRes.status === 'fulfilled' ? sigRes.value : null;
+      const paper = paperRes.status === 'fulfilled' ? paperRes.value : null;
+      const decision = decRes.status === 'fulfilled' ? decRes.value : null;
+      AI_OVL.data = { signal, paper, decision, sym, ts: Date.now() };
+      AI_OVL.ts = Date.now();
+      renderAISignalOverlay();
+    } catch {}
+  }
+
+  function renderAISignalOverlay() {
+    const ovl = document.getElementById('ai-signal-overlay');
+    if (!ovl || !AI_OVL.data) return;
+
+    const d = AI_OVL.data;
+    let action = 'HOLD', confidence = 0, reasons = [], timeStr = '--:--';
+
+    // Extract from decision (paper/signal)
+    const dec = d.decision?.latest || d.paper?.lastDecision;
+    const sig = d.signal;
+
+    if (dec && dec.action && dec.action !== 'HOLD') {
+      action = dec.action;
+      confidence = dec.confidence || 0;
+      if (dec.verdict) reasons.push(dec.verdict);
+      if (dec.reasons) reasons = reasons.concat(Array.isArray(dec.reasons) ? dec.reasons : [dec.reasons]);
+      if (dec.timestamp) timeStr = new Date(dec.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+      else if (dec.time) timeStr = dec.time;
+    } else if (sig && sig.direction && sig.direction !== 'NEUTRAL') {
+      action = sig.direction === 'LONG' ? 'BUY' : sig.direction === 'SHORT' ? 'SELL' : 'HOLD';
+      confidence = Math.abs(sig.score || sig.confidence || 0);
+      if (sig.reason) reasons.push(sig.reason);
+      if (sig.reasons) reasons = reasons.concat(Array.isArray(sig.reasons) ? sig.reasons : [sig.reasons]);
+      timeStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Update badge
+    const badge = document.getElementById('ai-sig-main');
+    badge.className = 'ai-sig-badge ' + (action === 'BUY' ? 'buy' : action === 'SELL' ? 'sell' : 'hold');
+    document.getElementById('ai-sig-action').textContent = action;
+    document.getElementById('ai-sig-action').style.color =
+      action === 'BUY' ? 'var(--up-text)' : action === 'SELL' ? 'var(--down-text)' : 'var(--ink3)';
+
+    const confBar = document.getElementById('ai-sig-confbar');
+    confBar.style.width = Math.min(100, confidence) + '%';
+    confBar.style.background = action === 'BUY' ? 'var(--up)' : action === 'SELL' ? 'var(--down)' : 'var(--ink3)';
+    document.getElementById('ai-sig-conftext').textContent = confidence + '%';
+    document.getElementById('ai-sig-time').textContent = timeStr;
+
+    ovl.classList.add('on');
+
+    // Store reasons for popup
+    AI_OVL._reasons = reasons;
+    AI_OVL._action = action;
+    AI_OVL._confidence = confidence;
+  }
+
+  window.toggleAIDetailPopup = function() {
+    const popup = document.getElementById('ai-detail-popup');
+    if (!popup) return;
+    if (popup.classList.contains('on')) {
+      popup.classList.remove('on');
+      return;
+    }
+    const d = AI_OVL.data;
+    const body = document.getElementById('ai-detail-body');
+    if (!d) { body.innerHTML = '<div style="color:var(--ink3)">분석 데이터 없음</div>'; popup.classList.add('on'); return; }
+
+    let html = '';
+    const action = AI_OVL._action || 'HOLD';
+    const conf = AI_OVL._confidence || 0;
+    const actCol = action === 'BUY' ? 'var(--up-text)' : action === 'SELL' ? 'var(--down-text)' : 'var(--ink3)';
+
+    html += `<div style="display:flex;justify-content:space-between;margin-bottom:6px">`;
+    html += `<span style="font-size:14px;font-weight:700;color:${actCol}">${action} ${d.sym || ''}</span>`;
+    html += `<span style="font-size:12px;font-weight:700">${conf}%</span></div>`;
+
+    // Confidence bar
+    html += `<div style="height:6px;background:#222;border-radius:3px;margin-bottom:8px;overflow:hidden">`;
+    html += `<div style="height:100%;width:${conf}%;background:${actCol};border-radius:3px;transition:width .5s"></div></div>`;
+
+    // Reasons
+    const reasons = AI_OVL._reasons || [];
+    if (reasons.length) {
+      html += '<div style="color:var(--ink3);font-size:9px;letter-spacing:1px;margin-bottom:4px">REASONING</div>';
+      reasons.forEach(r => {
+        if (r && typeof r === 'string') html += `<div style="padding:2px 0;border-bottom:1px dashed #1a1a1a">- ${r}</div>`;
+      });
+    }
+
+    // Paper position for this symbol
+    const dec = d.decision?.latest || d.paper?.lastDecision;
+    if (dec) {
+      html += '<div style="color:var(--ink3);font-size:9px;letter-spacing:1px;margin:6px 0 4px">TRADE LEVELS</div>';
+      if (dec.entry) html += `<div style="display:flex;justify-content:space-between"><span style="color:var(--cyan-text)">ENTRY</span><span>${typeof fmtPrice==='function'?fmtPrice(dec.entry):dec.entry}</span></div>`;
+      if (dec.sl) html += `<div style="display:flex;justify-content:space-between"><span style="color:var(--down-text)">SL</span><span>${typeof fmtPrice==='function'?fmtPrice(dec.sl):dec.sl}</span></div>`;
+      if (dec.tp) html += `<div style="display:flex;justify-content:space-between"><span style="color:var(--up-text)">TP</span><span>${typeof fmtPrice==='function'?fmtPrice(dec.tp):dec.tp}</span></div>`;
+      if (dec.grade) html += `<div style="display:flex;justify-content:space-between;margin-top:4px"><span style="color:var(--ink3)">GRADE</span><span style="color:var(--amber);font-weight:700">${dec.grade}</span></div>`;
+    }
+
+    // Team analysis summary
+    if (d.signal && d.signal.team && Array.isArray(d.signal.team)) {
+      html += '<div style="color:var(--ink3);font-size:9px;letter-spacing:1px;margin:6px 0 4px">TEAM VOTES</div>';
+      d.signal.team.forEach(m => {
+        const voteCol = m.vote === 'BUY' || m.vote === 'LONG' ? 'var(--up-text)' : m.vote === 'SELL' || m.vote === 'SHORT' ? 'var(--down-text)' : 'var(--ink2)';
+        html += `<div style="display:flex;justify-content:space-between;padding:1px 0;border-bottom:1px dashed #111"><span style="color:var(--ink2)">${m.name||m.role||'Agent'}</span><span style="color:${voteCol};font-weight:600">${m.vote||m.direction||'—'}</span></div>`;
+      });
+    }
+
+    body.innerHTML = html;
+    popup.classList.add('on');
+  };
+
+  // ═══ 2. PAPER TRADER POSITION MARKERS — 차트 위 수평선 ═══
+  const PT_POS_CACHE = { data: null, ts: 0 };
+
+  async function fetchPaperPositions() {
+    try {
+      if (Date.now() - PT_POS_CACHE.ts < 10000 && PT_POS_CACHE.data) return PT_POS_CACHE.data;
+      const res = await fetch(`${TT}/api/paper/positions`, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) return null;
+      const data = await res.json();
+      PT_POS_CACHE.data = data;
+      PT_POS_CACHE.ts = Date.now();
+      return data;
+    } catch { return null; }
+  }
+
+  // Hook into drawChart to add position markers
+  const _origDrawChart = window.drawChart;
+  if (typeof _origDrawChart === 'function') {
+    window.drawChart = function() {
+      _origDrawChart.apply(this, arguments);
+      drawPaperPositionMarkers();
+    };
+  }
+
+  function drawPaperPositionMarkers() {
+    if (!PT_POS_CACHE.data) return;
+    const positions = PT_POS_CACHE.data.positions || [];
+    if (!positions.length) return;
+    const sym = (typeof S !== 'undefined' && S.sym) ? S.sym : '';
+    if (!sym) return;
+
+    // Find position for current symbol
+    const pos = positions.find(p => {
+      const pSym = (p.symbol || '').replace('USDT', '').toUpperCase();
+      return pSym === sym.toUpperCase();
+    });
+    if (!pos) return;
+
+    // Get chart context
+    const cv = document.getElementById('chart');
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    const W = cv.width;
+    const H = cv.height;
+    if (!W || !H) return;
+
+    // Need price range from visible candles
+    if (typeof S === 'undefined' || !S.candles || !S.candles.length) return;
+    const vr = typeof visibleRange === 'function' ? visibleRange() : null;
+    if (!vr) return;
+    const { start, end } = vr;
+    const data = S.candles.slice(start, end);
+    if (!data.length) return;
+
+    let lo = Infinity, hi = -Infinity;
+    data.forEach(c => { lo = Math.min(lo, c.l); hi = Math.max(hi, c.h); });
+    const padY = (hi - lo) * 0.06 || hi * 0.01;
+    lo -= padY; hi += padY;
+
+    const padR = 70; // match CH.padR
+    const padB = 24;
+    // Determine priceH considering sub-panels
+    const showFlags = S.show || {};
+    const subList = [["rsi",.13],["macd",.13],["stoch",.13],["adx",.13],["oi",.12],
+                     ["obv",.11],["mfi",.11],["cci",.11],["willr",.11],["atrp",.11],["cmf",.11],
+                     ["trix",.11],["aroon",.11],["chaikin",.11],["kst",.11],["sqzmom",.13],
+                     ["vol",.13]].filter(k => showFlags[k[0]] || (k[0] === "rsi" && H > 400));
+    const fracSum = subList.reduce((a, z) => a + z[1], 0);
+    const scaleF = fracSum > 0.52 ? 0.52 / fracSum : 1;
+    const axisB = H - padB;
+    let subH = 0;
+    subList.forEach(s => subH += Math.round(axisB * s[1] * scaleF));
+    const priceH = axisB - subH;
+    const plotW = W - padR;
+
+    const yFn = p => priceH * (1 - (p - lo) / (hi - lo)) + 4;
+
+    const drawLevel = (price, color, label, dashPattern) => {
+      if (!price || price < lo || price > hi) return;
+      const yy = yFn(price);
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.setLineDash(dashPattern || [6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, yy + 0.5);
+      ctx.lineTo(plotW, yy + 0.5);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // Label
+      ctx.font = '9px ' + getComputedStyle(document.body).fontFamily;
+      ctx.fillStyle = color;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label + ' ' + (typeof fmtPrice === 'function' ? fmtPrice(price) : price), plotW - 4, yy - 5);
+      // Small arrow on right axis
+      ctx.fillRect(plotW + 1, yy - 5, padR - 2, 10);
+      ctx.fillStyle = '#000';
+      ctx.textAlign = 'left';
+      ctx.fillText((typeof fmtPrice === 'function' ? fmtPrice(price) : price), plotW + 4, yy);
+      ctx.restore();
+    };
+
+    const isLong = pos.direction === 'BUY' || pos.direction === 'LONG' || pos.side === 'LONG' || pos.side === 'BUY';
+    const entryColor = isLong ? '#00cc88' : '#ff5555';
+    const entryLabel = isLong ? 'LONG' : 'SHORT';
+
+    drawLevel(pos.entry || pos.entryPrice, entryColor, entryLabel, [6, 4]);
+    drawLevel(pos.sl || pos.stopLoss, '#ff5555', 'SL', [3, 3]);
+    drawLevel(pos.tp || pos.takeProfit, '#00cc88', 'TP', [3, 3]);
+  }
+
+  // ═══ 3. MULTI-TIMEFRAME MINI CHARTS ═══
+  let mtfMiniVisible = false;
+  const MTF_MINI_CACHE = {};
+  const MTF_TFS = ['15M', '1H', '4H'];
+
+  window.toggleMtfMiniPanel = function() {
+    mtfMiniVisible = !mtfMiniVisible;
+    const panel = document.getElementById('mtf-mini-panel');
+    const toggle = document.getElementById('mtf-toggle');
+    if (panel) panel.classList.toggle('on', mtfMiniVisible);
+    if (toggle) toggle.classList.toggle('on', mtfMiniVisible);
+    if (mtfMiniVisible) loadAllMtfMini();
+  };
+
+  async function loadMtfMiniData(sym, tf) {
+    const key = sym + '_' + tf;
+    if (MTF_MINI_CACHE[key] && Date.now() - MTF_MINI_CACHE[key].ts < 60000) return MTF_MINI_CACHE[key].data;
+    try {
+      const chain = typeof klineChain === 'function' ? klineChain(sym, tf, 80) : [];
+      if (!chain.length) return null;
+      const data = await (typeof firstOk === 'function' ? firstOk(chain) : null);
+      if (data && data.length) {
+        MTF_MINI_CACHE[key] = { data, ts: Date.now() };
+        return data;
+      }
+    } catch {}
+    return null;
+  }
+
+  function drawMtfMiniCanvas(canvasId, priceId, candles, tf) {
+    const cv = document.getElementById(canvasId);
+    const priceEl = document.getElementById(priceId);
+    if (!cv || !candles || !candles.length) return;
+
+    const rect = cv.parentElement.getBoundingClientRect();
+    cv.width = rect.width * (window.devicePixelRatio || 1);
+    cv.height = rect.height * (window.devicePixelRatio || 1);
+    cv.style.width = rect.width + 'px';
+    cv.style.height = rect.height + 'px';
+    const ctx = cv.getContext('2d');
+    ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+    const W = rect.width, H = rect.height;
+
+    // Use last 60 candles
+    const data = candles.slice(-60);
+    let lo = Infinity, hi = -Infinity;
+    data.forEach(c => { lo = Math.min(lo, c.l); hi = Math.max(hi, c.h); });
+    const pad = (hi - lo) * 0.08 || 1;
+    lo -= pad; hi += pad;
+
+    ctx.clearRect(0, 0, W, H);
+    const xw = W / data.length;
+
+    // Draw candles as mini bars
+    data.forEach((c, i) => {
+      const xx = i * xw + xw / 2;
+      const up = c.c >= c.o;
+      ctx.strokeStyle = up ? 'rgba(0,160,140,.6)' : 'rgba(229,72,77,.6)';
+      ctx.lineWidth = 0.5;
+      // Wick
+      const yH = H * (1 - (c.h - lo) / (hi - lo));
+      const yL = H * (1 - (c.l - lo) / (hi - lo));
+      ctx.beginPath();
+      ctx.moveTo(xx, yH);
+      ctx.lineTo(xx, yL);
+      ctx.stroke();
+      // Body
+      const yO = H * (1 - (c.o - lo) / (hi - lo));
+      const yC = H * (1 - (c.c - lo) / (hi - lo));
+      const bw = Math.max(1, xw * 0.6);
+      if (up) {
+        ctx.fillStyle = 'rgba(0,160,140,.3)';
+        ctx.strokeStyle = 'rgba(0,160,140,.8)';
+        ctx.fillRect(xx - bw / 2, Math.min(yO, yC), bw, Math.max(1, Math.abs(yO - yC)));
+        ctx.strokeRect(xx - bw / 2, Math.min(yO, yC), bw, Math.max(1, Math.abs(yO - yC)));
+      } else {
+        ctx.fillStyle = 'rgba(229,72,77,.5)';
+        ctx.fillRect(xx - bw / 2, Math.min(yO, yC), bw, Math.max(1, Math.abs(yO - yC)));
+      }
+    });
+
+    // EMA20 line
+    const closes = data.map(c => c.c);
+    if (closes.length >= 20) {
+      const k = 2 / 21;
+      let e = closes.slice(0, 20).reduce((a, b) => a + b, 0) / 20;
+      ctx.strokeStyle = 'rgba(232,200,64,.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      let started = false;
+      for (let i = 19; i < closes.length; i++) {
+        e = closes[i] * k + e * (1 - k);
+        const xx = i * xw + xw / 2;
+        const yy = H * (1 - (e - lo) / (hi - lo));
+        if (!started) { ctx.moveTo(xx, yy); started = true; }
+        else ctx.lineTo(xx, yy);
+      }
+      ctx.stroke();
+    }
+
+    // Last price
+    const last = data[data.length - 1];
+    if (last && priceEl) {
+      const pct = ((last.c - data[0].o) / data[0].o * 100);
+      priceEl.style.color = pct >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+      priceEl.textContent = (typeof fmtPrice === 'function' ? fmtPrice(last.c) : last.c.toFixed(2));
+    }
+  }
+
+  async function loadAllMtfMini() {
+    if (!mtfMiniVisible) return;
+    const sym = (typeof S !== 'undefined' && S.sym) ? S.sym : 'BTC';
+    for (const tf of MTF_TFS) {
+      const candles = await loadMtfMiniData(sym, tf);
+      if (candles) {
+        const tfLow = tf.toLowerCase().replace('m', 'm').replace('h', 'h');
+        drawMtfMiniCanvas('mtf-cv-' + tfLow, 'mtf-p-' + tfLow, candles, tf);
+      }
+    }
+  }
+
+  // Click mini chart to switch TF
+  document.querySelectorAll('.mtf-mini').forEach(el => {
+    el.addEventListener('click', () => {
+      const tf = el.dataset.mtfTf;
+      if (tf && typeof switchTo === 'function') {
+        switchTo(S.sym, tf);
+      }
+    });
+  });
+
+  // ═══ 4. ALERT CENTER — 실시간 트레이딩 이벤트 피드 ═══
+  const ALERT_FEED = [];
+  const ALERT_MAX = 8;
+  let _lastPaperStatusHash = '';
+
+  function pushAlert(type, title, body) {
+    ALERT_FEED.unshift({ type, title, body, t: Date.now() });
+    if (ALERT_FEED.length > ALERT_MAX) ALERT_FEED.pop();
+    renderAlertCenter();
+  }
+
+  function renderAlertCenter() {
+    const el = document.getElementById('alert-center');
+    if (!el) return;
+    const now = Date.now();
+    // Show alerts from last 30 seconds
+    const visible = ALERT_FEED.filter(a => now - a.t < 30000).slice(0, 5);
+    if (!visible.length) { el.innerHTML = ''; return; }
+    el.innerHTML = visible.map(a => {
+      const ago = Math.round((now - a.t) / 1000);
+      const cls = a.type === 'BUY' || a.type === 'LONG' ? 'ac-buy'
+        : a.type === 'SELL' || a.type === 'SHORT' ? 'ac-sell'
+        : a.type === 'CLOSE' ? 'ac-close' : 'ac-info';
+      return `<div class="ac-item ${cls}" style="animation:acSlide .3s ease-out">
+        <div class="ac-head"><span class="ac-type">${a.title}</span><span class="ac-time">${ago}s</span></div>
+        <div class="ac-body">${a.body}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // Poll paper/status for new events
+  async function pollTradingEvents() {
+    try {
+      const res = await fetch(`${TT}/api/paper/status`, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) return;
+      const data = await res.json();
+
+      // Detect new trades/position changes
+      const hash = JSON.stringify({
+        pos: (data.positions || []).map(p => p.symbol + p.direction),
+        lastTrade: data.recentTrades?.[0]?.symbol,
+        lastAction: data.lastDecision?.action
+      });
+
+      if (_lastPaperStatusHash && hash !== _lastPaperStatusHash) {
+        // Something changed
+        const ld = data.lastDecision;
+        if (ld && ld.action && ld.action !== 'HOLD') {
+          pushAlert(ld.action, `${ld.action} SIGNAL`, `${ld.symbol || '?'} @ ${ld.entry || '?'} (${ld.confidence || 0}%)`);
+        }
+        // Check for new closed trades
+        const lastTrade = data.recentTrades?.[0];
+        if (lastTrade && lastTrade.symbol) {
+          const pnl = lastTrade.pnl || 0;
+          pushAlert('CLOSE', 'TRADE CLOSED', `${lastTrade.symbol} ${pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}%`);
+        }
+      }
+      _lastPaperStatusHash = hash;
+    } catch {}
+  }
+
+  // ═══ 5. ONE-CLICK ANALYSIS — AI 분석 버튼 ═══
+  window.oneClickAnalyze = async function() {
+    const btn = document.getElementById('ai-analyze-btn');
+    if (!btn || btn.disabled) return;
+    const sym = (typeof S !== 'undefined' && S.sym) ? S.sym : '';
+    if (!sym) return;
+
+    btn.disabled = true;
+    btn.textContent = 'ANALYZING...';
+    btn.classList.add('loading');
+
+    // Push alert
+    pushAlert('info', 'AI ANALYSIS', `${sym} 분석 요청 중...`);
+
+    try {
+      // Try Trading Team analyze first
+      const res = await fetch(`${TT}/api/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol: sym }),
+        signal: AbortSignal.timeout(30000)
+      });
+
+      if (!res.ok) throw new Error('API Error');
+      const data = await res.json();
+
+      // Update AI signal overlay with result
+      const action = data.decision || data.action || 'HOLD';
+      const conf = data.confidence || 0;
+      AI_OVL.data = {
+        signal: data,
+        paper: null,
+        decision: { latest: { action, confidence: conf, entry: data.entry, sl: data.sl, tp: data.tp, reasons: data.reasons || [data.summary], grade: data.grade, timestamp: Date.now() } },
+        sym,
+        ts: Date.now()
+      };
+      AI_OVL._reasons = data.reasons || (data.summary ? [data.summary] : []);
+      AI_OVL._action = action;
+      AI_OVL._confidence = conf;
+      renderAISignalOverlay();
+
+      // Update existing AI badge
+      if (typeof updateAIBadge === 'function' && action !== 'HOLD') {
+        updateAIBadge(action, sym, conf);
+      }
+
+      // Push notification
+      pushAlert(action, `AI: ${action} ${sym}`, `확신도 ${conf}% — ${data.summary || ''}`);
+
+      // Also update the main aiSignal
+      if (typeof window.aiSignal !== 'undefined') {
+        window.aiSignal = data;
+      }
+
+      // Also show overlay
+      if (typeof billionSignalOverlay === 'function') {
+        billionSignalOverlay(data);
+      }
+
+      // Trigger chart redraw for position markers
+      if (typeof drawChart === 'function') drawChart();
+
+      btn.textContent = 'DONE';
+      setTimeout(() => { btn.textContent = 'AI 분석'; btn.disabled = false; btn.classList.remove('loading'); }, 2000);
+
+    } catch (e) {
+      // Fallback: try /api/analyze on Vercel proxy
+      try {
+        const res2 = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol: sym }),
+          signal: AbortSignal.timeout(30000)
+        });
+        if (res2.ok) {
+          const data2 = await res2.json();
+          if (typeof window.aiSignal !== 'undefined') window.aiSignal = data2;
+          if (typeof billionSignalOverlay === 'function') billionSignalOverlay(data2);
+
+          const action2 = data2.decision || 'HOLD';
+          const conf2 = data2.confidence || 0;
+          AI_OVL.data = { signal: data2, paper: null, decision: { latest: { action: action2, confidence: conf2, reasons: data2.reasons || [data2.summary] } }, sym, ts: Date.now() };
+          AI_OVL._action = action2;
+          AI_OVL._confidence = conf2;
+          AI_OVL._reasons = data2.reasons || [data2.summary || ''];
+          renderAISignalOverlay();
+          pushAlert(action2, `AI: ${action2} ${sym}`, `확신도 ${conf2}%`);
+          btn.textContent = 'DONE';
+          setTimeout(() => { btn.textContent = 'AI 분석'; btn.disabled = false; btn.classList.remove('loading'); }, 2000);
+          return;
+        }
+      } catch {}
+      pushAlert('info', 'AI ERROR', `분석 실패: ${e.message}`);
+      btn.textContent = 'FAILED';
+      btn.classList.remove('loading');
+      setTimeout(() => { btn.textContent = 'AI 분석'; btn.disabled = false; }, 2000);
+    }
+  };
+
+  // ═══ BOOT INTEGRATION ═══
+  function bootEnhanced() {
+    // Load AI signal overlay
+    setTimeout(fetchAISignalOverlay, 3000);
+    setInterval(fetchAISignalOverlay, 15000);
+
+    // Load paper positions for chart markers
+    setTimeout(fetchPaperPositions, 2000);
+    setInterval(fetchPaperPositions, 10000);
+
+    // Mini charts refresh
+    setInterval(() => { if (mtfMiniVisible) loadAllMtfMini(); }, 60000);
+
+    // Alert center polling
+    setTimeout(pollTradingEvents, 4000);
+    setInterval(pollTradingEvents, 8000);
+
+    // Alert center cleanup
+    setInterval(renderAlertCenter, 3000);
+
+    // On symbol switch, refresh MTF + AI overlay
+    const _origSwitchTo2 = window.switchTo;
+    if (typeof _origSwitchTo2 === 'function') {
+      window.switchTo = function(sym, tf) {
+        _origSwitchTo2.call(this, sym, tf);
+        // Refresh
+        MTF_MINI_CACHE[sym + '_15M'] = null;
+        MTF_MINI_CACHE[sym + '_1H'] = null;
+        MTF_MINI_CACHE[sym + '_4H'] = null;
+        AI_OVL.ts = 0;
+        setTimeout(() => {
+          fetchAISignalOverlay();
+          if (mtfMiniVisible) loadAllMtfMini();
+          fetchPaperPositions();
+        }, 500);
+      };
+    }
+  }
+
+  // Wait for boot
+  const _enhWatcher = setInterval(() => {
+    if (typeof _booted !== 'undefined' && _booted) {
+      clearInterval(_enhWatcher);
+      setTimeout(bootEnhanced, 1000);
+    }
+  }, 300);
 })();
 </script>
 </body>
