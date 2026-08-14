@@ -628,6 +628,72 @@
   #mtf-toggle{cursor:pointer;padding:1px 6px;border:1px solid var(--border);color:var(--ink2);font-size:10px;letter-spacing:.5px;}
   #mtf-toggle:hover{color:var(--ink);border-color:var(--amber-dim);}
   #mtf-toggle.on{color:var(--amber);border-color:var(--amber-dim);}
+
+  /* ── Drawing Tools ──────────────────────────── */
+  #draw-toolbar{position:absolute;left:8px;bottom:8px;z-index:6;display:flex;gap:2px;pointer-events:auto;}
+  .draw-btn{padding:3px 8px;font-size:10px;background:rgba(10,10,10,.9);border:1px solid var(--border);
+    color:var(--ink2);cursor:pointer;font-family:var(--mono);letter-spacing:.5px;user-select:none;}
+  .draw-btn:hover{color:var(--ink);border-color:var(--amber-dim);}
+  .draw-btn.on{color:var(--amber);border-color:var(--amber);background:rgba(30,20,5,.95);}
+
+  /* ── Screener Panel ─────────────────────────── */
+  #screener-panel{position:fixed;bottom:28px;left:10px;width:720px;max-height:340px;z-index:50;
+    background:rgba(8,8,8,.97);border:1px solid var(--border);display:none;flex-direction:column;
+    box-shadow:0 6px 24px rgba(0,0,0,.8);font-size:11px;}
+  #screener-panel.on{display:flex;}
+  #screener-panel .sp-head{display:flex;justify-content:space-between;padding:5px 10px;
+    background:#181205;color:var(--amber);font-weight:700;font-size:11px;letter-spacing:1px;
+    border-bottom:1px solid var(--border2);}
+  #screener-panel .sp-close{cursor:pointer;color:var(--ink2);}
+  #screener-panel .sp-close:hover{color:var(--ink);}
+  #screener-panel table{width:100%;border-collapse:collapse;}
+  #screener-panel th{text-align:right;color:var(--ink3);font-weight:400;padding:3px 8px;font-size:10px;
+    border-bottom:1px solid var(--border2);position:sticky;top:0;background:rgba(10,10,10,.98);}
+  #screener-panel th:first-child{text-align:left;}
+  #screener-panel td{padding:4px 8px;text-align:right;border-bottom:1px solid #101010;
+    font-variant-numeric:tabular-nums;white-space:nowrap;cursor:pointer;}
+  #screener-panel td:first-child{text-align:left;font-weight:600;}
+  #screener-panel tr:hover td{background:#131313;}
+  #screener-panel .sp-body{overflow-y:auto;flex:1 1 auto;}
+  #screener-panel .sp-foot{padding:3px 10px;color:var(--ink3);font-size:9px;border-top:1px solid var(--border2);
+    display:flex;justify-content:space-between;}
+
+  /* ── Trade Planner ──────────────────────────── */
+  #trade-planner{position:absolute;right:10px;bottom:10px;width:300px;z-index:6;
+    background:rgba(8,8,8,.96);border:1px solid var(--amber-dim);display:none;flex-direction:column;
+    box-shadow:0 4px 24px rgba(0,0,0,.7);}
+  #trade-planner.on{display:flex;}
+  #trade-planner .tp-head{display:flex;justify-content:space-between;padding:5px 10px;
+    background:#181205;color:var(--amber);font-weight:700;font-size:11px;letter-spacing:1px;
+    border-bottom:1px solid var(--border2);}
+  #trade-planner .tp-close{cursor:pointer;color:var(--ink2);}
+  #trade-planner .tp-close:hover{color:var(--ink);}
+  #trade-planner .tp-body{padding:8px 10px;font-size:10px;}
+  #trade-planner .tp-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+  #trade-planner .tp-row label{color:var(--ink3);min-width:50px;}
+  #trade-planner .tp-row input{width:100px;background:#111;border:1px solid var(--border);
+    color:var(--ink);font-family:var(--mono);font-size:10px;padding:3px 6px;text-align:right;}
+  #trade-planner .tp-row input:focus{border-color:var(--amber);}
+  #trade-planner .tp-lev{display:flex;align-items:center;gap:8px;margin:6px 0;}
+  #trade-planner .tp-lev input[type=range]{flex:1;accent-color:var(--amber);}
+  #trade-planner .tp-result{background:#0c0c0c;border:1px solid var(--border2);padding:6px 8px;
+    font-size:10px;line-height:1.6;margin-top:6px;}
+  #trade-planner .tp-result .rr{font-size:14px;font-weight:700;margin-bottom:4px;}
+  #trade-planner .tp-dir{display:flex;gap:4px;margin-bottom:6px;}
+  #trade-planner .tp-dir button{flex:1;padding:4px;border:1px solid var(--border);background:transparent;
+    color:var(--ink2);font-family:var(--mono);font-size:10px;font-weight:700;cursor:pointer;}
+  #trade-planner .tp-dir button.on-long{background:rgba(0,160,140,.15);color:var(--up-text);border-color:var(--up);}
+  #trade-planner .tp-dir button.on-short{background:rgba(229,72,77,.15);color:var(--down-text);border-color:var(--down);}
+
+  /* ── Keyboard shortcut hint ─────────────────── */
+  #kb-hint{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:100;
+    background:rgba(0,0,0,.85);border:1px solid var(--amber);padding:12px 24px;
+    color:var(--amber);font-size:18px;font-weight:700;letter-spacing:2px;
+    pointer-events:none;display:none;animation:kbFade .6s ease-out forwards;}
+  @keyframes kbFade{0%{opacity:1;transform:translate(-50%,-50%) scale(1.1);}100%{opacity:0;transform:translate(-50%,-50%) scale(1);}}
+
+  /* ── Fibonacci lines ────────────────────────── */
+  .fib-label{position:absolute;right:70px;font-size:9px;pointer-events:none;z-index:2;color:var(--amber);opacity:.7;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -784,6 +850,7 @@
             <span class="lgd" id="tvbtn" title="TradingView 차트로 전환 (모든 트뷰 지표 사용 가능)">TV</span>
             <span class="lgd" id="quadbtn" title="2×2 멀티차트 (관심종목 상위 4개)">◱4</span>
             <span id="mtf-toggle" onclick="toggleMtfMiniPanel()" title="멀티 타임프레임 미니차트">MTF</span>
+            <span class="lgd" id="plannerbtn" onclick="toggleTradePlanner()" title="트레이드 플래너">PLAN</span>
             <button id="ai-analyze-btn" onclick="oneClickAnalyze()" title="현재 종목 AI 분석 실행">AI 분석</button>
           </span>
         </div>
@@ -812,6 +879,32 @@
             <div class="mtf-mini" data-mtf-tf="15M"><span class="mtf-label">15M</span><span class="mtf-price" id="mtf-p-15m">--</span><canvas id="mtf-cv-15m"></canvas></div>
             <div class="mtf-mini" data-mtf-tf="1H"><span class="mtf-label">1H</span><span class="mtf-price" id="mtf-p-1h">--</span><canvas id="mtf-cv-1h"></canvas></div>
             <div class="mtf-mini" data-mtf-tf="4H"><span class="mtf-label">4H</span><span class="mtf-price" id="mtf-p-4h">--</span><canvas id="mtf-cv-4h"></canvas></div>
+          </div>
+          <!-- Drawing Toolbar -->
+          <div id="draw-toolbar">
+            <span class="draw-btn" id="draw-hline" onclick="setDrawMode('hline')" title="수평선 그리기">━ 수평선</span>
+            <span class="draw-btn" id="draw-trendline" onclick="setDrawMode('trendline')" title="추세선 그리기">╲ 추세선</span>
+            <span class="draw-btn" id="draw-clear" onclick="clearAllDrawings()" title="모든 드로잉 삭제">✕ 지우기</span>
+          </div>
+          <!-- Trade Planner -->
+          <div id="trade-planner">
+            <div class="tp-head"><span>TRADE PLANNER</span><span class="tp-close" onclick="toggleTradePlanner()">x 닫기</span></div>
+            <div class="tp-body">
+              <div class="tp-dir">
+                <button id="tp-long" onclick="setTPDir('long')">LONG</button>
+                <button id="tp-short" onclick="setTPDir('short')">SHORT</button>
+              </div>
+              <div class="tp-row"><label>진입가</label><input id="tp-entry" type="number" step="any" oninput="calcTradePlan()"></div>
+              <div class="tp-row"><label>손절가</label><input id="tp-sl" type="number" step="any" oninput="calcTradePlan()"></div>
+              <div class="tp-row"><label>목표가</label><input id="tp-tp" type="number" step="any" oninput="calcTradePlan()"></div>
+              <div class="tp-row"><label>자본(USD)</label><input id="tp-cap" type="number" value="10000" oninput="calcTradePlan()"></div>
+              <div class="tp-lev">
+                <label style="color:var(--ink3);min-width:50px">레버리지</label>
+                <input type="range" id="tp-lev-slider" min="1" max="50" value="10" oninput="$('tp-lev-val').textContent=this.value+'x';calcTradePlan()">
+                <span id="tp-lev-val" style="color:var(--amber);font-weight:700;min-width:30px">10x</span>
+              </div>
+              <div class="tp-result" id="tp-result">진입가, 손절가, 목표가를 입력하세요</div>
+            </div>
           </div>
           <div id="quad"></div>
           <div id="btov">
@@ -974,6 +1067,18 @@
   <div id="tape"><div id="tapetrack">시세 로드 중…</div></div>
   <div id="notif-area"></div>
   <div id="alert-center"></div>
+
+  <!-- Live Screener Panel -->
+  <div id="screener-panel">
+    <div class="sp-head"><span>LIVE SCREENER <small style="color:var(--ink2);font-weight:400;margin-left:6px">10-coin scan · 5s refresh</small></span><span class="sp-close" onclick="toggleScreener()">x 닫기</span></div>
+    <div class="sp-body"><table><thead><tr>
+      <th>SYMBOL</th><th>PRICE</th><th>24H%</th><th>RSI14</th><th>TREND</th><th>SIGNAL</th>
+    </tr></thead><tbody id="screener-tbody"></tbody></table></div>
+    <div class="sp-foot"><span id="screener-time">--</span><span>1-9: 코인전환 · S: 토글 · T: 타임프레임</span></div>
+  </div>
+
+  <!-- Keyboard hint flash -->
+  <div id="kb-hint"></div>
 </div>
 
 <script src="https://s3.tradingview.com/tv.js"></script>
@@ -3134,7 +3239,7 @@ function drawChart(){
     S.view.count=Math.round(Math.max(40, Math.min(400, S.view.count*dir)));
     requestAnimationFrame(drawChart);
   },{passive:false});
-  cv.addEventListener("dblclick",()=>{ S.view.offset=0; S.view.count=140; drawChart(); });
+  cv.addEventListener("dblclick",(e)=>{ if(e._drawingDeleted) return; S.view.offset=0; S.view.count=140; drawChart(); });
   window.addEventListener("resize",chartResize);
 })();
 /* ═══════════════ REALTIME WS (Bybit v5 public) ═══════════════
@@ -5690,6 +5795,7 @@ $("cmd").addEventListener("keydown",e=>{
 document.addEventListener("keydown",e=>{
   const t=e.target;
   if(t===$("cmd") || t.tagName==="INPUT" || t.tagName==="TEXTAREA" || t.isContentEditable) return;
+  if(e._proHandled) return;
   if(/^[a-zA-Z]$/.test(e.key) && !e.metaKey && !e.ctrlKey && !e.altKey){ $("cmd").focus(); }
 });
 
@@ -11051,6 +11157,637 @@ document.getElementById("cmd").addEventListener("keydown", function(e) {
     }
   }, 300);
 })();
+
+/* ═══════════════════════════════════════════════════════════════
+   PRO TRADING VIEW ENHANCEMENTS
+   1) Drawing Tools (hline / trendline)
+   2) Indicator Panel (BB강화 / VWAP / Fibonacci)
+   3) Live Screener (10-coin, 5s refresh)
+   4) Trade Planner (R:R, position size, liq price)
+   5) Keyboard Shortcuts (1-9, T, I, Space, S)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. DRAWING TOOLS ─────────────────────────── */
+const DRAW = { mode: null, lines: [], pending: null };
+
+function loadDrawings() {
+  try {
+    const saved = localStorage.getItem("term_drawings_" + S.sym);
+    DRAW.lines = saved ? JSON.parse(saved) : [];
+  } catch { DRAW.lines = []; }
+}
+function saveDrawings() {
+  try { localStorage.setItem("term_drawings_" + S.sym, JSON.stringify(DRAW.lines)); } catch {}
+}
+function setDrawMode(mode) {
+  if (DRAW.mode === mode) { DRAW.mode = null; DRAW.pending = null; }
+  else { DRAW.mode = mode; DRAW.pending = null; }
+  document.querySelectorAll('.draw-btn').forEach(b => b.classList.remove('on'));
+  if (DRAW.mode) $("draw-" + DRAW.mode).classList.add('on');
+  CH.cv.style.cursor = DRAW.mode ? 'crosshair' : 'crosshair';
+}
+function clearAllDrawings() {
+  DRAW.lines = []; DRAW.pending = null; DRAW.mode = null;
+  document.querySelectorAll('.draw-btn').forEach(b => b.classList.remove('on'));
+  saveDrawings();
+  drawChart();
+}
+
+// Convert pixel to chart coordinates
+function pxToChart(mx, my) {
+  const vr = visibleRange();
+  if (!vr) return null;
+  const { start, end } = vr;
+  const plotW = CH.w - CH.padR;
+  const data = S.candles.slice(start, end);
+  if (!data.length) return null;
+  let lo = Infinity, hi = -Infinity;
+  data.forEach(c => { lo = Math.min(lo, c.l); hi = Math.max(hi, c.h); });
+  // replicate y-scaling from drawChart
+  const closes = S.candles.map(c => c.c);
+  const ema20A = ema(closes, 20), ema50A = ema(closes, 50);
+  const emaA = S.show.ema ? ema(closes, 100) : null;
+  const bbA = S.show.bb ? bollinger(closes, 20, 2) : null;
+  for (let i = start; i < end; i++) {
+    if (ema20A[i] != null) { lo = Math.min(lo, ema20A[i]); hi = Math.max(hi, ema20A[i]); }
+    if (ema50A[i] != null) { lo = Math.min(lo, ema50A[i]); hi = Math.max(hi, ema50A[i]); }
+    if (emaA && emaA[i] != null) { lo = Math.min(lo, emaA[i]); hi = Math.max(hi, emaA[i]); }
+    if (bbA && bbA.up[i] != null) { lo = Math.min(lo, bbA.lo[i]); hi = Math.max(hi, bbA.up[i]); }
+  }
+  const padY = (hi - lo) * 0.06 || hi * 0.01; lo -= padY; hi += padY;
+  // compute priceH (need sub panes)
+  const axisB = CH.h - CH.padB;
+  const subList = [["rsi", .13], ["macd", .13], ["stoch", .13], ["adx", .13], ["oi", .12],
+    ["obv", .11], ["mfi", .11], ["cci", .11], ["willr", .11], ["atrp", .11], ["cmf", .11],
+    ["trix", .11], ["aroon", .11], ["chaikin", .11], ["kst", .11], ["sqzmom", .13],
+    ["vol", .13]].filter(k => S.show[k[0]] || (k[0] === "rsi" && CH.h > 400));
+  const fracSum = subList.reduce((a, z) => a + z[1], 0);
+  const scaleF = fracSum > 0.52 ? 0.52 / fracSum : 1;
+  let yCur = axisB;
+  for (let i = subList.length - 1; i >= 0; i--) { yCur -= Math.round(axisB * subList[i][1] * scaleF); }
+  const priceH = yCur;
+  const price = lo + (hi - lo) * (1 - (my - 4) / priceH);
+  const xw = plotW / (end - start);
+  const candleIdx = start + Math.floor(mx / xw);
+  return { price, candleIdx, lo, hi, priceH };
+}
+
+// Drawing click handler
+CH.cv.addEventListener("click", function (e) {
+  if (!DRAW.mode) return;
+  if (S.tvMode) return;
+  const r = CH.cv.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  const ch = pxToChart(mx, my);
+  if (!ch || my > ch.priceH + 4) return;
+
+  if (DRAW.mode === "hline") {
+    DRAW.lines.push({ type: "hline", price: ch.price, sym: S.sym });
+    saveDrawings();
+    setDrawMode(null);
+    drawChart();
+  } else if (DRAW.mode === "trendline") {
+    if (!DRAW.pending) {
+      DRAW.pending = { type: "trendline", p1: ch.price, i1: ch.candleIdx, sym: S.sym };
+    } else {
+      DRAW.pending.p2 = ch.price;
+      DRAW.pending.i2 = ch.candleIdx;
+      DRAW.lines.push({ ...DRAW.pending });
+      DRAW.pending = null;
+      saveDrawings();
+      setDrawMode(null);
+      drawChart();
+    }
+  }
+});
+
+// Double-click to delete nearest drawing
+CH.cv.addEventListener("dblclick", function (e) {
+  if (DRAW.mode) return;
+  if (!DRAW.lines.length) return;
+  const r = CH.cv.getBoundingClientRect();
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  const ch = pxToChart(mx, my);
+  if (!ch) return;
+  const vr = visibleRange();
+  if (!vr) return;
+
+  let closest = -1, minDist = Infinity;
+  const plotW = CH.w - CH.padR;
+  const xw = plotW / (vr.end - vr.start);
+  const yFn = p => ch.priceH * (1 - (p - ch.lo) / (ch.hi - ch.lo)) + 4;
+  const xFn = i => (i - vr.start) * xw + xw / 2;
+
+  for (let li = 0; li < DRAW.lines.length; li++) {
+    const ln = DRAW.lines[li];
+    if (ln.sym !== S.sym) continue;
+    if (ln.type === "hline") {
+      const d = Math.abs(my - yFn(ln.price));
+      if (d < minDist) { minDist = d; closest = li; }
+    } else if (ln.type === "trendline") {
+      // distance from point to line segment
+      const x1 = xFn(ln.i1), y1 = yFn(ln.p1), x2 = xFn(ln.i2), y2 = yFn(ln.p2);
+      const dx = x2 - x1, dy = y2 - y1;
+      const len2 = dx * dx + dy * dy;
+      let t = len2 > 0 ? Math.max(0, Math.min(1, ((mx - x1) * dx + (my - y1) * dy) / len2)) : 0;
+      const px = x1 + t * dx, py = y1 + t * dy;
+      const d = Math.sqrt((mx - px) ** 2 + (my - py) ** 2);
+      if (d < minDist) { minDist = d; closest = li; }
+    }
+  }
+  if (closest >= 0 && minDist < 15) {
+    DRAW.lines.splice(closest, 1);
+    saveDrawings();
+    drawChart();
+    e._drawingDeleted = true;
+    e.stopPropagation();
+    e.preventDefault();
+  }
+});
+
+// Render drawings inside drawChart
+const _origDrawChart = drawChart;
+window.drawChart = function () {
+  _origDrawChart();
+  // now draw our lines on top
+  const vr = visibleRange();
+  if (!vr || !CH.w) return;
+  const ctx = CH.ctx, W = CH.w, H = CH.h;
+  const { start, end } = vr;
+  const data = S.candles.slice(start, end);
+  if (!data.length) return;
+
+  // replicate y-scale
+  const closes = S.candles.map(c => c.c);
+  let lo = Infinity, hi = -Infinity;
+  data.forEach(c => { lo = Math.min(lo, c.l); hi = Math.max(hi, c.h); });
+  const ema20A = ema(closes, 20), ema50A = ema(closes, 50);
+  const emaA = S.show.ema ? ema(closes, 100) : null;
+  const bbA = S.show.bb ? bollinger(closes, 20, 2) : null;
+  for (let i = start; i < end; i++) {
+    if (ema20A[i] != null) { lo = Math.min(lo, ema20A[i]); hi = Math.max(hi, ema20A[i]); }
+    if (ema50A[i] != null) { lo = Math.min(lo, ema50A[i]); hi = Math.max(hi, ema50A[i]); }
+    if (emaA && emaA[i] != null) { lo = Math.min(lo, emaA[i]); hi = Math.max(hi, emaA[i]); }
+    if (bbA && bbA.up[i] != null) { lo = Math.min(lo, bbA.lo[i]); hi = Math.max(hi, bbA.up[i]); }
+  }
+  const padY = (hi - lo) * 0.06 || hi * 0.01; lo -= padY; hi += padY;
+  const axisB = H - CH.padB;
+  const subList = [["rsi", .13], ["macd", .13], ["stoch", .13], ["adx", .13], ["oi", .12],
+    ["obv", .11], ["mfi", .11], ["cci", .11], ["willr", .11], ["atrp", .11], ["cmf", .11],
+    ["trix", .11], ["aroon", .11], ["chaikin", .11], ["kst", .11], ["sqzmom", .13],
+    ["vol", .13]].filter(k => S.show[k[0]] || (k[0] === "rsi" && H > 400));
+  const fracSum = subList.reduce((a, z) => a + z[1], 0);
+  const scaleF = fracSum > 0.52 ? 0.52 / fracSum : 1;
+  let yCur = axisB;
+  for (let i = subList.length - 1; i >= 0; i--) { yCur -= Math.round(axisB * subList[i][1] * scaleF); }
+  const priceH = yCur;
+  const plotW = W - CH.padR;
+  const y = p => priceH * (1 - (p - lo) / (hi - lo)) + 4;
+  const xw = plotW / (end - start);
+  const x = i => (i - start) * xw + xw / 2;
+  const fam9 = "9px " + getComputedStyle(document.body).fontFamily;
+
+  // Draw user lines
+  for (const ln of DRAW.lines) {
+    if (ln.sym !== S.sym) continue;
+    if (ln.type === "hline") {
+      const yy = y(ln.price);
+      if (yy < 0 || yy > priceH + 4) continue;
+      ctx.strokeStyle = "rgba(255,160,40,.7)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([6, 3]);
+      ctx.beginPath(); ctx.moveTo(0, yy + .5); ctx.lineTo(plotW, yy + .5); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = "rgba(255,160,40,.9)"; ctx.font = fam9;
+      ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+      ctx.fillText(fmtPrice(ln.price), plotW - 3, yy - 2);
+    } else if (ln.type === "trendline") {
+      const x1 = x(ln.i1), y1 = y(ln.p1), x2 = x(ln.i2), y2 = y(ln.p2);
+      // extend line across visible area
+      const dx = x2 - x1, dy = y2 - y1;
+      const len = Math.sqrt(dx * dx + dy * dy);
+      if (len < 1) continue;
+      const ex1 = x1 - dx * 5, ey1 = y1 - dy * 5;
+      const ex2 = x2 + dx * 5, ey2 = y2 + dy * 5;
+      ctx.strokeStyle = "rgba(95,195,236,.7)";
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([5, 3]);
+      ctx.beginPath(); ctx.moveTo(ex1, ey1); ctx.lineTo(ex2, ey2); ctx.stroke();
+      ctx.setLineDash([]);
+      // draw endpoints
+      ctx.fillStyle = "rgba(95,195,236,.9)";
+      ctx.beginPath(); ctx.arc(x1, y1, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x2, y2, 3, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // Draw Fibonacci retracement (auto from recent swing high/low)
+  if (data.length > 20) {
+    const lookback = Math.min(data.length, 80);
+    const recent = data.slice(-lookback);
+    let swHi = -Infinity, swLo = Infinity, hiIdx = 0, loIdx = 0;
+    recent.forEach((c, i) => {
+      if (c.h > swHi) { swHi = c.h; hiIdx = i; }
+      if (c.l < swLo) { swLo = c.l; loIdx = i; }
+    });
+    const diff = swHi - swLo;
+    if (diff > 0 && diff / swHi > 0.01) { // at least 1% swing
+      const isUptrend = loIdx < hiIdx; // low came first = uptrend
+      const fibLevels = [0, 0.236, 0.382, 0.5, 0.618, 0.786, 1];
+      const fibColors = ["rgba(255,160,40,.3)", "rgba(255,160,40,.25)", "rgba(255,160,40,.22)",
+        "rgba(255,160,40,.2)", "rgba(255,160,40,.22)", "rgba(255,160,40,.25)", "rgba(255,160,40,.3)"];
+      ctx.font = "9px " + getComputedStyle(document.body).fontFamily;
+      ctx.textAlign = "right"; ctx.textBaseline = "middle";
+      for (let fi = 0; fi < fibLevels.length; fi++) {
+        const fib = fibLevels[fi];
+        const price = isUptrend ? swHi - diff * fib : swLo + diff * fib;
+        const yy = y(price);
+        if (yy < 0 || yy > priceH + 4) continue;
+        ctx.strokeStyle = fibColors[fi];
+        ctx.lineWidth = 0.8;
+        ctx.setLineDash([3, 4]);
+        ctx.beginPath(); ctx.moveTo(plotW * 0.6, yy + .5); ctx.lineTo(plotW, yy + .5); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "rgba(255,160,40,.5)";
+        ctx.fillText(`${(fib * 100).toFixed(1)}% ${fmtPrice(price)}`, plotW - 3, yy);
+      }
+    }
+  }
+};
+
+// Load drawings on symbol switch
+const _origSwitchToDraw = window.switchTo;
+window.switchTo = function (sym, tf) {
+  _origSwitchToDraw.call(this, sym, tf);
+  loadDrawings();
+};
+
+
+/* ── 2. INDICATOR PANEL ENHANCEMENTS (already has BB & VWAP, just ensure Fib is auto-shown) ── */
+// Fibonacci is now auto-drawn in the enhanced drawChart above.
+// VWAP is already in indmenu. BB is already there.
+// No additional code needed; the drawChart override handles Fib.
+
+
+/* ── 3. LIVE SCREENER ─────────────────────────── */
+let _screenerVisible = false;
+let _screenerInterval = null;
+
+function toggleScreener() {
+  _screenerVisible = !_screenerVisible;
+  const el = $("screener-panel");
+  if (_screenerVisible) {
+    el.classList.add("on");
+    refreshScreener();
+    if (!_screenerInterval) _screenerInterval = setInterval(refreshScreener, 5000);
+  } else {
+    el.classList.remove("on");
+    if (_screenerInterval) { clearInterval(_screenerInterval); _screenerInterval = null; }
+  }
+}
+
+async function refreshScreener() {
+  const syms = SYMBOLS.slice(0, 10);
+  const tbody = $("screener-tbody");
+  if (!tbody) return;
+
+  const rows = [];
+  for (const sym of syms) {
+    const q = S.quotes[sym];
+    const price = q ? q.last : 0;
+    const pct = q ? q.pct : 0;
+
+    // Compute RSI from cached candles if available, otherwise estimate
+    let rsiVal = null;
+    try {
+      // Try to get cached kline data for RSI
+      const key = sym + "_" + S.tf;
+      if (sym === S.sym && S.candles.length > 14) {
+        const closes = S.candles.map(c => c.c);
+        const rsiA = rsiSeries(closes, 14);
+        rsiVal = rsiA[rsiA.length - 1];
+      }
+    } catch {}
+
+    // Trend direction from price vs simple average
+    let trend = "—";
+    let trendColor = "var(--ink3)";
+    if (pct > 2) { trend = "STRONG UP"; trendColor = "var(--up-text)"; }
+    else if (pct > 0.3) { trend = "UP"; trendColor = "var(--up-text)"; }
+    else if (pct < -2) { trend = "STRONG DN"; trendColor = "var(--down-text)"; }
+    else if (pct < -0.3) { trend = "DOWN"; trendColor = "var(--down-text)"; }
+    else { trend = "RANGE"; trendColor = "var(--amber)"; }
+
+    // AI signal from Learn Engine if current sym
+    let signal = "—";
+    let sigColor = "var(--ink3)";
+    if (sym === S.sym && typeof LE !== 'undefined' && LE.signal) {
+      if (LE.signal.dir > 0) { signal = "LONG"; sigColor = "var(--up-text)"; }
+      else if (LE.signal.dir < 0) { signal = "SHORT"; sigColor = "var(--down-text)"; }
+      else { signal = "HOLD"; }
+    }
+
+    rows.push({ sym, price, pct, rsi: rsiVal, trend, trendColor, signal, sigColor });
+  }
+
+  let html = "";
+  rows.forEach((r, idx) => {
+    const pctCls = r.pct >= 0 ? "u" : "d";
+    const rsiText = r.rsi != null ? r.rsi.toFixed(1) : "—";
+    const rsiColor = r.rsi != null ? (r.rsi > 70 ? "var(--down-text)" : r.rsi < 30 ? "var(--up-text)" : "var(--ink2)") : "var(--ink3)";
+    html += `<tr onclick="switchTo('${r.sym}',S.tf)">
+      <td style="color:${r.sym === S.sym ? 'var(--amber)' : 'var(--ink)'}">${idx + 1}. ${r.sym}</td>
+      <td>$${fmtPrice(r.price)}</td>
+      <td class="${pctCls}">${r.pct >= 0 ? '+' : ''}${r.pct.toFixed(2)}%</td>
+      <td style="color:${rsiColor}">${rsiText}</td>
+      <td style="color:${r.trendColor};font-size:9px">${r.trend}</td>
+      <td style="color:${r.sigColor};font-weight:700">${r.signal}</td>
+    </tr>`;
+  });
+  tbody.innerHTML = html;
+  $("screener-time").textContent = "Updated " + new Date().toLocaleTimeString("en-GB", { hour12: false });
+
+  // Fetch RSI for all symbols asynchronously (background)
+  fetchScreenerRSIs(syms);
+}
+
+const _screenerRSICache = {};
+async function fetchScreenerRSIs(syms) {
+  for (const sym of syms) {
+    if (sym === S.sym) continue; // already computed from main candles
+    const cacheKey = sym + "_" + S.tf;
+    const cached = _screenerRSICache[cacheKey];
+    if (cached && Date.now() - cached.ts < 30000) continue; // 30s cache
+    try {
+      const tfCode = TF_MAP[S.tf]?.binance || "4h";
+      const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${sym}USDT&interval=${tfCode}&limit=50`;
+      const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const closes = data.map(k => parseFloat(k[4]));
+      const rsiA = rsiSeries(closes, 14);
+      _screenerRSICache[cacheKey] = { val: rsiA[rsiA.length - 1], ts: Date.now() };
+    } catch {}
+  }
+  // Re-render with RSI data
+  const tbody = $("screener-tbody");
+  if (!tbody || !_screenerVisible) return;
+  const trs = tbody.querySelectorAll("tr");
+  const topSyms = SYMBOLS.slice(0, 10);
+  trs.forEach((tr, idx) => {
+    if (idx >= topSyms.length) return;
+    const sym = topSyms[idx];
+    const cacheKey = sym + "_" + S.tf;
+    const cached = _screenerRSICache[cacheKey];
+    if (sym === S.sym || !cached) return;
+    const td = tr.children[3]; // RSI column
+    if (td) {
+      td.textContent = cached.val != null ? cached.val.toFixed(1) : "—";
+      td.style.color = cached.val > 70 ? "var(--down-text)" : cached.val < 30 ? "var(--up-text)" : "var(--ink2)";
+    }
+  });
+}
+
+
+/* ── 4. TRADE PLANNER ─────────────────────────── */
+let _tpDir = "long";
+let _tpVisible = false;
+
+function toggleTradePlanner() {
+  _tpVisible = !_tpVisible;
+  const el = $("trade-planner");
+  if (_tpVisible) {
+    el.classList.add("on");
+    // Pre-fill entry with current price
+    const q = S.quotes[S.sym];
+    if (q && q.last) $("tp-entry").value = q.last;
+    setTPDir("long");
+    calcTradePlan();
+  } else {
+    el.classList.remove("on");
+  }
+}
+
+function setTPDir(dir) {
+  _tpDir = dir;
+  $("tp-long").className = dir === "long" ? "on-long" : "";
+  $("tp-short").className = dir === "short" ? "on-short" : "";
+  calcTradePlan();
+}
+
+function calcTradePlan() {
+  const entry = parseFloat($("tp-entry").value);
+  const sl = parseFloat($("tp-sl").value);
+  const tp = parseFloat($("tp-tp").value);
+  const cap = parseFloat($("tp-cap").value) || 10000;
+  const lev = parseInt($("tp-lev-slider").value) || 10;
+  const result = $("tp-result");
+
+  if (!entry || !sl || entry <= 0 || sl <= 0) {
+    result.innerHTML = "진입가, 손절가를 입력하세요";
+    return;
+  }
+
+  const isLong = _tpDir === "long";
+
+  // Risk per unit
+  const riskPct = Math.abs(entry - sl) / entry * 100;
+  const riskPerUnit = Math.abs(entry - sl);
+
+  // Reward
+  let rrRatio = 0;
+  if (tp && tp > 0) {
+    const reward = Math.abs(tp - entry);
+    rrRatio = riskPerUnit > 0 ? reward / riskPerUnit : 0;
+  }
+
+  // Position size (1% of capital risk default)
+  const riskAmount = cap * 0.01; // 1% risk
+  const positionSizeUSD = riskPerUnit > 0 ? (riskAmount / riskPerUnit) * entry : 0;
+  const maxPosByLev = cap * lev;
+  const actualPos = Math.min(positionSizeUSD, maxPosByLev);
+  const qty = actualPos / entry;
+
+  // Liquidation price
+  const margin = actualPos / lev;
+  const maintMarginRate = 0.004; // 0.4% typical
+  let liqPrice;
+  if (isLong) {
+    liqPrice = entry * (1 - (1 / lev) + maintMarginRate);
+  } else {
+    liqPrice = entry * (1 + (1 / lev) - maintMarginRate);
+  }
+
+  // Fees (0.04% maker, 0.04% taker typical for futures)
+  const feeRate = 0.0004;
+  const entryFee = actualPos * feeRate;
+  const exitFee = (tp && tp > 0 ? qty * tp : actualPos) * feeRate;
+  const totalFees = entryFee + exitFee;
+
+  // PnL at TP
+  let pnlTP = 0;
+  if (tp && tp > 0) {
+    pnlTP = isLong ? qty * (tp - entry) : qty * (entry - tp);
+    pnlTP -= totalFees;
+  }
+
+  // PnL at SL
+  let pnlSL = isLong ? qty * (sl - entry) : qty * (entry - sl);
+  pnlSL -= entryFee + (qty * sl * feeRate);
+
+  const dirLabel = isLong ? '<span style="color:var(--up-text)">LONG</span>' : '<span style="color:var(--down-text)">SHORT</span>';
+  const rrColor = rrRatio >= 2 ? "var(--up-text)" : rrRatio >= 1 ? "var(--amber)" : "var(--down-text)";
+
+  let html = '';
+  if (tp && tp > 0) {
+    html += `<div class="rr" style="color:${rrColor}">R:R = 1 : ${rrRatio.toFixed(2)}</div>`;
+  }
+  html += `<div>${dirLabel} ${S.sym}USDT @ ${fmtPrice(entry)}</div>`;
+  html += `<div style="color:var(--ink3)">리스크: ${riskPct.toFixed(2)}% (${riskPerUnit.toFixed(4)})</div>`;
+  html += `<div>포지션: <b>$${fmtBig(actualPos)}</b> (${qty.toFixed(4)} ${S.sym})</div>`;
+  html += `<div>마진: $${fmtN(margin, 2)} (${lev}x)</div>`;
+  html += `<div style="color:var(--down-text)">청산가: ${fmtPrice(liqPrice)}</div>`;
+  html += `<div style="color:var(--ink3)">수수료(예상): $${totalFees.toFixed(2)} (0.04% x2)</div>`;
+  if (tp && tp > 0) {
+    html += `<div style="color:var(--up-text)">TP 수익: +$${pnlTP.toFixed(2)}</div>`;
+  }
+  html += `<div style="color:var(--down-text)">SL 손실: $${pnlSL.toFixed(2)}</div>`;
+
+  result.innerHTML = html;
+}
+
+
+/* ── 5. KEYBOARD SHORTCUTS ────────────────────── */
+function showKbHint(text) {
+  const el = $("kb-hint");
+  if (!el) return;
+  el.textContent = text;
+  el.style.display = "block";
+  el.style.animation = "none";
+  void el.offsetWidth; // trigger reflow
+  el.style.animation = "kbFade .6s ease-out forwards";
+  setTimeout(() => { el.style.display = "none"; }, 600);
+}
+
+document.addEventListener("keydown", function (e) {
+  const t = e.target;
+  // Skip if in input/textarea
+  if (t === $("cmd") || t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+  // Number keys 1-9: switch to coin by index
+  if (/^[1-9]$/.test(e.key)) {
+    const idx = parseInt(e.key) - 1;
+    if (idx < SYMBOLS.length) {
+      e.preventDefault();
+      e._proHandled = true;
+      switchTo(SYMBOLS[idx], S.tf);
+      showKbHint(SYMBOLS[idx]);
+    }
+    return;
+  }
+
+  // T: cycle timeframe
+  if (e.key === "t" || e.key === "T") {
+    e.preventDefault();
+    e._proHandled = true;
+    const curIdx = TFS.indexOf(S.tf);
+    const nextIdx = (curIdx + 1) % TFS.length;
+    switchTo(S.sym, TFS[nextIdx]);
+    showKbHint(TFS[nextIdx]);
+    return;
+  }
+
+  // I: toggle indicator menu
+  if (e.key === "i" || e.key === "I") {
+    e.preventDefault();
+    e._proHandled = true;
+    const menu = $("indmenu");
+    if (menu) {
+      menu.classList.toggle("on");
+      showKbHint("INDICATORS");
+    }
+    return;
+  }
+
+  // Space: scroll chart to latest
+  if (e.key === " ") {
+    e.preventDefault();
+    e._proHandled = true;
+    S.view.offset = 0;
+    S.view.count = 140;
+    drawChart();
+    showKbHint("LATEST");
+    return;
+  }
+
+  // S: toggle screener
+  if (e.key === "s" || e.key === "S") {
+    e.preventDefault();
+    e._proHandled = true;
+    toggleScreener();
+    showKbHint(_screenerVisible ? "SCREENER ON" : "SCREENER OFF");
+    return;
+  }
+
+  // P: toggle trade planner
+  if (e.key === "p" || e.key === "P") {
+    e.preventDefault();
+    e._proHandled = true;
+    toggleTradePlanner();
+    showKbHint(_tpVisible ? "PLANNER ON" : "PLANNER OFF");
+    return;
+  }
+}, true); // capture phase to run before other handlers
+
+// Update the KEYS overlay to show new shortcuts
+const _origKeysOverlay = keysOverlay;
+window.keysOverlay = function () {
+  _origKeysOverlay();
+  // Append new shortcuts to the overlay
+  const body = $("btov-body");
+  if (!body) return;
+  const extraHTML = `
+    <div style="padding:4px 10px;color:var(--amber);font-size:10px;letter-spacing:1px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">PRO 단축키</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+      <tr style="border-bottom:1px solid #101010">
+        <td style="padding:5px 10px"><kbd style="background:#1a1a1a;border:1px solid var(--border);padding:2px 8px;color:var(--amber);font-family:var(--mono);font-size:11px">1-9</kbd></td>
+        <td style="padding:5px 10px;color:var(--ink2)">코인 전환 (관심목록 순)</td>
+      </tr>
+      <tr style="border-bottom:1px solid #101010">
+        <td style="padding:5px 10px"><kbd style="background:#1a1a1a;border:1px solid var(--border);padding:2px 8px;color:var(--amber);font-family:var(--mono);font-size:11px">T</kbd></td>
+        <td style="padding:5px 10px;color:var(--ink2)">타임프레임 순환 (15M→1H→4H→1D)</td>
+      </tr>
+      <tr style="border-bottom:1px solid #101010">
+        <td style="padding:5px 10px"><kbd style="background:#1a1a1a;border:1px solid var(--border);padding:2px 8px;color:var(--amber);font-family:var(--mono);font-size:11px">I</kbd></td>
+        <td style="padding:5px 10px;color:var(--ink2)">인디케이터 패널 토글</td>
+      </tr>
+      <tr style="border-bottom:1px solid #101010">
+        <td style="padding:5px 10px"><kbd style="background:#1a1a1a;border:1px solid var(--border);padding:2px 8px;color:var(--amber);font-family:var(--mono);font-size:11px">Space</kbd></td>
+        <td style="padding:5px 10px;color:var(--ink2)">차트 최신으로 이동</td>
+      </tr>
+      <tr style="border-bottom:1px solid #101010">
+        <td style="padding:5px 10px"><kbd style="background:#1a1a1a;border:1px solid var(--border);padding:2px 8px;color:var(--amber);font-family:var(--mono);font-size:11px">S</kbd></td>
+        <td style="padding:5px 10px;color:var(--ink2)">라이브 스크리너 토글</td>
+      </tr>
+      <tr style="border-bottom:1px solid #101010">
+        <td style="padding:5px 10px"><kbd style="background:#1a1a1a;border:1px solid var(--border);padding:2px 8px;color:var(--amber);font-family:var(--mono);font-size:11px">P</kbd></td>
+        <td style="padding:5px 10px;color:var(--ink2)">트레이드 플래너 토글</td>
+      </tr>
+    </table>`;
+  body.innerHTML += extraHTML;
+};
+
+// Update fkeys hint bar
+(function () {
+  const fk = $("fkeys");
+  if (fk) {
+    fk.innerHTML += ' <span><b>1-9</b> 코인</span><span><b>T</b> TF</span><span><b>I</b> 지표</span><span><b>S</b> 스크리너</span><span><b>P</b> 플래너</span>';
+  }
+})();
+
+// Initial load of drawings
+setTimeout(() => { loadDrawings(); }, 1000);
 </script>
 </body>
 </html>
