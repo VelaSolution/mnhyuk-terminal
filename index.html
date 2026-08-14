@@ -9117,13 +9117,17 @@ function economicCalendarOverlay(){
   showOverlay("ECONOMIC CALENDAR · 매크로 일정",html);
 }
 
+/* ── Trading Team 베이스 URL ── */
+const TT_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:8000' : 'https://trading-team.mot-era.com';
+
 /* ── 2. PAPER TRADING 패널 ── */
 const PAPER_CACHE={data:null, ts:0};
 async function loadPaperTrading(){
   if(Date.now()-PAPER_CACHE.ts<15000 && PAPER_CACHE.data) { renderPaperTrading(PAPER_CACHE.data); return; }
   const el=$("papertrading"); if(!el) return;
   try{
-    const data=await fetchJson("http://localhost:8000/api/paper/status",3000);
+    const data=await fetchJson(TT_BASE+"/api/paper/status",3000);
     PAPER_CACHE.data=data; PAPER_CACHE.ts=Date.now();
     renderPaperTrading(data);
     setAge("paper");
@@ -9132,7 +9136,7 @@ async function loadPaperTrading(){
       updateAIBadge(data.lastDecision.action, data.lastDecision.symbol||'BTC', data.lastDecision.confidence||0);
     }
   }catch(e){
-    el.innerHTML='<div style="padding:8px;color:var(--ink3)">Paper Trader 미연결<br><span style="font-size:9px">localhost:8000 확인</span></div>';
+    el.innerHTML='<div style="padding:8px;color:var(--ink3)">Paper Trader 미연결<br><span style="font-size:9px">Trading Team 확인</span></div>';
   }
 }
 function renderPaperTrading(data){
@@ -9188,7 +9192,7 @@ function paperTradingOverlay(){
     }
     showOverlay("PAPER TRADING · 가상매매 현황",html);
   } else {
-    showOverlay("PAPER TRADING",'<div class="rowline"><span style="color:var(--ink3)">Paper Trader 미연결 — localhost:8000 필요</span></div>');
+    showOverlay("PAPER TRADING",'<div class="rowline"><span style="color:var(--ink3)">Paper Trader 미연결 — Trading Team 확인</span></div>');
     loadPaperTrading();
   }
 }
@@ -10064,7 +10068,7 @@ document.getElementById("cmd").addEventListener("keydown", function(e) {
 // TRADING FLOOR 패널 — Trading-Team(8000) 연동
 // ══════════════════════════════════════════════
 (function initTradingFloorPanel() {
-  const TT_URL = 'http://localhost:8000';
+  const TT_URL = TT_BASE;
   const panel = document.getElementById('tt-panel');
   const ageEl = document.getElementById('age-tt');
   if (!panel) return;
@@ -10118,6 +10122,144 @@ document.getElementById("cmd").addEventListener("keydown", function(e) {
 
   updateTTPanel();
   setInterval(updateTTPanel, 15000);
+
+  // ── Paper Trader 포지션 실시간 → TRADING FLOOR 패널 하단에 추가 ──
+  const PT_POSITIONS_CACHE = { data: null, ts: 0 };
+  async function updatePTPositions() {
+    try {
+      if (Date.now() - PT_POSITIONS_CACHE.ts < 8000 && PT_POSITIONS_CACHE.data) {
+        renderPTInTTPanel(PT_POSITIONS_CACHE.data);
+        return;
+      }
+      const res = await fetch(`${TT_URL}/api/paper/positions`, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) return;
+      const data = await res.json();
+      PT_POSITIONS_CACHE.data = data;
+      PT_POSITIONS_CACHE.ts = Date.now();
+      renderPTInTTPanel(data);
+    } catch {}
+  }
+
+  function renderPTInTTPanel(data) {
+    let ptEl = document.getElementById('tt-pt-widget');
+    if (!ptEl) {
+      ptEl = document.createElement('div');
+      ptEl.id = 'tt-pt-widget';
+      ptEl.style.cssText = 'border-top:1px solid #1a1a1a;margin-top:4px;padding-top:2px;';
+      panel.appendChild(ptEl);
+    }
+    const positions = data.positions || [];
+    const capital = data.capital || 3000;
+    const totalPnl = data.totalPnl || 0;
+    const pnlCol = totalPnl >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+
+    let html = `<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--ink3);font-size:9px;letter-spacing:1px">`;
+    html += `<span>PAPER $<b style="color:${pnlCol}">${Math.round(capital)}</b></span>`;
+    html += `<span style="color:${pnlCol}">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(1)}</span></div>`;
+
+    if (positions.length > 0) {
+      positions.forEach(p => {
+        const sym = (p.symbol || '').replace('USDT', '');
+        const dir = (p.direction === 'BUY' || p.direction === 'LONG') ? 'L' : 'S';
+        const dirCol = dir === 'L' ? 'var(--up-text)' : 'var(--down-text)';
+        const pnl = p.unrealizedPnl || 0;
+        const pnlPct = p.unrealizedPnlPct || 0;
+        const pnlColor = pnl >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+        html += `<div style="display:flex;justify-content:space-between;padding:1px 0;font-size:9px;cursor:pointer" onclick="if(typeof switchTo==='function')switchTo('${sym}',S.tf)">`;
+        html += `<span><b style="color:${dirCol}">${dir}</b> ${sym} <span style="color:var(--ink3)">$${p.currentPrice ? fmtPrice(p.currentPrice) : '?'}</span></span>`;
+        html += `<span style="color:${pnlColor};font-weight:600">${pnl >= 0 ? '+' : ''}${pnlPct.toFixed(1)}%</span></div>`;
+      });
+    }
+    ptEl.innerHTML = html;
+  }
+
+  updatePTPositions();
+  setInterval(updatePTPositions, 10000);
+})();
+
+// ══════════════════════════════════════════════
+// AI SIGNAL OVERLAY — 현재 보는 코인의 Trading Team 분석 결과
+// ══════════════════════════════════════════════
+(function initAISignalOverlay() {
+  const SIGNAL_CACHE = {};
+  let currentOverlaySym = '';
+
+  async function fetchSignalForSymbol(sym) {
+    const key = sym.toUpperCase().replace('USDT', '');
+    const cached = SIGNAL_CACHE[key];
+    if (cached && Date.now() - cached.ts < 30000) return cached.data;
+    try {
+      const [sigRes, decRes] = await Promise.allSettled([
+        fetch(`${TT_BASE}/api/signal?symbol=${key}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+        fetch(`${TT_BASE}/api/paper/signal/${key}`, { signal: AbortSignal.timeout(5000) }).then(r => r.json()),
+      ]);
+      const signal = sigRes.status === 'fulfilled' ? sigRes.value : null;
+      const decision = decRes.status === 'fulfilled' ? decRes.value : null;
+      const result = { signal, decision };
+      SIGNAL_CACHE[key] = { data: result, ts: Date.now() };
+      return result;
+    } catch { return null; }
+  }
+
+  function renderSignalBadge(data) {
+    const badge = document.getElementById('ai-badge');
+    if (!badge) return;
+    if (!data || (!data.signal && !data.decision?.latest)) {
+      badge.classList.remove('on');
+      return;
+    }
+
+    // Prioritize decision from paper trader analysis
+    const dec = data.decision?.latest;
+    const sig = data.signal;
+
+    let action = 'HOLD', confidence = 0, grade = '';
+    if (dec) {
+      action = dec.action || 'HOLD';
+      confidence = dec.confidence || 0;
+      grade = dec.grade || '';
+    } else if (sig) {
+      action = sig.direction === 'LONG' ? 'BUY' : sig.direction === 'SHORT' ? 'SELL' : 'HOLD';
+      confidence = Math.abs(sig.score || 0);
+    }
+
+    if (action === 'HOLD' || action === 'NEUTRAL') {
+      badge.classList.remove('on');
+      return;
+    }
+
+    badge.className = 'on ' + (action === 'BUY' ? 'buy' : 'sell');
+    badge.id = 'ai-badge';
+    const gradeStr = grade ? ` [${grade}]` : '';
+    badge.textContent = `AI: ${action} ${confidence}%${gradeStr}`;
+    badge.classList.add('on');
+    badge.title = `Trading Team 분석 — ${action} (확신도 ${confidence}%)${gradeStr}`;
+  }
+
+  // 심볼 전환 시 업데이트
+  function updateForCurrentSymbol() {
+    const sym = (typeof S !== 'undefined' && S.sym) ? S.sym : '';
+    if (!sym) return;
+    if (sym === currentOverlaySym) return;
+    currentOverlaySym = sym;
+    fetchSignalForSymbol(sym).then(data => {
+      if (data) renderSignalBadge(data);
+    });
+  }
+
+  // 10초마다 + 즉시 실행
+  setInterval(updateForCurrentSymbol, 10000);
+  setTimeout(updateForCurrentSymbol, 2000);
+
+  // switchTo 훅 — 심볼 전환 시 즉시 업데이트
+  const origSwitchTo = window.switchTo;
+  if (typeof origSwitchTo === 'function') {
+    window.switchTo = function(sym, tf) {
+      origSwitchTo.call(this, sym, tf);
+      currentOverlaySym = ''; // force refresh
+      setTimeout(updateForCurrentSymbol, 500);
+    };
+  }
 })();
 
 /* ── Mobile support ─────────────────────────── */
