@@ -289,6 +289,107 @@
     #leftcol{display:none;} #main{grid-template-columns:1fr;}
   }
 
+  /* ── Mobile (≤640px) ─────────────────────────── */
+  @media (max-width:640px){
+    body{font-size:13px; overflow:auto;}
+    #app{height:auto; min-height:100vh;}
+
+    /* ── Topbar ── */
+    #topbar{flex-wrap:wrap; gap:6px; padding:6px 8px;}
+    #brand{font-size:12px; width:100%; order:-1;}
+    #cmdwrap{max-width:100%; flex:1 1 100%; order:1;}
+    #cmd{font-size:13px; padding:6px 4px;}
+    #clocks{display:flex; flex-wrap:wrap; gap:8px; font-size:10px; width:100%; order:2; justify-content:flex-end;}
+    #clocks>span{white-space:nowrap;}
+
+    /* ── Tab row: horizontal scroll ── */
+    #tabrow{flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; gap:4px; padding:6px 8px;}
+    #tabrow::-webkit-scrollbar{display:none;}
+    .tab{padding:6px 12px; min-height:36px; font-size:11px; flex-shrink:0;}
+    .tabsep{display:none;}
+    #fkeys{display:none;}
+    #sym-search{font-size:13px; padding:6px 8px; width:80px; min-height:36px;}
+
+    /* ── Status strip: scroll ── */
+    #statusstrip{overflow-x:auto; -webkit-overflow-scrolling:touch; gap:10px; padding:4px 8px; font-size:11px;}
+    #statusstrip::-webkit-scrollbar{display:none;}
+
+    /* ── Main grid: single column ── */
+    #main{grid-template-columns:1fr; gap:0; padding:0; overflow:visible;}
+    #leftcol{display:none !important;}
+    #rightcol{display:none !important;}
+    #col4{display:none !important;}
+
+    /* ── Mobile quote ticker (horizontal scroll above chart) ── */
+    #mob-quotes{
+      display:flex !important; overflow-x:auto; -webkit-overflow-scrolling:touch;
+      background:#070707; border-bottom:1px solid var(--border2); padding:4px 8px; gap:12px;
+      flex:0 0 auto; white-space:nowrap;
+    }
+    #mob-quotes::-webkit-scrollbar{display:none;}
+    #mob-quotes .mq{display:flex; align-items:center; gap:6px; padding:4px 8px; cursor:pointer;
+      border:1px solid var(--border); font-size:11px; min-height:36px; flex-shrink:0;}
+    #mob-quotes .mq.on{border-color:var(--amber); background:#181205;}
+    #mob-quotes .mq .sym{font-weight:700; color:var(--ink);}
+    #mob-quotes .mq .pr{font-variant-numeric:tabular-nums; color:var(--ink2);}
+
+    /* ── Chart panel ── */
+    #chartpanel{min-height:50vh;}
+    #chartwrap{min-height:40vh; position:relative;}
+    #chart{position:absolute; inset:0;}
+    #chartinfo{font-size:10px; gap:6px; padding:4px 8px; overflow-x:auto; -webkit-overflow-scrolling:touch; flex-wrap:nowrap;}
+    #chartinfo::-webkit-scrollbar{display:none;}
+    .lgd{padding:4px 8px; min-height:32px; display:inline-flex; align-items:center; font-size:10px; flex-shrink:0;}
+
+    /* ── Deriv strip: 2x2 grid ── */
+    #deriv{grid-template-columns:1fr 1fr; grid-template-rows:auto auto;}
+    .dcell{padding:8px 10px; min-height:60px;}
+    .dcell h4{font-size:11px;}
+    .dcell .big{font-size:14px;}
+    .dcell .sub{font-size:11px;}
+
+    /* ── Mobile bottom panels (togglable) ── */
+    #mob-bottom{display:flex !important; flex-direction:column; flex:0 0 auto;}
+    #mob-bottom-tabs{
+      display:flex; overflow-x:auto; -webkit-overflow-scrolling:touch;
+      background:#070707; border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+      padding:0; gap:0;
+    }
+    #mob-bottom-tabs::-webkit-scrollbar{display:none;}
+    #mob-bottom-tabs .mob-tab{
+      padding:10px 14px; font-size:11px; color:var(--ink2); cursor:pointer;
+      white-space:nowrap; border-bottom:2px solid transparent; min-height:44px;
+      display:flex; align-items:center; flex-shrink:0;
+    }
+    #mob-bottom-tabs .mob-tab.on{color:var(--amber); border-bottom-color:var(--amber);}
+    #mob-panel-content{max-height:50vh; overflow-y:auto; background:var(--panel);}
+
+    /* ── Overlays / Modals ── */
+    #btov{width:min(90vw,420px); right:5vw; left:5vw; margin:0 auto;}
+    #auth-box{width:min(90vw,340px);}
+    #indmenu{width:min(85vw,210px); right:4px;}
+    #cmdsug{max-height:60vh;}
+
+    /* ── Notification ── */
+    #notif-area{width:calc(100vw - 20px); right:10px; left:10px; bottom:10px;}
+
+    /* ── Touch targets ── */
+    .ntab{padding:4px 10px; min-height:36px; display:inline-flex; align-items:center; font-size:11px;}
+    .ptitle{padding:6px 8px; font-size:11px; min-height:36px;}
+    .obrow{padding:4px 8px; min-height:36px; line-height:1.8; font-size:12px;}
+    .scrow{padding:6px 10px; min-height:44px; font-size:12px;}
+
+    /* ── Bottom tape ── */
+    #tape{padding:6px 0; font-size:11px;}
+
+    /* ── Font size adaption ── */
+    .rowline{font-size:12px; padding:6px 10px;}
+    #quotes td{padding:6px 8px; font-size:12px;}
+    #quotes th{font-size:11px; padding:4px 8px;}
+    #ob{font-size:12px;}
+    .obmid{font-size:13px; padding:6px 8px;}
+  }
+
   /* ── Col3 (RIGHT) compact Bloomberg density ──── */
   #rightcol>.panel{flex:0 0 auto !important; max-height:none;}
   #rightcol{overflow-y:auto;}
@@ -517,6 +618,9 @@
     <div class="ss-item" id="ss-signal" style="display:none"></div>
   </div>
 
+  <!-- Mobile: horizontal quote ticker (hidden on desktop) -->
+  <div id="mob-quotes" style="display:none"></div>
+
   <div id="main">
 
     <!-- LEFT -->
@@ -737,6 +841,18 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- Mobile: bottom toggle panels (hidden on desktop) -->
+  <div id="mob-bottom" style="display:none">
+    <div id="mob-bottom-tabs">
+      <div class="mob-tab on" data-mpanel="orderbook">호가</div>
+      <div class="mob-tab" data-mpanel="trades">체결</div>
+      <div class="mob-tab" data-mpanel="signals">AI 신호</div>
+      <div class="mob-tab" data-mpanel="news">뉴스</div>
+      <div class="mob-tab" data-mpanel="overview">시장</div>
+    </div>
+    <div id="mob-panel-content"></div>
   </div>
 
   <div id="tape"><div id="tapetrack">시세 로드 중…</div></div>
@@ -10002,6 +10118,96 @@ document.getElementById("cmd").addEventListener("keydown", function(e) {
 
   updateTTPanel();
   setInterval(updateTTPanel, 15000);
+})();
+
+/* ── Mobile support ─────────────────────────── */
+(function(){
+  const isMob=()=>window.innerWidth<=640;
+  const mobQ=document.getElementById("mob-quotes");
+  const mobBot=document.getElementById("mob-bottom");
+  if(!mobQ||!mobBot) return;
+
+  /* ── Mobile quote ticker ── */
+  function renderMobQuotes(){
+    if(!isMob()) return;
+    const syms=typeof SYMBOLS!=='undefined'?SYMBOLS:[];
+    const qs=(typeof S!=='undefined'&&S.quotes)?S.quotes:{};
+    mobQ.innerHTML=syms.map(s=>{
+      const q=qs[s];
+      const pr=q?fmtPrice(q.last):'—';
+      const pct=q?((q.pct>=0?'+':'')+q.pct.toFixed(2)+'%'):'—';
+      const cls=q?(q.pct>=0?'u':'d'):'n';
+      const on=S&&S.sym===s?'on':'';
+      return `<div class="mq ${on}" data-sym="${s}"><span class="sym">${s}</span><span class="pr">${pr}</span><span class="${cls}" style="font-size:10px">${pct}</span></div>`;
+    }).join('');
+    mobQ.querySelectorAll('.mq').forEach(el=>{
+      el.onclick=()=>{if(typeof switchTo==='function') switchTo(el.dataset.sym,S.tf);}
+    });
+  }
+
+  // Hook into renderQuotes
+  const origRQ=window.renderQuotes;
+  if(typeof origRQ==='function'){
+    window.renderQuotes=function(){
+      origRQ.apply(this,arguments);
+      renderMobQuotes();
+    };
+  }
+
+  /* ── Mobile bottom panels ── */
+  let mobActivePanel='orderbook';
+  const tabEls=mobBot.querySelectorAll('.mob-tab');
+  const contentEl=document.getElementById('mob-panel-content');
+
+  function renderMobPanel(){
+    if(!isMob()||!contentEl) return;
+    let html='';
+    switch(mobActivePanel){
+      case 'orderbook':
+        const obEl=document.getElementById('ob');
+        html=obEl?obEl.innerHTML:'<div style="padding:10px;color:var(--ink3)">호가 데이터 없음</div>';
+        break;
+      case 'trades':
+        const tsEl=document.getElementById('tsfeed');
+        html=tsEl?tsEl.innerHTML:'<div style="padding:10px;color:var(--ink3)">체결 데이터 없음</div>';
+        break;
+      case 'signals':
+        const sigEl=document.getElementById('signals');
+        html=sigEl?sigEl.innerHTML:'<div style="padding:10px;color:var(--ink3)">신호 없음</div>';
+        break;
+      case 'news':
+        const nwEl=document.getElementById('news');
+        html=nwEl?nwEl.innerHTML:'<div style="padding:10px;color:var(--ink3)">뉴스 없음</div>';
+        break;
+      case 'overview':
+        const glEl=document.getElementById('globals');
+        html=glEl?glEl.innerHTML:'<div style="padding:10px;color:var(--ink3)">시장 데이터 없음</div>';
+        break;
+    }
+    contentEl.innerHTML=html;
+  }
+
+  tabEls.forEach(tab=>{
+    tab.onclick=()=>{
+      tabEls.forEach(t=>t.classList.remove('on'));
+      tab.classList.add('on');
+      mobActivePanel=tab.dataset.mpanel;
+      renderMobPanel();
+    };
+  });
+
+  // Periodic mobile panel refresh
+  setInterval(()=>{if(isMob()) renderMobPanel();}, 3000);
+
+  // Initial render on load
+  window.addEventListener('load',()=>{
+    if(isMob()){renderMobQuotes(); renderMobPanel();}
+  });
+
+  // Handle resize transitions
+  window.addEventListener('resize',()=>{
+    if(isMob()){renderMobQuotes(); renderMobPanel();}
+  });
 })();
 </script>
 </body>
