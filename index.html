@@ -9376,9 +9376,13 @@ function renderPaperTrading(data){
   if(data.positions && data.positions.length){
     html+='<div style="padding:2px 8px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid #101010;margin-top:2px">OPEN POSITIONS</div>';
     data.positions.forEach(p=>{
-      const dirCol=p.side==='LONG'||p.side==='BUY'?'var(--up-text)':'var(--down-text)';
-      const unrealPnl=p.unrealizedPnl||0;
-      html+=`<div class="pt-row"><span style="color:${dirCol};font-weight:700">${(p.side||'').slice(0,1)} ${p.symbol||''}</span><span style="color:var(--ink2)">E:${fmtPrice(p.entry||0)}</span><span style="color:${unrealPnl>=0?'var(--up-text)':'var(--down-text)'}">${unrealPnl>=0?'+':''}${unrealPnl.toFixed(2)}%</span></div>`;
+      const dir = p.direction || p.side || '';
+      const isLong = dir === 'BUY' || dir === 'LONG';
+      const dirCol = isLong ? 'var(--up-text)' : 'var(--down-text)';
+      const entry = p.entryPrice || p.entry || 0;
+      const cost = p.costBasis || 0;
+      const qty = p.quantity || 0;
+      html+=`<div class="pt-row"><span style="color:${dirCol};font-weight:700">${dir.slice(0,1)} ${p.symbol||''}</span><span style="color:var(--ink2)">$${fmtPrice(entry)}</span><span style="color:var(--ink2)">$${fmtBig(cost)}</span></div>`;
     });
   }
   // Recent trades
@@ -9403,7 +9407,9 @@ function paperTradingOverlay(){
     if(d.positions&&d.positions.length){
       html+='<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">OPEN POSITIONS</div>';
       d.positions.forEach(p=>{
-        html+=`<div class="rowline"><span style="color:${p.side==='LONG'?'var(--up-text)':'var(--down-text)'};font-weight:700">${p.side} ${p.symbol}</span><span>E: $${fmtPrice(p.entry||0)} / SL: $${fmtPrice(p.sl||0)} / TP: $${fmtPrice(p.tp||0)}</span></div>`;
+        const dir = p.direction || p.side || '';
+        const isLong = dir === 'BUY' || dir === 'LONG';
+        html+=`<div class="rowline"><span style="color:${isLong?'var(--up-text)':'var(--down-text)'};font-weight:700">${dir} ${p.symbol}</span><span>$${fmtPrice(p.entryPrice||p.entry||0)} / SL $${fmtPrice(p.slPrice||p.sl||0)} / TP $${fmtPrice(p.tpPrice||p.tp||0)}</span></div>`;
       });
     }
     if(d.recentTrades&&d.recentTrades.length){
@@ -9840,8 +9846,11 @@ async function investPnlOverlay() {
   if (positions.length) {
     html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">OPEN POSITIONS (' + positions.length + ')</div>';
     positions.forEach(p => {
-      const pnlVal = p.unrealizedProfit || 0;
-      html += `<div class="rowline"><span style="color:${p.side === 'LONG' ? 'var(--up-text)' : 'var(--down-text)'};font-weight:600">${p.side.slice(0, 1)} ${p.symbol.replace('USDT', '')} ${p.leverage}x</span><b style="color:${_invClr(pnlVal)}">${_invFmt(pnlVal)}</b></div>`;
+      const dir = p.direction || p.side || '';
+      const isLong = dir === 'BUY' || dir === 'LONG';
+      const sym = (p.symbol || '').replace('USDT', '');
+      const cost = p.costBasis || 0;
+      html += `<div class="rowline"><span style="color:${isLong ? 'var(--up-text)' : 'var(--down-text)'};font-weight:600">${dir.slice(0,1)} ${sym} 20x</span><b style="color:var(--ink)">$${fmtBig(cost)}</b></div>`;
     });
   }
 
