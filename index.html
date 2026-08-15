@@ -238,13 +238,14 @@
   @keyframes panelflash{0%{background:#2a1c00;}100%{background:transparent;}}
   .pflash{animation:panelflash 1s ease-out 3;}
 
-  /* ── Kimchi premium ──────────────────────────── */
-  #kimchi table{width:100%; border-collapse:collapse; font-size:11px;}
-  #kimchi td,#kimchi th{padding:3px 8px; text-align:right; border-bottom:1px solid #101010;
-    font-variant-numeric:tabular-nums; white-space:nowrap;}
-  #kimchi th{color:var(--ink3); font-weight:400; font-size:10px;}
-  #kimchi td:first-child,#kimchi th:first-child{text-align:left;}
-  #kimchi .note{padding:3px 8px; color:var(--ink3); font-size:10px;}
+  /* ── Kimchi premium (제거됨) ──────────────────── */
+
+  /* ── Analysis Log (right col) ───────────────── */
+  #alog-body .alog-row{display:flex;gap:6px;padding:3px 8px;border-bottom:1px solid #101010;font-size:10px;line-height:1.4;}
+  #alog-body .alog-row .alog-t{color:var(--ink3);font-size:9px;white-space:nowrap;flex-shrink:0;}
+  #alog-body .alog-row .alog-m{color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  /* ── Console (right col) ────────────────────── */
+  #console-body{font-size:10px;padding:4px 8px;line-height:1.5;color:var(--ink2);}
 
   /* ── Learn Engine ─────────────────────────── */
   #signals .le-main{padding:6px 8px;}
@@ -1023,30 +1024,43 @@
       </div>
     </div>
 
-    <!-- RIGHT (260px): Positions + OrderBook + Trades -->
+    <!-- RIGHT (260px): Positions + Paper Stats + AI Signals + Analysis Log + Console -->
     <div class="col" id="rightcol">
       <!-- OPEN POSITIONS (가장 중요) -->
-      <div class="panel" style="flex:0 0 auto; max-height:45%;" id="pos-panel">
+      <div class="panel" style="flex:0 0 auto; max-height:35%;" id="pos-panel">
         <div class="ptitle" style="background:#120e05;color:var(--amber);">POSITIONS <small>보유 포지션</small>
           <span style="margin-left:auto;font-size:9px;color:var(--ink3);font-weight:400" id="pos-count">0</span>
           <span class="age" id="age-pos"></span>
         </div>
         <div class="pbody" id="pos-body"><div class="pos-empty">포지션 로드 중…</div></div>
       </div>
-      <!-- ORDER BOOK -->
+      <!-- PAPER STATS -->
+      <div class="panel" style="flex:0 0 auto;" id="r-paper">
+        <div class="ptitle">PAPER STATS <small>가상매매</small><span class="age" id="age-rpaper"></span></div>
+        <div class="pbody" id="r-paper-body"><div style="padding:6px 8px;color:var(--ink3);font-size:10px">데이터 로딩 중…</div></div>
+      </div>
+      <!-- AI SIGNALS -->
+      <div class="panel" style="flex:0 0 auto;" id="r-aisig">
+        <div class="ptitle">AI SIGNALS <small>최근 분석</small><span class="age" id="age-raisig"></span></div>
+        <div class="pbody" id="r-aisig-body"><div style="padding:6px 8px;color:var(--ink3);font-size:10px">시그널 로드 중…</div></div>
+      </div>
+      <!-- ANALYSIS LOG -->
+      <div class="panel" style="flex:0.6;">
+        <div class="ptitle">ANALYSIS LOG <small>알림 로그</small></div>
+        <div class="pbody" id="alog-body"><div style="padding:6px 8px;color:var(--ink3);font-size:10px">로그 없음</div></div>
+      </div>
+      <!-- CONSOLE -->
       <div class="panel" style="flex:1;">
-        <div class="ptitle">ORDER BOOK <small id="ob-sym">SOLUSDT</small><span class="age" id="age-ob"></span></div>
-        <div class="pbody" id="ob"><div class="obmsg">WebSocket 연결 중…<br><span style="font-size:10px">브라우저에서 직접 열면 실시간 호가가 표시됩니다.</span></div></div>
+        <div class="ptitle">CONSOLE <small>시스템</small></div>
+        <div class="pbody" id="console-body">터미널 준비 중…</div>
       </div>
-      <!-- TRADES -->
-      <div class="panel" style="flex:0.8;">
-        <div class="ptitle">
-          <span class="ntab on" data-ftab="ts">체결</span>
-          <span class="ntab" data-ftab="lq">청산</span>
-          <small id="ts-sym" style="margin-left:2px">SOLUSDT</small>
-          <span class="age" id="age-ts"></span></div>
-        <div class="pbody" id="tsfeed"><div class="obmsg">체결 대기 중…</div></div>
-      </div>
+      <!-- Hidden stubs for JS compatibility -->
+      <div id="ob" style="display:none"></div>
+      <div id="tsfeed" style="display:none"></div>
+      <span id="ob-sym" style="display:none">SOLUSDT</span>
+      <span id="ts-sym" style="display:none">SOLUSDT</span>
+      <span id="age-ob" style="display:none"></span>
+      <span id="age-ts" style="display:none"></span>
     </div>
 
     <!-- HIDDEN: panels moved from right col (keep for JS compatibility) -->
@@ -1076,9 +1090,7 @@
   <!-- Mobile: bottom toggle panels (hidden on desktop) -->
   <div id="mob-bottom" style="display:none">
     <div id="mob-bottom-tabs">
-      <div class="mob-tab on" data-mpanel="orderbook">호가</div>
-      <div class="mob-tab" data-mpanel="trades">체결</div>
-      <div class="mob-tab" data-mpanel="signals">AI 신호</div>
+      <div class="mob-tab on" data-mpanel="signals">AI 신호</div>
       <div class="mob-tab" data-mpanel="news">뉴스</div>
       <div class="mob-tab" data-mpanel="overview">시장</div>
     </div>
@@ -3294,10 +3306,10 @@ function wsSend(o){ try{ if(WS.sock&&WS.sock.readyState===1) WS.sock.send(JSON.s
 function wsConnect(){
   if(typeof WebSocket==="undefined") return;
   try{ WS.sock=new WebSocket("wss://stream.bybit.com/v5/public/linear"); }catch(e){ return wsRetry(); }
-  WS.sock.onopen=()=>{ WS.retry=0; S.wsAlive=true; setLED();
+  WS.sock.onopen=()=>{ WS.retry=0; S.wsAlive=true; setLED(); if(typeof _pushConsole==='function') _pushConsole("WebSocket 연결 성공");
     wsSend({op:"subscribe",args:[...wsBase(),...wsTopics(S.sym)]}); };
   WS.sock.onmessage=ev=>{ try{ handleWsMsg(JSON.parse(ev.data)); }catch(e){} };
-  WS.sock.onclose=()=>{ S.wsAlive=false; setLED(); wsRetry(); };
+  WS.sock.onclose=()=>{ S.wsAlive=false; setLED(); if(typeof _pushConsole==='function') _pushConsole("WebSocket 연결 끊김 — 재접속…"); wsRetry(); };
   WS.sock.onerror=()=>{ try{WS.sock.close();}catch(e){} };
 }
 function wsRetry(){ clearTimeout(WS.timer); WS.timer=setTimeout(wsConnect, Math.min(15000, 1000*Math.pow(2,WS.retry++))); }
@@ -3361,39 +3373,10 @@ setInterval(()=>{  // 렌더 스로틀 (WS 메시지 폭주 방지)
 }, 400);
 
 function renderOB(){
-  const el=$("ob"); if(!el) return;
-  if(!OB.bids.size&&!OB.asks.size){
-    el.innerHTML='<div class="obmsg">호가 대기 중…<br><span style="font-size:10px">WebSocket 연결 후 표시됩니다</span></div>'; return;
-  }
-  const asks=[...OB.asks.entries()].map(([p,s])=>[+p,s]).sort((a,b)=>a[0]-b[0]).slice(0,11);
-  const bids=[...OB.bids.entries()].map(([p,s])=>[+p,s]).sort((a,b)=>b[0]-a[0]).slice(0,11);
-  let cum=0; const asksC=asks.map(([p,s])=>[p,s,cum+=s]); const maxA=cum;
-  cum=0;     const bidsC=bids.map(([p,s])=>[p,s,cum+=s]); const maxB=cum;
-  const maxC=Math.max(maxA,maxB)||1;
-  const row=(p,s,c,cls)=>`<div class="obrow ${cls}"><div class="bar" style="width:${(c/maxC*100).toFixed(1)}%"></div><span>${fmtPrice(p)}</span><span>${fmtBig(s)}</span><span>${fmtBig(c)}</span></div>`;
-  const bb=bids[0]?bids[0][0]:0, ba=asks[0]?asks[0][0]:0;
-  el.innerHTML =
-    `<div class="obhead"><span>PRICE</span><span>SIZE</span><span>CUM</span></div>`
-    + asksC.reverse().map(([p,s,c])=>row(p,s,c,"a")).join("")
-    + `<div class="obmid"><span>${fmtPrice((ba+bb)/2)}</span><span style="color:var(--ink3);font-weight:400">SPR ${fmtPrice(ba-bb)}</span></div>`
-    + bidsC.map(([p,s,c])=>row(p,s,c,"b")).join("");
+  return; // 오더북 패널 제거됨 — OB 데이터는 DEPTH 명령에서 여전히 사용
 }
 function renderFeed(){
-  const el=$("tsfeed"); if(!el) return;
-  if(S.feedTab==="ts"){
-    if(!TS.length){ el.innerHTML='<div class="obmsg">체결 대기 중…</div>'; return; }
-    el.innerHTML=TS.slice(0,45).map(t=>{
-      const usd=t.p*t.v, cls=usd>=250000?"huge":usd>=50000?"big":"";
-      return `<div class="fr ${cls}"><span>${new Date(t.t).toLocaleTimeString("en-GB",{hour12:false})}</span><span class="${t.side==="Buy"?"u":"d"}">${fmtPrice(t.p)}</span><span>${fmtBig(t.v)}</span><span>$${fmtBig(usd)}</span></div>`;
-    }).join("");
-  } else {
-    if(!LQ.length){ el.innerHTML='<div class="obmsg">청산 대기 중… (전체 관심종목)</div>'; return; }
-    el.innerHTML=LQ.slice(0,45).map(q=>{
-      const usd=q.p*q.v, cls=usd>=500000?"huge":usd>=100000?"big":"";
-      const isLong=q.side==="Sell";  // 롱 청산 = 강제 매도
-      return `<div class="fr ${cls}"><span>${new Date(q.t).toLocaleTimeString("en-GB",{hour12:false})}</span><span><b>${q.sym}</b></span><span class="${isLong?"d":"u"}">${isLong?"롱청산":"숏청산"}</span><span>$${fmtBig(usd)}</span></div>`;
-    }).join("");
-  }
+  return; // 체결 패널 제거됨 — TS/LQ 데이터는 WHALE/FLOW 명령에서 여전히 사용
 }
 
 /* ═══════════════ ALERT LOG + BEEP ═══════════════ */
@@ -3766,33 +3749,9 @@ async function loadSparks(){
   if(S.qtab==="watch") renderQuotes();
 }
 
-/* 김치 프리미엄 (업비트 현물 vs USDT 무기한 × USD/KRW) */
+/* 김치 프리미엄 — 패널 제거됨, loadMacro만 호출 */
 async function loadKimchi(){
-  try{
-    if(!S.usdkrw){
-      try{ const fx=await fetchJson("https://open.er-api.com/v6/latest/USD");
-        if(fx&&fx.rates&&fx.rates.KRW) S.usdkrw=fx.rates.KRW; }catch(e){}
-    }
-    const krwSyms=SYMBOLS.filter(s=>KRW_OK.includes(s));
-    if(!krwSyms.length) return;
-    const up=await fetchJson("https://api.upbit.com/v1/ticker?markets="+krwSyms.map(s=>"KRW-"+s).join(","));
-    const rows=krwSyms.map(s=>{
-      const u=up.find(x=>x.market==="KRW-"+s), q=S.quotes[s];
-      if(!u||!q||!q.last||!S.usdkrw) return "";
-      const prem=(u.trade_price/(q.last*S.usdkrw)-1)*100;
-      return `<tr><td>${s}</td><td>₩${u.trade_price.toLocaleString()}</td><td class="${prem>=0?"d":"u"}">${prem>=0?"+":""}${prem.toFixed(2)}%</td></tr>`;
-    }).join("");
-    if(rows.replace(/\s/g,"")){
-      $("kimchi").innerHTML=`<table><thead><tr><th>SYM</th><th>업비트 현물</th><th>김프</th></tr></thead><tbody>${rows}</tbody></table>
-        <div class="note">USD/KRW ${S.usdkrw?Math.round(S.usdkrw).toLocaleString():"—"} · 양수 = 국내가 비쌈</div>`;
-      setAge("kim"); S.srcHealth.ok++; setLED();
-    }
-    loadMacro();
-  }catch(e){
-    S.srcHealth.fail++; setLED();
-    if(!$("kimchi").querySelector("table"))
-      $("kimchi").innerHTML='<div class="note">업비트 API 접근 대기 중…</div>';
-  }
+  try{ loadMacro(); }catch(e){}
 }
 
 /* 매크로 자산: DXY(일간 환율 근사) · 금(PAXG 실시간) */
@@ -4759,7 +4718,7 @@ async function loadQuotes(){
     renderQuotes(); renderTape(); setAge("quotes"); tickAges(); checkPriceAlerts();
     const aq=S.quotes[S.sym];   // keep funding cell fresh from ticker data
     if(aq && aq.fundingRate!=null) applyFunding({rate:aq.fundingRate, next:aq.nextFundingTime});
-    if(!$("kimchi").querySelector("table")) loadKimchi();   // 시세 확보 후 김프 재시도
+    // kimchi panel removed
   }catch(e){ /* keep last data */ }
 }
 
@@ -9333,31 +9292,7 @@ function buildEconomicCalendar(){
   return evs;
 }
 function renderEconomicCalendar(){
-  const el=$("ecocalendar"); if(!el) return;
-  const evs=buildEconomicCalendar();
-  if(!evs.length){ el.innerHTML='<div style="padding:8px;color:var(--ink3)">예정 이벤트 없음</div>'; return; }
-  const now=Date.now();
-  const DAY=864e5;
-  el.innerHTML=evs.map(e=>{
-    const d=e.t-now;
-    const dd=Math.floor(d/DAY), hh=Math.floor(d%DAY/36e5), mm=Math.floor(d%36e5/6e4);
-    let urgency='', cdColor='var(--ink3)', cdText='';
-    if(d<0){ urgency=''; cdText='<span style="color:var(--ink3)">발표됨</span>'; }
-    else if(d<DAY){ urgency='eco-today'; cdColor='var(--down-text)'; cdText=d<36e5?`${mm}분`:`${hh}h${pad2(mm)}m`; }
-    else if(d<2*DAY){ urgency='eco-tomorrow'; cdColor='var(--amber)'; cdText=`내일`; }
-    else if(d<7*DAY){ urgency=''; cdColor='var(--amber)'; cdText=`${dd}일`; }
-    else { cdText=`${dd}일`; }
-    const dt=new Date(e.t);
-    const dateStr=`${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())}`;
-    const icon=e.n.includes('FOMC')?'★':e.n.includes('CPI')?'●':e.n.includes('NFP')?'◆':'·';
-    return `<div class="eco-ev ${urgency}">
-      <span style="color:var(--amber);min-width:10px">${icon}</span>
-      <span class="eco-name">${e.n}</span>
-      <span class="eco-date">${dateStr}</span>
-      <span class="eco-cd" style="color:${cdColor}">${cdText}</span>
-    </div>`;
-  }).join("");
-  setAge("ecal");
+  return; // 중복 캘린더 제거 — renderEco() + economicCalendarOverlay()만 사용
 }
 function economicCalendarOverlay(){
   const evs=buildEconomicCalendar();
@@ -9773,12 +9708,10 @@ function postBootUpgrade(){
 
   // All panels always visible — load immediately
   setTimeout(()=>{
-    renderEconomicCalendar();
     loadPaperTrading();
     loadFundingHeatmap();
     loadRealPortfolio();
   }, 2000);
-  setInterval(()=>{ renderEconomicCalendar(); }, 60000);
   setInterval(()=>{ loadPaperTrading(); }, 15000);
   setInterval(()=>{ loadFundingHeatmap(); }, 300000);
   setInterval(()=>{ loadRealPortfolio(); }, 60000);
@@ -10570,7 +10503,7 @@ document.getElementById("cmd").addEventListener("keydown", function(e) {
   }
 
   /* ── Mobile bottom panels ── */
-  let mobActivePanel='orderbook';
+  let mobActivePanel='signals';
   const tabEls=mobBot.querySelectorAll('.mob-tab');
   const contentEl=document.getElementById('mob-panel-content');
 
@@ -10578,14 +10511,6 @@ document.getElementById("cmd").addEventListener("keydown", function(e) {
     if(!isMob()||!contentEl) return;
     let html='';
     switch(mobActivePanel){
-      case 'orderbook':
-        const obEl=document.getElementById('ob');
-        html=obEl?obEl.innerHTML:'<div style="padding:10px;color:var(--ink3)">호가 데이터 없음</div>';
-        break;
-      case 'trades':
-        const tsEl=document.getElementById('tsfeed');
-        html=tsEl?tsEl.innerHTML:'<div style="padding:10px;color:var(--ink3)">체결 데이터 없음</div>';
-        break;
       case 'signals':
         const sigEl=document.getElementById('signals');
         html=sigEl?sigEl.innerHTML:'<div style="padding:10px;color:var(--ink3)">신호 없음</div>';
@@ -12071,11 +11996,65 @@ setTimeout(() => { loadDrawings(); }, 1000);
     setTimeout(updateBottomBar, 5000);
   }
 
+  /* ── Right-column: Analysis Log + Console renderers ── */
+  const _consoleLog = [];
+  function _pushConsole(msg){
+    _consoleLog.unshift({t:Date.now(), msg});
+    if(_consoleLog.length>50) _consoleLog.length=50;
+    _renderConsole();
+  }
+  function _renderConsole(){
+    const el=$("console-body"); if(!el) return;
+    if(!_consoleLog.length){ el.textContent="터미널 준비 중…"; return; }
+    el.innerHTML=_consoleLog.slice(0,20).map(l=>{
+      const t=new Date(l.t);
+      return `<div style="border-bottom:1px solid #0e0e0e;padding:1px 0"><span style="color:var(--ink3);font-size:9px">${pad2(t.getHours())}:${pad2(t.getMinutes())}:${pad2(t.getSeconds())}</span> ${l.msg}</div>`;
+    }).join("");
+  }
+  function _renderALog(){
+    const el=$("alog-body"); if(!el) return;
+    if(!ALOG.length){ el.innerHTML='<div style="padding:6px 8px;color:var(--ink3);font-size:10px">로그 없음</div>'; return; }
+    el.innerHTML=ALOG.slice(0,15).map(l=>{
+      const t=new Date(l.t);
+      return `<div class="alog-row"><span class="alog-t">${pad2(t.getHours())}:${pad2(t.getMinutes())}</span><span class="alog-m">${l.msg.replace(/[\u{1F300}-\u{1F9FF}]/gu,'').trim()}</span></div>`;
+    }).join("");
+  }
+  function _renderRightPaper(){
+    const el=$("r-paper-body"); if(!el) return;
+    const src=$("papertrading");
+    if(src) el.innerHTML=src.innerHTML;
+  }
+  function _renderRightAISig(){
+    const el=$("r-aisig-body"); if(!el) return;
+    const src=$("ai-signals-body");
+    if(src) el.innerHTML=src.innerHTML;
+  }
+
+  // Hook into pushLog to also feed Analysis Log + Console
+  const _origPushLog = pushLog;
+  pushLog = function(msg){
+    _origPushLog(msg);
+    _renderALog();
+    _pushConsole(msg);
+  };
+
+  // Periodic sync for right-column panels
+  setInterval(()=>{
+    _renderRightPaper();
+    _renderRightAISig();
+    _renderALog();
+  }, 3000);
+
   // Wait for boot
   const _dashWatcher = setInterval(() => {
     if (typeof _booted !== 'undefined' && _booted) {
       clearInterval(_dashWatcher);
-      setTimeout(dashboardBoot, 1500);
+      setTimeout(()=>{
+        dashboardBoot();
+        _pushConsole("시스템 부팅 완료");
+        _pushConsole("WebSocket 연결 대기 중…");
+        _renderALog();
+      }, 1500);
     }
   }, 300);
 })();
