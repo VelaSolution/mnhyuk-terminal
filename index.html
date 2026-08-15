@@ -72,7 +72,7 @@
   /* ── Main grid ───────────────────────────────── */
   #main{
     flex:1 1 auto; display:grid; min-height:0;
-    grid-template-columns:220px minmax(0,1fr) 260px; gap:1px; background:var(--border2); padding:1px;
+    grid-template-columns:220px minmax(0,1fr) 280px; gap:1px; background:var(--border2); padding:1px;
   }
   .col{display:flex; flex-direction:column; gap:1px; min-width:0; min-height:0;}
   .panel{
@@ -188,30 +188,11 @@
   #tapetrack span{margin-right:28px; color:var(--ink2);}
   #tapetrack b{color:var(--ink); font-weight:600;}
 
-  /* ── Order book / tape feeds (col4) ─────────── */
+  /* ── Misc tab/button ─────────────────────────── */
   .ntab{cursor:pointer; padding:1px 8px; border:1px solid var(--border); color:var(--ink2);
     font-size:10px; letter-spacing:1px; user-select:none;}
   .ntab:hover{color:var(--ink);}
   .ntab.on{color:#000; background:var(--amber); border-color:var(--amber); font-weight:700;}
-  #ob{font-size:11px;}
-  .obrow{display:grid; grid-template-columns:1.2fr 1fr 1.1fr; padding:1px 8px; position:relative;
-    font-variant-numeric:tabular-nums; line-height:1.5;}
-  .obrow>span{position:relative; z-index:1; text-align:right; white-space:nowrap;}
-  .obrow>span:first-child{text-align:left;}
-  .obrow .bar{position:absolute; right:0; top:1px; bottom:1px; z-index:0;}
-  .obrow.a .bar{background:rgba(229,72,77,.13);} .obrow.b .bar{background:rgba(0,160,140,.13);}
-  .obrow.a>span:first-child{color:var(--down-text);} .obrow.b>span:first-child{color:var(--up-text);}
-  .obmid{display:flex; justify-content:space-between; padding:3px 8px; background:#101010;
-    border-top:1px solid var(--border2); border-bottom:1px solid var(--border2); font-weight:700;}
-  .obhead{display:grid; grid-template-columns:1.2fr 1fr 1.1fr; padding:2px 8px; color:var(--ink3); font-size:10px;
-    border-bottom:1px solid var(--border2); position:sticky; top:0; background:var(--panel);}
-  .obhead span{text-align:right;} .obhead span:first-child{text-align:left;}
-  .obmsg{padding:12px 10px; color:var(--ink3); line-height:1.6;}
-  #tsfeed .fr{display:grid; grid-template-columns:52px 1fr 1fr 1fr; padding:1px 8px;
-    font-size:10.5px; font-variant-numeric:tabular-nums; border-bottom:1px solid #0e0e0e; white-space:nowrap;}
-  #tsfeed .fr span{text-align:right;} #tsfeed .fr span:first-child{text-align:left; color:var(--ink3);}
-  #tsfeed .fr.big{background:#1a1205;}
-  #tsfeed .fr.huge{background:#241205; font-weight:700;}
 
   /* ── Scanner / price alerts / eco ────────────── */
   .scrow{display:grid; grid-template-columns:1fr 1.2fr auto; gap:6px; padding:3px 10px;
@@ -237,8 +218,6 @@
   #eco .rowline span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   @keyframes panelflash{0%{background:#2a1c00;}100%{background:transparent;}}
   .pflash{animation:panelflash 1s ease-out 3;}
-
-  /* ── Kimchi premium (제거됨) ──────────────────── */
 
   /* ── Analysis Log (right col) ───────────────── */
   #alog-body .alog-row{display:flex;gap:6px;padding:3px 8px;border-bottom:1px solid #101010;font-size:10px;line-height:1.4;}
@@ -304,19 +283,19 @@
   #pt-compact .ptc-pos{padding:3px 8px;font-size:9px;border-bottom:1px solid #101010;display:flex;justify-content:space-between;cursor:pointer;}
   #pt-compact .ptc-pos:hover{background:#131313;}
 
-  /* ── AI Signals list (left col) ─────────────── */
-  #ai-signals-list .ais-item{padding:5px 8px;border-bottom:1px solid #101010;cursor:pointer;font-size:10px;}
-  #ai-signals-list .ais-item:hover{background:#131313;}
-  #ai-signals-list .ais-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
-  #ai-signals-list .ais-sym{font-weight:700;color:var(--ink);}
-  #ai-signals-list .ais-dir{font-weight:700;font-size:9px;padding:1px 4px;letter-spacing:.5px;}
-  #ai-signals-list .ais-dir.buy{color:var(--up-text);background:rgba(0,160,140,.1);}
-  #ai-signals-list .ais-dir.sell{color:var(--down-text);background:rgba(229,72,77,.1);}
-  #ai-signals-list .ais-dir.hold{color:var(--ink3);background:rgba(100,100,100,.1);}
-  #ai-signals-list .ais-conf{height:3px;background:#1a1a1a;margin-top:3px;}
-  #ai-signals-list .ais-conf .fill{height:100%;transition:width .4s;}
-  #ai-signals-list .ais-time{color:var(--ink3);font-size:9px;}
-  #ai-signals-list .ais-empty{padding:10px 8px;color:var(--ink3);font-size:10px;text-align:center;}
+  /* ── AI Signals list ─────────────────────────── */
+  .ais-item{padding:5px 8px;border-bottom:1px solid #101010;cursor:pointer;font-size:10px;}
+  .ais-item:hover{background:#131313;}
+  .ais-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
+  .ais-sym{font-weight:700;color:var(--ink);}
+  .ais-dir{font-weight:700;font-size:9px;padding:1px 4px;letter-spacing:.5px;}
+  .ais-dir.buy{color:var(--up-text);background:rgba(0,160,140,.1);}
+  .ais-dir.sell{color:var(--down-text);background:rgba(229,72,77,.1);}
+  .ais-dir.hold{color:var(--ink3);background:rgba(100,100,100,.1);}
+  .ais-conf{height:3px;background:#1a1a1a;margin-top:3px;}
+  .ais-conf .fill{height:100%;transition:width .4s;}
+  .ais-time{color:var(--ink3);font-size:9px;}
+  .ais-empty{padding:10px 8px;color:var(--ink3);font-size:10px;text-align:center;}
 
   /* ── Bottom status bar ──────────────────────── */
   #bottombar{
@@ -375,7 +354,7 @@
   @media (max-width:1100px){
     #rightcol{display:none;} #main{grid-template-columns:220px minmax(0,1fr);}
   }
-  @media (max-width:800px){
+  @media (max-width:860px){
     #leftcol{display:none;} #main{grid-template-columns:1fr;}
   }
 
@@ -466,7 +445,6 @@
     /* ── Touch targets ── */
     .ntab{padding:4px 10px; min-height:36px; display:inline-flex; align-items:center; font-size:11px;}
     .ptitle{padding:6px 8px; font-size:11px; min-height:36px;}
-    .obrow{padding:4px 8px; min-height:36px; line-height:1.8; font-size:12px;}
     .scrow{padding:6px 10px; min-height:44px; font-size:12px;}
 
     /* ── Bottom tape ── */
@@ -476,8 +454,6 @@
     .rowline{font-size:12px; padding:6px 10px;}
     #quotes td{padding:6px 8px; font-size:12px;}
     #quotes th{font-size:11px; padding:4px 8px;}
-    #ob{font-size:12px;}
-    .obmid{font-size:13px; padding:6px 8px;}
   }
 
   /* ── Col3 (RIGHT) panel density ──────────────── */
@@ -576,15 +552,6 @@
   #statusstrip .ss-item{display:flex;align-items:center;gap:4px;white-space:nowrap;}
   #statusstrip .ss-item b{color:var(--ink);font-weight:600;}
   #statusstrip .ss-sep{width:1px;height:12px;background:var(--border);flex-shrink:0;}
-
-  /* ── Economic Calendar panel ────────────────── */
-  #ecocalendar .eco-ev{display:flex;justify-content:space-between;align-items:center;padding:3px 8px;border-bottom:1px solid #101010;font-size:10px;gap:4px;}
-  #ecocalendar .eco-ev:hover{background:#111;}
-  #ecocalendar .eco-ev .eco-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink2);}
-  #ecocalendar .eco-ev .eco-date{color:var(--ink3);font-size:9px;white-space:nowrap;min-width:55px;text-align:right;}
-  #ecocalendar .eco-ev .eco-cd{font-weight:700;min-width:55px;text-align:right;white-space:nowrap;}
-  #ecocalendar .eco-ev.eco-today{background:#2a1c00;}
-  #ecocalendar .eco-ev.eco-tomorrow{background:#1a1205;}
 
   /* ── Paper Trading panel ────────────────────── */
   #papertrading .pt-row{display:flex;justify-content:space-between;padding:3px 8px;border-bottom:1px solid #101010;font-size:10px;}
@@ -885,42 +852,38 @@
         <div class="ptitle">PAPER TRADER <small>가상매매</small><span class="age" id="age-paper"></span></div>
         <div class="pbody" id="papertrading"><div style="padding:6px;color:var(--ink3)">데이터 로딩 중…</div></div>
       </div>
-      <!-- AI SIGNALS (recent 3) -->
-      <div class="panel" style="flex:0 0 auto;" id="ai-signals-list">
-        <div class="ptitle">AI SIGNALS <small>최근 분석</small><span class="age" id="age-aisig"></span></div>
-        <div class="pbody" id="ai-signals-body"><div class="ais-empty">시그널 로드 중…</div></div>
+      <!-- MARKET OVERVIEW (MCAP, Volume, BTC.D, FNG) -->
+      <div class="panel" style="flex:0 0 auto;" id="market-overview">
+        <div class="ptitle">MARKET OVERVIEW <small>시장 요약</small><span class="age" id="age-glob"></span></div>
+        <div class="pbody" id="globals">
+          <div class="rowline"><span>TOTAL MCAP</span><b id="g-mcap">—</b></div>
+          <div class="rowline"><span>24H VOLUME</span><b id="g-vol">—</b></div>
+          <div class="rowline"><span>BTC DOMINANCE</span><b id="g-btcd">—</b></div>
+          <div class="rowline"><span>ETH DOMINANCE</span><b id="g-ethd">—</b></div>
+          <div class="rowline"><span>DXY</span><b id="g-dxy">—</b></div>
+          <div class="rowline"><span>GOLD</span><b id="g-gold">—</b></div>
+          <div class="rowline"><span>USD / KRW</span><b id="g-usdkrw">—</b></div>
+          <div class="rowline"><span>BTC 24H HIGH/LOW</span><b id="g-btchl">—</b></div>
+          <div class="rowline"><span>ETH/BTC</span><b id="g-ethbtc">—</b></div>
+          <div id="fng">
+            <div style="display:flex;justify-content:space-between;">
+              <span>FEAR &amp; GREED</span>
+              <b id="fngval">—</b>
+            </div>
+            <div id="fngbar"><div id="fngmark" style="left:50%"></div></div>
+            <div id="fngtext"><span>공포 0</span><span>탐욕 100</span></div>
+            <div id="fng-spark"></div>
+          </div>
+          <div>
+            <div id="g-dom-bar" style="display:flex;height:8px;border:1px solid #222;overflow:hidden;"></div>
+            <div id="g-dom-labels" style="display:flex;justify-content:space-between;font-size:9px;color:var(--ink3);margin-top:2px;"></div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- HIDDEN: original globals data holders (keep for JS compatibility) -->
-    <div style="display:none">
-      <div id="kimchi"></div>
-      <div id="globals">
-        <div class="rowline"><span>TOTAL MCAP</span><b id="g-mcap">—</b></div>
-        <div class="rowline"><span>24H VOLUME</span><b id="g-vol">—</b></div>
-        <div class="rowline"><span>BTC DOMINANCE</span><b id="g-btcd">—</b></div>
-        <div class="rowline"><span>ETH DOMINANCE</span><b id="g-ethd">—</b></div>
-        <div class="rowline"><span>DXY</span><b id="g-dxy">—</b></div>
-        <div class="rowline"><span>GOLD</span><b id="g-gold">—</b></div>
-        <div class="rowline"><span>USD / KRW</span><b id="g-usdkrw">—</b></div>
-        <div class="rowline"><span>BTC 24H HIGH/LOW</span><b id="g-btchl">—</b></div>
-        <div class="rowline"><span>ETH/BTC</span><b id="g-ethbtc">—</b></div>
-        <div id="fng">
-          <div style="display:flex;justify-content:space-between;">
-            <span style="color:var(--ink2)">FEAR &amp; GREED</span>
-            <b id="fngval">—</b>
-          </div>
-          <div id="fngbar"><div id="fngmark" style="left:50%"></div></div>
-          <div id="fngtext"><span>공포 0</span><span>탐욕 100</span></div>
-          <div id="fng-spark"></div>
-        </div>
-        <div>
-          <div id="g-dom-bar" style="display:flex;height:8px;border:1px solid #222;overflow:hidden;"></div>
-          <div id="g-dom-labels" style="display:flex;justify-content:space-between;font-size:9px;color:var(--ink3);margin-top:2px;"></div>
-        </div>
-      </div>
-      <div id="eco"></div>
-    </div>
+    <!-- Hidden stubs for JS compat -->
+    <div style="display:none"><div id="kimchi"></div></div>
 
     <!-- CENTER -->
     <div class="col" id="centercol">
@@ -1065,9 +1028,9 @@
       </div>
     </div>
 
-    <!-- RIGHT (260px): Positions + Paper Stats + AI Signals + Analysis Log + Console -->
+    <!-- RIGHT (280px): Positions → AI Signals → Calendar → Console -->
     <div class="col" id="rightcol">
-      <!-- OPEN POSITIONS (가장 중요) -->
+      <!-- 1. POSITIONS (최상단, 가장 중요) -->
       <div class="panel" style="flex:0 0 auto; max-height:35%;" id="pos-panel">
         <div class="ptitle" style="background:#120e05;color:var(--amber);">POSITIONS <small>보유 포지션</small>
           <span style="margin-left:auto;font-size:9px;color:var(--ink3);font-weight:400" id="pos-count">0</span>
@@ -1075,55 +1038,53 @@
         </div>
         <div class="pbody" id="pos-body"><div class="pos-empty">포지션 로드 중…</div></div>
       </div>
-      <!-- PAPER STATS -->
-      <div class="panel" style="flex:0 0 auto;" id="r-paper">
-        <div class="ptitle">PAPER STATS <small>가상매매</small><span class="age" id="age-rpaper"></span></div>
-        <div class="pbody" id="r-paper-body"><div style="padding:6px 8px;color:var(--ink3);font-size:10px">데이터 로딩 중…</div></div>
-      </div>
-      <!-- AI SIGNALS -->
+      <!-- 2. AI SIGNALS (최근 분석 3건) -->
       <div class="panel" style="flex:0 0 auto;" id="r-aisig">
         <div class="ptitle">AI SIGNALS <small>최근 분석</small><span class="age" id="age-raisig"></span></div>
         <div class="pbody" id="r-aisig-body"><div style="padding:6px 8px;color:var(--ink3);font-size:10px">시그널 로드 중…</div></div>
       </div>
-      <!-- ANALYSIS LOG -->
-      <div class="panel" style="flex:0.6;">
-        <div class="ptitle">ANALYSIS LOG <small>알림 로그</small></div>
-        <div class="pbody" id="alog-body"><div style="padding:6px 8px;color:var(--ink3);font-size:10px">로그 없음</div></div>
+      <!-- 3. CALENDAR (매크로 경제 캘린더 — 1개만) -->
+      <div class="panel" style="flex:0 0 auto;" id="eco-panel">
+        <div class="ptitle">CALENDAR <small>매크로 일정</small><span class="age" id="age-eco"></span></div>
+        <div class="pbody" id="eco"><div class="rowline"><span style="color:var(--ink3)">이벤트 로드 중…</span></div></div>
       </div>
-      <!-- CONSOLE -->
+      <!-- 4. CONSOLE (시스템 로그 + 알림) -->
       <div class="panel" style="flex:1;">
         <div class="ptitle">CONSOLE <small>시스템</small></div>
         <div class="pbody" id="console-body">터미널 준비 중…</div>
       </div>
-      <!-- Hidden stubs for JS compatibility -->
-      <div id="ob" style="display:none"></div>
-      <div id="tsfeed" style="display:none"></div>
-      <span id="ob-sym" style="display:none">SOLUSDT</span>
-      <span id="ts-sym" style="display:none">SOLUSDT</span>
-      <span id="age-ob" style="display:none"></span>
-      <span id="age-ts" style="display:none"></span>
     </div>
 
-    <!-- HIDDEN: panels moved from right col (keep for JS compatibility) -->
+    <!-- Hidden stubs for JS compatibility (removed panels) -->
     <div style="display:none" id="col4">
       <div id="signals"><div style="padding:6px;color:var(--ink3)">엔진 초기화 중…</div></div>
-      <div id="tt-panel" style="padding:4px 6px; font-size:10px; line-height:1.5;">
-        <div style="color:var(--ink3)">연결 대기 중…</div>
-      </div>
+      <div id="tt-panel" style="padding:4px 6px;font-size:10px;line-height:1.5;"><div style="color:var(--ink3)">연결 대기 중…</div></div>
       <div id="ecocalendar"></div>
       <div id="fundingheat"></div>
       <div id="realportfolio"></div>
       <div id="psizer" style="padding:4px 6px;">
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px; font-size:9px; margin-bottom:3px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px;font-size:9px;margin-bottom:3px;">
           <div><span style="color:var(--ink3)">자본</span><br><input id="ps-cap" value="10000" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:2px 3px;text-align:right;"></div>
           <div><span style="color:var(--ink3)">리스크%</span><br><input id="ps-risk" value="1" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:2px 3px;text-align:right;"></div>
           <div><span style="color:var(--ink3)">레버리지</span><br><input id="ps-lev" value="20" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:2px 3px;text-align:right;"></div>
         </div>
-        <div id="ps-result" style="font-size:9px; color:var(--ink2); line-height:1.4;">신호 선택 시 자동 계산</div>
+        <div id="ps-result" style="font-size:9px;color:var(--ink2);line-height:1.4;">신호 선택 시 자동 계산</div>
       </div>
       <span id="ntab-sym" style="display:none">SOL</span>
       <span id="ntab-kr" style="display:none"></span>
       <div id="news"><div class="item" style="color:var(--ink3)">로드 중…</div></div>
+      <div id="ob"></div>
+      <div id="tsfeed"></div>
+      <span id="ob-sym">SOLUSDT</span>
+      <span id="ts-sym">SOLUSDT</span>
+      <span id="age-ob"></span>
+      <span id="age-ts"></span>
+      <div id="r-paper"></div>
+      <div id="r-paper-body"></div>
+      <span id="age-rpaper"></span>
+      <div id="alog-body"></div>
+      <div id="ai-signals-body"></div>
+      <span id="age-aisig"></span>
     </div>
 
   </div>
@@ -3790,10 +3751,8 @@ async function loadSparks(){
   if(S.qtab==="watch") renderQuotes();
 }
 
-/* 김치 프리미엄 — 패널 제거됨, loadMacro만 호출 */
-async function loadKimchi(){
-  try{ loadMacro(); }catch(e){}
-}
+/* loadKimchi stub — 김치 프리미엄 완전 제거, loadMacro만 유지 */
+async function loadKimchi(){ try{ loadMacro(); }catch(e){} }
 
 /* 매크로 자산: DXY(일간 환율 근사) · 금(PAXG 실시간) */
 async function loadMacro(){
