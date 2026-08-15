@@ -589,8 +589,23 @@
   #fng-spark .fng-bar{width:100%;min-width:4px;transition:height .3s;}
 
   /* ── AI Signal Overlay Badge (on chart) ───── */
-  #ai-signal-overlay{position:absolute;top:8px;left:8px;z-index:6;display:none;pointer-events:auto;}
+  #ai-signal-overlay{position:absolute;top:8px;left:8px;z-index:10;display:none;pointer-events:auto;}
   #ai-signal-overlay.on{display:flex;flex-direction:column;gap:4px;}
+  /* ── TV Mode: AI Overlay on top-right ──── */
+  #ai-tv-overlay{position:absolute;top:8px;right:8px;z-index:10;display:none;pointer-events:auto;
+    background:rgba(8,8,8,.75);border:1px solid var(--amber-dim);padding:6px 10px;backdrop-filter:blur(6px);min-width:140px;}
+  #ai-tv-overlay.on{display:flex;flex-direction:column;gap:3px;}
+  #ai-tv-overlay .atv-action{font-weight:700;font-size:14px;letter-spacing:1px;}
+  #ai-tv-overlay .atv-conf{font-size:10px;color:var(--ink2);}
+  #ai-tv-overlay .atv-time{font-size:9px;color:var(--ink3);}
+  /* ── Watchlist quant signal icons ────── */
+  .qs-icon{font-size:9px;margin-left:3px;font-weight:700;}
+  .qs-icon.buy{color:var(--up-text);}
+  .qs-icon.sell{color:var(--down-text);}
+  .qs-icon.hold{color:var(--ink3);}
+  /* ── Positions PnL colors ──────────── */
+  #pos-panel .pos-live{font-size:10px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:1px;}
+  #pos-panel .pos-live .prc{color:var(--ink);font-weight:600;}
   .ai-sig-badge{
     display:flex;align-items:center;gap:6px;padding:5px 10px;
     background:rgba(8,8,8,.88);border:1px solid var(--border);
@@ -908,6 +923,12 @@
           <canvas id="chart"></canvas>
           <div id="chartmsg">데이터 로드 중…</div>
           <div id="tv-container" style="display:none;position:absolute;inset:0;width:100%;height:100%;z-index:3;background:#050505"></div>
+          <!-- AI TV Mode Overlay (top-right, semi-transparent) -->
+          <div id="ai-tv-overlay">
+            <div class="atv-action" id="atv-action" style="color:var(--ink3)">HOLD</div>
+            <div class="atv-conf" id="atv-conf">확신도 --%</div>
+            <div class="atv-time" id="atv-time">--:--</div>
+          </div>
           <!-- AI Signal Overlay Badge -->
           <div id="ai-signal-overlay">
             <div class="ai-sig-badge hold" id="ai-sig-main" onclick="toggleAIDetailPopup()">
@@ -4685,8 +4706,10 @@ function renderQuotes(){
     const cls=q.pct>=0?"u":"d", ar=q.pct>=0?"▲":"▼";
     const flash=q.flash==="u"?"fu":q.flash==="d"?"fd":"";
     const fr=q.fundingRate==null?"—":(q.fundingRate>=0?"+":"")+q.fundingRate.toFixed(4);
+    const qs=S._quantSignals&&S._quantSignals[s];
+    const qsIcon=qs?(qs.action==='BUY'?'<span class="qs-icon buy">▲</span>':qs.action==='SELL'?'<span class="qs-icon sell">▼</span>':'<span class="qs-icon hold">●</span>'):'';
     return `<tr data-sym="${s}" class="${s===S.sym?"on":""}">
-      <td>${s}${S.sparks[s]||""}</td><td class="${flash}">${fmtPrice(q.last)}</td>
+      <td>${s}${qsIcon}${S.sparks[s]||""}</td><td class="${flash}">${fmtPrice(q.last)}</td>
       <td class="${cls}">${ar}${Math.abs(q.pct).toFixed(2)}%</td>
       <td class="${q.fundingRate>=0?'n':'d'}">${fr}</td></tr>`;
   }).join("");
@@ -7711,6 +7734,8 @@ _booted = true;
     if(S.tvMode){
       c.style.display="block";
       $("tvbtn").classList.remove("off"); $("tvbtn").style.color="var(--amber)";
+      // Show TV AI overlay
+      const tvOvl=$("ai-tv-overlay"); if(tvOvl && AI_OVL && AI_OVL.data) tvOvl.classList.add("on");
       /* destroy previous widget if symbol/tf changed */
       if(tvWidget){ try{ tvWidget.remove(); }catch(e){} tvWidget=null; c.innerHTML=""; }
       if(typeof TradingView!=="undefined"){
@@ -7735,6 +7760,8 @@ _booted = true;
       c.style.display="none";
       if(tvWidget){ try{ tvWidget.remove(); }catch(e){} tvWidget=null; c.innerHTML=""; }
       $("tvbtn").style.color="";
+      // Hide TV AI overlay
+      const tvOvl=$("ai-tv-overlay"); if(tvOvl) tvOvl.classList.remove("on");
     }
   };
   $("tvbtn").onclick=()=>{ S.tvMode=!S.tvMode; window.__applyTv(); };
@@ -10623,6 +10650,20 @@ document.getElementById("cmd").addEventListener("keydown", function(e) {
 
     ovl.classList.add('on');
 
+    // TV mode overlay (top-right, semi-transparent)
+    const tvOvl = document.getElementById('ai-tv-overlay');
+    if (tvOvl) {
+      const atvAction = document.getElementById('atv-action');
+      const atvConf = document.getElementById('atv-conf');
+      const atvTime = document.getElementById('atv-time');
+      atvAction.textContent = action + ' ' + (d.sym || '');
+      atvAction.style.color = action === 'BUY' ? 'var(--up-text)' : action === 'SELL' ? 'var(--down-text)' : 'var(--ink3)';
+      atvConf.textContent = '확신도 ' + confidence + '%';
+      atvTime.textContent = timeStr;
+      if (S.tvMode) tvOvl.classList.add('on');
+      else tvOvl.classList.remove('on');
+    }
+
     // Store reasons for popup
     AI_OVL._reasons = reasons;
     AI_OVL._action = action;
@@ -11845,9 +11886,10 @@ setTimeout(() => { loadDrawings(); }, 1000);
       html += `<span style="color:${pnlCol}">${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}</span>`;
       html += `<span style="color:${pnlCol};font-size:12px">${roe >= 0 ? '+' : ''}${roe.toFixed(2)}%</span>`;
       html += `</div>`;
-      if (holdTime) {
-        html += `<div class="pos-time">보유 ${holdTime}</div>`;
-      }
+      html += `<div class="pos-live">`;
+      html += `<span class="prc">현재 $${typeof fmtPrice==='function'?fmtPrice(current):current}</span>`;
+      if (holdTime) html += ` · <span style="color:var(--ink3)">보유 ${holdTime}</span>`;
+      html += `</div>`;
       html += `</div>`;
     });
 
@@ -11984,6 +12026,26 @@ setTimeout(() => { loadDrawings(); }, 1000);
     }
   }
 
+  // ═══ 4. QUANT SIGNAL POLLING (WATCHLIST) ═══
+  if (!S._quantSignals) S._quantSignals = {};
+  async function loadQuantSignals() {
+    const coins = (typeof SYMBOLS !== 'undefined') ? SYMBOLS.slice(0, 8) : ['BTC','ETH','SOL'];
+    try {
+      const promises = coins.map(async sym => {
+        try {
+          const res = await fetch(`${TT_DASH}/api/quant/signal/${sym}`, { signal: AbortSignal.timeout(4000) });
+          if (!res.ok) return;
+          const d = await res.json();
+          if (d && (d.action || d.signal)) {
+            S._quantSignals[sym] = { action: d.action || d.signal || 'HOLD', confidence: d.confidence || 0 };
+          }
+        } catch {}
+      });
+      await Promise.allSettled(promises);
+      renderQuotes();
+    } catch {}
+  }
+
   // ═══ BOOT HOOKS ═══
   function dashboardBoot() {
     // Positions panel
@@ -11993,6 +12055,10 @@ setTimeout(() => { loadDrawings(); }, 1000);
     // AI Signals list
     setTimeout(loadAISignalsList, 3000);
     setInterval(loadAISignalsList, 20000);
+
+    // Quant signals for watchlist
+    setTimeout(loadQuantSignals, 2000);
+    setInterval(loadQuantSignals, 10000);
 
     // Bottom bar sync
     setInterval(updateBottomBar, 3000);
