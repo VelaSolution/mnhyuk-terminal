@@ -281,8 +281,14 @@ export default async function handler(req, res) {
           timestamp: new Date().toISOString(),
         };
 
-        // Trading Team 판정 이벤트면 Billion에도 전달
-        if (eventType === 'trading:decision' || eventType === 'trading:completed') {
+        // 이벤트 히스토리 (최근 50건) — SSE 및 조회용
+        if (!terminalState.eventHistory) terminalState.eventHistory = [];
+        terminalState.eventHistory.push(terminalState.lastEvent);
+        if (terminalState.eventHistory.length > 50) terminalState.eventHistory = terminalState.eventHistory.slice(-50);
+
+        // 모든 주요 이벤트를 Billion에 재전달 (decision, completed, paper, error, started)
+        const forwardTypes = ['trading:decision', 'trading:completed', 'trading:started', 'trading:error', 'paper:trade_opened', 'paper:trade_closed'];
+        if (forwardTypes.includes(eventType)) {
           const BILLION_URL = process.env.BILLION_URL || 'http://localhost:3847';
           try {
             await fetchWithTimeout(`${BILLION_URL}/api/motera`, {
@@ -304,6 +310,47 @@ export default async function handler(req, res) {
           type: eventType,
           timestamp: new Date().toISOString(),
         });
+      }
+
+      // ── paper: Paper Trader 프록시 (TT /api/paper/* 릴레이) ──
+      case 'paper': {
+        const paperAction = data?.paperAction || 'status'; // status, positions, history, close, start, stop, reset
+        const paperMethod = ['close', 'start', 'stop', 'reset'].includes(paperAction) ? 'POST' : 'GET';
+        const paperUrl = paperAction === 'close'
+          ? `${TRADING_TEAM_URL}/api/paper/close`
+          : `${TRADING_TEAM_URL}/api/paper/${paperAction}`;
+        try {
+          const ttRes = await fetchWithTimeout(paperUrl, {
+            method: paperMethod,
+            headers: { 'Content-Type': 'application/json' },
+            ...(paperMethod === 'POST' && data?.body ? { body: JSON.stringify(data.body) } : {}),
+          }, 8000);
+          const result = await ttRes.json();
+          return res.json({ ...result, source: 'trading-team', relayed: true });
+        } catch (err) {
+          return res.status(502).json({ error: `Paper Trader 연결 실패: ${err.message}` });
+        }
+      }
+
+      // ── signal: 퀀트 시그널 프록시 ──
+      case 'signal': {
+        const sym = data?.symbol || 'BTC';
+        try {
+          const ttRes = await fetchWithTimeout(`${TRADING_TEAM_URL}/api/quant/signal/${sym}`, {}, 8000);
+          const result = await ttRes.json();
+          return res.json({ ...result, source: 'trading-team', relayed: true });
+        } catch (err) {
+          return res.status(502).json({ error: `시그널 조회 실패: ${err.message}` });
+        }
+      }
+
+      // ── events: 최근 이벤트 스트림 조회 (폴링 방식) ──
+      case 'events': {
+        const since = data?.since || 0;
+        const events = (terminalState.eventHistory || []).filter(e => {
+          return new Date(e.timestamp).getTime() > since;
+        });
+        return res.json({ events, count: events.length, timestamp: new Date().toISOString() });
       }
 
       // ── recent_events: 최근 이벤트 조회 ──

@@ -112,11 +112,47 @@ async function fetchFearGreed() {
   return null;
 }
 
-// ── 경제 캘린더 (하드코딩 + 동적 계산) ──
-function getEconomicCalendar() {
-  const events = [
-    { date: '2026-08-13', event: 'CPI (소비자물가지수)', importance: 'high' },
-    { date: '2026-08-14', event: 'PPI (생산자물가지수)', importance: 'medium' },
+// ── 경제 캘린더 (라이브 API 우선 + 하드코딩 fallback) ──
+let calendarCache = { data: null, ts: 0 };
+const CALENDAR_CACHE_TTL = 12 * 3600000; // 12시간 캐시
+
+async function getEconomicCalendar() {
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+
+  // 캐시 히트
+  if (calendarCache.data && Date.now() - calendarCache.ts < CALENDAR_CACHE_TTL) {
+    return formatCalendar(calendarCache.data, now, todayStr);
+  }
+
+  // 라이브 fetch (Trading Economics RSS)
+  try {
+    const res = await fetchWithTimeout('https://tradingeconomics.com/united-states/calendar', {
+      headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'text/html' },
+    }, 5000);
+    if (res.ok) {
+      const html = await res.text();
+      const liveEvents = [];
+      // 정규식으로 날짜+이벤트 추출 (간단한 파싱)
+      const rows = html.match(/<tr[^>]*>[\s\S]*?<\/tr>/g) || [];
+      for (const row of rows.slice(0, 50)) {
+        const dateMatch = row.match(/(\d{4}-\d{2}-\d{2})/);
+        const nameMatch = row.match(/title="([^"]+)"/);
+        if (dateMatch && nameMatch && dateMatch[1] >= todayStr) {
+          const name = nameMatch[1];
+          const importance = /FOMC|Fed|NFP|CPI|GDP/.test(name) ? 'high' : 'medium';
+          liveEvents.push({ date: dateMatch[1], event: name, importance });
+        }
+      }
+      if (liveEvents.length >= 3) {
+        calendarCache = { data: liveEvents, ts: Date.now() };
+        return formatCalendar(liveEvents, now, todayStr);
+      }
+    }
+  } catch {}
+
+  // Fallback: 하드코딩 이벤트
+  const fallbackEvents = [
     { date: '2026-08-27', event: 'Consumer Confidence', importance: 'medium' },
     { date: '2026-09-04', event: 'ADP 고용보고서', importance: 'medium' },
     { date: '2026-09-05', event: 'NFP (비농업고용)', importance: 'high' },
@@ -133,10 +169,10 @@ function getEconomicCalendar() {
     { date: '2026-12-17', event: 'FOMC 금리결정', importance: 'critical' },
   ];
 
-  const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  return formatCalendar(fallbackEvents, now, todayStr);
+}
 
-  // 오늘 이후 + 오늘 포함 최대 5개
+function formatCalendar(events, now, todayStr) {
   return events
     .filter(e => e.date >= todayStr)
     .slice(0, 5)
@@ -166,13 +202,14 @@ export default async function handler(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   // 병렬 fetch
-  const [prices, news, fearGreed] = await Promise.allSettled([
+  const [prices, news, fearGreed, calendarResult] = await Promise.allSettled([
     fetchPrices(),
     fetchNews(),
     fetchFearGreed(),
+    getEconomicCalendar(),
   ]);
 
-  const calendar = getEconomicCalendar();
+  const calendar = calendarResult.status === 'fulfilled' ? calendarResult.value : [];
   const terminal = getTerminalStatus();
 
   res.json({

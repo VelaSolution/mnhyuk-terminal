@@ -5088,54 +5088,56 @@ async function scannerOverlay(){
     return;
   }
 
-  showOverlay("SCANNER · 조건 스캔 중", '<div class="rowline"><span style="color:var(--ink3)">상위 20종목 분석 중… (약 10초)</span></div>');
+  showOverlay("SCANNER · 조건 스캔 중", '<div class="rowline"><span style="color:var(--ink3)">상위 20종목 병렬 분석 중…</span></div>');
 
   const top = [...S.allTickers].sort((a,b) => b.vol - a.vol).slice(0, 20);
-  const results = [];
 
-  for(const coin of top){
-    try {
-      const data = await firstOk(klineChain(coin.sym, "1H", 100));
-      if(!data || data.length < 30) continue;
+  const scanResults = await Promise.allSettled(top.map(async (coin) => {
+    const data = await firstOk(klineChain(coin.sym, "1H", 100));
+    if(!data || data.length < 30) return null;
 
-      const closes = data.map(c => c.c);
-      const n = data.length;
-      const last = n - 1;
+    const closes = data.map(c => c.c);
+    const n = data.length;
+    const last = n - 1;
 
-      // RSI
-      const rsiArr = rsiSeries(closes, 14);
-      const rsi = rsiArr[last];
+    const rsiArr = rsiSeries(closes, 14);
+    const rsi = rsiArr[last];
 
-      // Volume spike
-      const volAvg = data.slice(Math.max(0,last-20), last).reduce((s,c) => s+c.v, 0) / 20;
-      const volRatio = data[last].v / (volAvg || 1);
+    const volSlice = data.slice(Math.max(0,last-20), last);
+    const volAvg = volSlice.length > 0 ? volSlice.reduce((s,c) => s+c.v, 0) / volSlice.length : 1;
+    const volRatio = data[last].v / (volAvg || 1);
 
-      // BB position
-      const bb = bollinger(closes, 20, 2);
-      const bbPos = bb.up[last] ? (closes[last] - bb.lo[last]) / (bb.up[last] - bb.lo[last]) : 0.5;
+    const bb = bollinger(closes, 20, 2);
+    const bbPos = bb.up[last] ? (closes[last] - bb.lo[last]) / (bb.up[last] - bb.lo[last]) : 0.5;
 
-      // Conditions
-      const conditions = [];
-      if(rsi < 30) conditions.push({label:"RSI 과매도", color:"var(--up-text)", weight:2});
-      if(rsi > 70) conditions.push({label:"RSI 과매수", color:"var(--down-text)", weight:2});
-      if(volRatio > 2) conditions.push({label:`볼륨 ${volRatio.toFixed(1)}x`, color:"var(--amber)", weight:1.5});
-      if(bbPos <= 0.05) conditions.push({label:"BB 하단터치", color:"var(--up-text)", weight:1.5});
-      if(bbPos >= 0.95) conditions.push({label:"BB 상단터치", color:"var(--down-text)", weight:1.5});
-      if(Math.abs(coin.pct) > 8) conditions.push({label:`24h ${coin.pct>0?'+':''}${coin.pct.toFixed(1)}%`, color:coin.pct>0?"var(--up-text)":"var(--down-text)", weight:1});
+    // MACD cross 감지
+    const ema12 = ema(closes, 12);
+    const ema26 = ema(closes, 26);
+    const macdNow = (ema12[last] || 0) - (ema26[last] || 0);
+    const macdPrev = (ema12[last-1] || 0) - (ema26[last-1] || 0);
+    const goldenCross = macdPrev <= 0 && macdNow > 0;
+    const deathCross = macdPrev >= 0 && macdNow < 0;
 
-      if(conditions.length > 0){
-        results.push({
-          sym: coin.sym,
-          price: coin.last,
-          pct: coin.pct,
-          rsi,
-          volRatio,
-          conditions,
-          score: conditions.reduce((s,c) => s + c.weight, 0),
-        });
-      }
-    } catch(e){ /* skip */ }
-  }
+    const conditions = [];
+    if(rsi < 30) conditions.push({label:"RSI 과매도", color:"var(--up-text)", weight:2});
+    if(rsi > 70) conditions.push({label:"RSI 과매수", color:"var(--down-text)", weight:2});
+    if(volRatio > 2) conditions.push({label:`볼륨 ${volRatio.toFixed(1)}x`, color:"var(--amber)", weight:1.5});
+    if(bbPos <= 0.05) conditions.push({label:"BB 하단터치", color:"var(--up-text)", weight:1.5});
+    if(bbPos >= 0.95) conditions.push({label:"BB 상단터치", color:"var(--down-text)", weight:1.5});
+    if(goldenCross) conditions.push({label:"MACD 골든크로스", color:"var(--up-text)", weight:2});
+    if(deathCross) conditions.push({label:"MACD 데드크로스", color:"var(--down-text)", weight:2});
+    if(Math.abs(coin.pct) > 8) conditions.push({label:`24h ${coin.pct>0?'+':''}${coin.pct.toFixed(1)}%`, color:coin.pct>0?"var(--up-text)":"var(--down-text)", weight:1});
+
+    if(conditions.length > 0){
+      return {
+        sym: coin.sym, price: coin.last, pct: coin.pct, rsi, volRatio, conditions,
+        score: conditions.reduce((s,c) => s + c.weight, 0),
+      };
+    }
+    return null;
+  }));
+
+  const results = scanResults.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
 
   results.sort((a,b) => b.score - a.score);
 
@@ -5833,15 +5835,25 @@ async function newsSearchOverlay(keyword){
     const items = (j.Data||[]).slice(0, 20);
     if(!items.length) throw 0;
 
+    // 감성분석 키워드
+    const bullWords = /surge|soar|rally|jump|breakout|bull|pump|record high|all.time high|gain|upside|recover|adopt|approve|ath|outperform/i;
+    const bearWords = /crash|plunge|dump|drop|fall|bear|slump|decline|sell.off|liquidat|hack|ban|fraud|scam|warning|risk|concern|fear|downturn/i;
+
     let html = items.map(n => {
       const t = n.published_on * 1000;
       const ago = Date.now() - t;
       const agoText = ago < 3600000 ? Math.round(ago/60000)+"분 전" : ago < 86400000 ? Math.round(ago/3600000)+"시간 전" : Math.round(ago/86400000)+"일 전";
       const src = (n.source_info && n.source_info.name) || n.source;
+      const title = n.title || '';
+      const isBull = bullWords.test(title);
+      const isBear = bearWords.test(title);
+      const sentTag = isBull ? '<span style="color:var(--up-text);font-size:9px;border:1px solid var(--up-text);padding:0 3px;margin-left:4px">BULL</span>'
+        : isBear ? '<span style="color:var(--down-text);font-size:9px;border:1px solid var(--down-text);padding:0 3px;margin-left:4px">BEAR</span>'
+        : '';
 
       return `<div style="padding:5px 10px;border-bottom:1px solid #101010;line-height:1.45;">
-        <div style="color:var(--ink3);font-size:10px">${agoText} · <span style="color:var(--cyan-text)">${src}</span></div>
-        <a href="${n.url}" target="_blank" rel="noopener" style="color:var(--ink);text-decoration:none;font-size:11px">${n.title}</a>
+        <div style="color:var(--ink3);font-size:10px">${agoText} · <span style="color:var(--cyan-text)">${src}</span>${sentTag}</div>
+        <a href="${n.url}" target="_blank" rel="noopener" style="color:var(--ink);text-decoration:none;font-size:11px">${title}</a>
       </div>`;
     }).join("");
 
@@ -7158,13 +7170,18 @@ async function screenerOverlay(condition){
 
   // Parse condition
   const cond = condition.toUpperCase().trim();
-  const match = cond.match(/^(RSI|VOL|PCT|FUND)\s*([<>])\s*([\d.]+)$/);
+  const match = cond.match(/^(RSI|VOL|PCT|FUND|MACD|BB|ATR)\s*([<>])\s*([\d.]+)$/);
 
   if(!match){
     showOverlay("SCREENER", `<div style="padding:10px;color:var(--ink3)">
       <div style="margin-bottom:6px">지원 조건식:</div>
       <div class="rowline"><span style="color:var(--amber)">SCREENER RSI&lt;30</span><span>RSI 과매도 종목</span></div>
       <div class="rowline"><span style="color:var(--amber)">SCREENER RSI&gt;70</span><span>RSI 과매수 종목</span></div>
+      <div class="rowline"><span style="color:var(--amber)">SCREENER MACD&gt;0</span><span>MACD 양전환 (골든크로스)</span></div>
+      <div class="rowline"><span style="color:var(--amber)">SCREENER MACD&lt;0</span><span>MACD 음전환 (데드크로스)</span></div>
+      <div class="rowline"><span style="color:var(--amber)">SCREENER BB&lt;0.1</span><span>볼린저 하단 근접 (반등 기대)</span></div>
+      <div class="rowline"><span style="color:var(--amber)">SCREENER BB&gt;0.9</span><span>볼린저 상단 근접 (조정 기대)</span></div>
+      <div class="rowline"><span style="color:var(--amber)">SCREENER ATR&gt;3</span><span>ATR 변동성 급증 (ATR%)</span></div>
       <div class="rowline"><span style="color:var(--amber)">SCREENER VOL&gt;2</span><span>거래량 2배+ 급증</span></div>
       <div class="rowline"><span style="color:var(--amber)">SCREENER PCT&gt;5</span><span>24h +5% 이상 상승</span></div>
       <div class="rowline"><span style="color:var(--amber)">SCREENER PCT&lt;-5</span><span>24h -5% 이상 하락</span></div>
@@ -7177,24 +7194,71 @@ async function screenerOverlay(condition){
   const threshold = parseFloat(valStr);
   const isGt = op === ">";
 
+  // MACD/BB/ATR — 캔들 기반 스크리닝 (병렬)
+  if(metric === "MACD" || metric === "BB" || metric === "ATR"){
+    const top = [...S.allTickers].sort((a,b)=>b.vol-a.vol).slice(0, 20);
+    const scanResults = await Promise.allSettled(top.map(async (coin) => {
+      const data = await firstOk(klineChain(coin.sym, "1H", 100));
+      if(!data || data.length < 30) return null;
+      const closes = data.map(c=>c.c);
+      const last = closes.length - 1;
+
+      if(metric === "MACD"){
+        const ema12 = ema(closes, 12);
+        const ema26 = ema(closes, 26);
+        const macdVal = (ema12[last]||0) - (ema26[last]||0);
+        const pass = isGt ? macdVal > threshold : macdVal < threshold;
+        if(pass) return {sym:coin.sym, value:macdVal.toFixed(2), price:coin.last, pct:coin.pct, label:'MACD'};
+      }
+      if(metric === "BB"){
+        const bb = bollinger(closes, 20, 2);
+        const bbPos = bb.up[last] ? (closes[last] - bb.lo[last]) / (bb.up[last] - bb.lo[last]) : 0.5;
+        const pass = isGt ? bbPos > threshold : bbPos < threshold;
+        if(pass) return {sym:coin.sym, value:(bbPos*100).toFixed(0)+'%', price:coin.last, pct:coin.pct, label:'BB위치'};
+      }
+      if(metric === "ATR"){
+        const trs = [];
+        for(let i=last-13;i<=last;i++){
+          if(i<1) continue;
+          trs.push(Math.max(data[i].h-data[i].l, Math.abs(data[i].h-data[i-1].c), Math.abs(data[i].l-data[i-1].c)));
+        }
+        const atrPct = trs.length ? (trs.reduce((s,v)=>s+v,0)/trs.length) / closes[last] * 100 : 0;
+        const pass = isGt ? atrPct > threshold : atrPct < threshold;
+        if(pass) return {sym:coin.sym, value:atrPct.toFixed(2)+'%', price:coin.last, pct:coin.pct, label:'ATR%'};
+      }
+      return null;
+    }));
+    const results = scanResults.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value);
+    if(!results.length){
+      showOverlay(`SCREENER · ${cond}`, '<div class="rowline"><span style="color:var(--ink3)">조건에 부합하는 종목 없음</span></div>');
+      return;
+    }
+    let html = results.map((r,i) => `<div class="rowline" style="cursor:pointer" onclick="switchTo('${r.sym}',S.tf);$('btov').classList.remove('on');">
+      <span style="color:var(--ink3)">${i+1}</span>
+      <span style="font-weight:600;color:var(--ink)">${r.sym}</span>
+      <span style="color:var(--ink2)">$${fmtPrice(r.price)}</span>
+      <span class="${r.pct>=0?'u':'d'}">${r.pct>=0?'+':''}${r.pct.toFixed(1)}%</span>
+      <span style="color:var(--amber);font-weight:700">${r.label} ${r.value}</span>
+    </div>`).join("");
+    html += `<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">1H 기준 · 거래량 상위 20종목</div>`;
+    showOverlay(`SCREENER · ${cond} (${results.length}건)`, html);
+    return;
+  }
+
   // For RSI, need to fetch candles per coin
   if(metric === "RSI"){
     const top = [...S.allTickers].sort((a,b)=>b.vol-a.vol).slice(0, 20);
-    const results = [];
-
-    for(const coin of top){
-      try {
-        const data = await firstOk(klineChain(coin.sym, "1H", 60));
-        if(!data || data.length < 20) continue;
-        const closes = data.map(c=>c.c);
-        const rsiArr = rsiSeries(closes, 14);
-        const rsi = rsiArr[closes.length-1];
-        if(rsi == null) continue;
-
-        const pass = isGt ? rsi > threshold : rsi < threshold;
-        if(pass) results.push({sym:coin.sym, value:rsi.toFixed(1), price:coin.last, pct:coin.pct});
-      } catch(e){}
-    }
+    const rsiResults = await Promise.allSettled(top.map(async (coin) => {
+      const data = await firstOk(klineChain(coin.sym, "1H", 60));
+      if(!data || data.length < 20) return null;
+      const closes = data.map(c=>c.c);
+      const rsiArr = rsiSeries(closes, 14);
+      const rsi = rsiArr[closes.length-1];
+      if(rsi == null) return null;
+      const pass = isGt ? rsi > threshold : rsi < threshold;
+      return pass ? {sym:coin.sym, value:rsi.toFixed(1), price:coin.last, pct:coin.pct} : null;
+    }));
+    const results = rsiResults.filter(r=>r.status==='fulfilled'&&r.value).map(r=>r.value);
 
     if(!results.length){
       showOverlay(`SCREENER · RSI${op}${threshold}`, '<div class="rowline"><span style="color:var(--ink3)">조건에 부합하는 종목 없음</span></div>');
@@ -12342,6 +12406,63 @@ setTimeout(() => { loadDrawings(); }, 1000);
       <div class="bt-stat"><small>AVG ROE</small><b style="color:${avgRoe >= 0 ? 'var(--up-text)' : 'var(--down-text)'}">${avgRoe >= 0 ? '+' : ''}${avgRoe.toFixed(2)}%</b></div>
     </div>`;
 
+    // Equity Curve Canvas
+    const trades = data.trades || data.recentTrades || [];
+    if (trades.length >= 2) {
+      html += `<div class="bt-section"><h3>Equity Curve</h3><canvas id="bt-equity-canvas" width="700" height="160" style="width:100%;height:160px;background:#0a0a0a;border-radius:4px"></canvas></div>`;
+      setTimeout(() => {
+        const cv = document.getElementById('bt-equity-canvas');
+        if (!cv) return;
+        const ctx = cv.getContext('2d');
+        const W = cv.width, H = cv.height;
+        const pad = { l: 50, r: 10, t: 10, b: 20 };
+        const cW = W - pad.l - pad.r, cH = H - pad.t - pad.b;
+
+        // 누적 PnL 계산
+        const equity = [0];
+        for (const t of trades) equity.push(equity[equity.length - 1] + (t.pnl || 0));
+        const minE = Math.min(...equity), maxE = Math.max(...equity);
+        const range = maxE - minE || 1;
+
+        const toX = i => pad.l + (i / (equity.length - 1)) * cW;
+        const toY = v => pad.t + cH - ((v - minE) / range) * cH;
+
+        // 0선
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(pad.l, toY(0));
+        ctx.lineTo(W - pad.r, toY(0));
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Equity line
+        ctx.strokeStyle = equity[equity.length - 1] >= 0 ? '#00a08c' : '#e5484d';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        equity.forEach((v, i) => { i === 0 ? ctx.moveTo(toX(i), toY(v)) : ctx.lineTo(toX(i), toY(v)); });
+        ctx.stroke();
+
+        // Fill
+        ctx.globalAlpha = 0.1;
+        ctx.fillStyle = equity[equity.length - 1] >= 0 ? '#00a08c' : '#e5484d';
+        ctx.lineTo(toX(equity.length - 1), toY(0));
+        ctx.lineTo(toX(0), toY(0));
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        // Labels
+        ctx.fillStyle = '#666';
+        ctx.font = '10px monospace';
+        ctx.textAlign = 'right';
+        ctx.fillText(`$${maxE.toFixed(0)}`, pad.l - 4, pad.t + 10);
+        ctx.fillText(`$${minE.toFixed(0)}`, pad.l - 4, H - pad.b);
+        ctx.textAlign = 'center';
+        ctx.fillText(`${trades.length} trades`, W / 2, H - 4);
+      }, 50);
+    }
+
     // Per-coin win rate bar chart
     const bySymbol = data.bySymbol || data.by_symbol || data.coinStats || {};
     const coins = Object.keys(bySymbol);
@@ -12386,8 +12507,7 @@ setTimeout(() => { loadDrawings(); }, 1000);
       html += `</div></div>`;
     }
 
-    // Trade list (recent)
-    const trades = data.trades || data.recentTrades || [];
+    // Trade list (recent) — trades already defined above for equity curve
     if (trades.length) {
       html += `<div class="bt-section"><h3>최근 거래 (${Math.min(trades.length, 20)}건)</h3>`;
       html += `<div style="font-size:10px;">`;

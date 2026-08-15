@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   let marketText = '';
   try {
-    const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true`);
+    const r = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_24hr_vol=true`, { signal: AbortSignal.timeout(5000) });
     const data = await r.json();
     const idMap = { bitcoin: 'BTC', ethereum: 'ETH', solana: 'SOL', ripple: 'XRP', dogecoin: 'DOGE', cardano: 'ADA', 'avalanche-2': 'AVAX', chainlink: 'LINK' };
     Object.entries(data).forEach(([id, d]) => {
@@ -21,7 +21,20 @@ export default async function handler(req, res) {
       marketText += `${sym}: $${d.usd} (${d.usd_24h_change >= 0 ? '+' : ''}${d.usd_24h_change?.toFixed(2)}%) vol=$${(d.usd_24h_vol / 1e6).toFixed(0)}M\n`;
     });
   } catch {
-    return res.status(500).json({ error: 'Market data fetch failed' });
+    // Binance Futures 폴백
+    try {
+      const pairs = syms.map(s => s + 'USDT');
+      const bRes = await fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr`, { signal: AbortSignal.timeout(5000) });
+      const bData = await bRes.json();
+      for (const sym of syms) {
+        const t = bData.find(d => d.symbol === sym + 'USDT');
+        if (t) {
+          marketText += `${sym}: $${parseFloat(t.lastPrice)} (${parseFloat(t.priceChangePercent) >= 0 ? '+' : ''}${parseFloat(t.priceChangePercent).toFixed(2)}%) vol=$${(parseFloat(t.quoteVolume) / 1e6).toFixed(0)}M\n`;
+        }
+      }
+    } catch {
+      return res.status(500).json({ error: 'Market data fetch failed (CoinGecko + Binance)' });
+    }
   }
 
   const prompt = `당신은 암호화폐 스캐너입니다. 8개 코인의 현재 데이터를 보고 매매 기회를 평가하세요.
