@@ -331,6 +331,46 @@
   #bottombar .bb-pt-status.running{color:var(--up-text);border:1px solid var(--up);}
   #bottombar .bb-pt-status.stopped{color:var(--down-text);border:1px solid var(--down);}
 
+  /* ── Notification Center ─────────────────────── */
+  #notif-stack{position:fixed;right:16px;bottom:60px;z-index:999;display:flex;flex-direction:column-reverse;gap:6px;pointer-events:none;max-width:320px;}
+  .notif{pointer-events:auto;background:rgba(10,10,10,.96);border:1px solid var(--amber-dim);padding:8px 12px;
+    animation:notifIn .3s ease-out;font-size:11px;line-height:1.5;box-shadow:0 4px 20px rgba(0,0,0,.7);}
+  .notif .notif-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+  .notif .notif-title{color:var(--amber);font-weight:700;font-size:10px;letter-spacing:1px;}
+  .notif .notif-time{color:var(--ink3);font-size:9px;}
+  .notif .notif-body{color:var(--ink2);}
+  .notif .notif-body b{color:var(--ink);font-weight:600;}
+  .notif.entry{border-color:var(--up);}
+  .notif.exit{border-color:var(--down);}
+  .notif.entry .notif-title{color:var(--up-text);}
+  .notif.exit .notif-title{color:var(--down-text);}
+  @keyframes notifIn{0%{opacity:0;transform:translateX(40px);}100%{opacity:1;transform:translateX(0);}}
+  @keyframes notifOut{0%{opacity:1;transform:translateX(0);}100%{opacity:0;transform:translateX(40px);}}
+
+  /* ── Backtest Overlay ──────────────────────────── */
+  #bt-overlay{position:absolute;inset:10px;background:rgba(8,8,8,.97);border:1px solid var(--amber-dim);
+    display:none;flex-direction:column;z-index:7;box-shadow:0 4px 24px rgba(0,0,0,.8);overflow:hidden;}
+  #bt-overlay.on{display:flex;}
+  #bt-overlay .bt-head{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+    background:#181205;border-bottom:1px solid var(--border2);color:var(--amber);font-weight:700;letter-spacing:1px;}
+  #bt-overlay .bt-close{cursor:pointer;color:var(--ink2);} #bt-overlay .bt-close:hover{color:var(--ink);}
+  #bt-overlay .bt-body{flex:1;overflow-y:auto;padding:10px;}
+  .bt-section{margin-bottom:16px;}
+  .bt-section h3{color:var(--amber);font-size:11px;letter-spacing:1px;margin-bottom:8px;font-weight:700;}
+  .bt-bars{display:flex;flex-direction:column;gap:4px;}
+  .bt-bar-row{display:flex;align-items:center;gap:8px;font-size:11px;}
+  .bt-bar-label{min-width:50px;color:var(--ink);font-weight:600;}
+  .bt-bar-wrap{flex:1;height:16px;background:#1a1a1a;position:relative;}
+  .bt-bar-fill{height:100%;transition:width .5s ease-out;}
+  .bt-bar-val{min-width:40px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink2);}
+  .bt-heatmap{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;}
+  .bt-heat-cell{padding:6px 4px;text-align:center;font-size:9px;line-height:1.4;}
+  .bt-heat-cell .hl{font-size:10px;font-weight:700;display:block;}
+  .bt-stats-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border2);margin-bottom:12px;}
+  .bt-stat{background:var(--panel);padding:8px 10px;text-align:center;}
+  .bt-stat small{color:var(--ink3);font-size:9px;display:block;letter-spacing:1px;}
+  .bt-stat b{font-size:14px;font-variant-numeric:tabular-nums;}
+
   /* responsive fallback */
   @media (max-width:1100px){
     #rightcol{display:none;} #main{grid-template-columns:220px minmax(0,1fr);}
@@ -954,6 +994,7 @@
             </div>
           </div>
           <div id="quad"></div>
+          <div id="bt-overlay"><div class="bt-head"><span>BACKTEST PERFORMANCE</span><span class="bt-close" onclick="toggleBacktest()">✕ 닫기</span></div><div class="bt-body" id="bt-body">로딩 중…</div></div>
           <div id="btov">
             <div id="btov-head"><b id="btov-title">오버레이</b><span id="btov-x">✕ 닫기</span></div>
             <div id="btov-body"></div>
@@ -4412,7 +4453,8 @@ function helpHTML(){
   const groups=[
     {cat:"CHART & NAVIGATION", color:"#ffa028", cmds:[
       ["BTC 4H","심볼·타임프레임 전환 (임의 심볼 가능: PEPE 1H)"],
-      ["QUAD","2×2 멀티차트 토글"],
+      ["QUAD","2×2 멀티차트 토글 (Q키)"],
+      ["BACKTEST","백테스트 결과 오버레이 (B키)"],
       ["TV","TradingView 차트 전환 (트뷰 전체 지표 사용)"],
       ["LIQ","청산맵(추정) 토글"],
       ["VP","볼륨 프로파일 토글"],
@@ -5555,6 +5597,8 @@ const CMD_LIST=[
   {c:"IWATCH DEL SOL", d:"워치리스트에서 코인 제거"},
   {c:"IPORT", d:"실계좌 포트폴리오 (잔고/포지션/PnL)"},
   {c:"ICAL", d:"트레이딩 캘린더 (일별 손익)"},
+  {c:"BACKTEST", d:"백테스트 결과 오버레이 (B키)"},
+  {c:"BT", d:"백테스트 결과 (BACKTEST 단축)"},
 ];
 let sugSel=-1, sugItems=[];
 function renderSug(){
@@ -12058,6 +12102,451 @@ setTimeout(() => { loadDrawings(); }, 1000);
     }
   }, 300);
 })();
+// ══════════════════════════════════════════════════════════════
+// FEATURE: Enhanced Quad View (Q key), Notification Center, Backtest (B key)
+// ══════════════════════════════════════════════════════════════
+(function initNewFeatures() {
+  const TT_FEAT = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:8000' : 'https://trading-team.mot-era.com';
+
+  // ═══ 1. ENHANCED QUAD VIEW ═══
+  // Override existing quadLoad to use BTC/ETH/SOL + current coin, with EMA20
+  const _origQuadLoad = window.quadLoad || quadLoad;
+  window.quadLoad = async function() {
+    if (!QUAD.on || document.hidden) return;
+    const quadSyms = ['BTC', 'ETH', 'SOL'];
+    const current = (typeof S !== 'undefined') ? S.sym : 'DOGE';
+    if (!quadSyms.includes(current)) quadSyms.push(current);
+    else quadSyms.push(SYMBOLS.find(s => !quadSyms.includes(s)) || 'DOGE');
+    const q = $("quad");
+    // Always rebuild cells for current state
+    q.innerHTML = quadSyms.map(s => `<div class="qcell" data-sym="${s}"><div class="qtitle">${s}USDT · ${S.tf}</div><canvas></canvas></div>`).join("");
+    for (const cell of q.querySelectorAll(".qcell")) {
+      const sym = cell.dataset.sym;
+      cell.onclick = () => { quadToggle(); switchTo(sym, S.tf); };
+      try {
+        const cs = await firstOk(klineChain(sym, S.tf, 120));
+        drawMiniEnhanced(cell.querySelector("canvas"), cs, sym);
+      } catch(e) {}
+    }
+  };
+
+  function drawMiniEnhanced(cv, cs, sym) {
+    const r = cv.parentElement.getBoundingClientRect();
+    const W = r.width, H = Math.max(40, r.height - 18), dpr = window.devicePixelRatio || 1;
+    cv.width = W * dpr; cv.height = H * dpr; cv.style.width = W + "px"; cv.style.height = H + "px";
+    const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    let lo = Infinity, hi = -Infinity;
+    cs.forEach(c => { lo = Math.min(lo, c.l); hi = Math.max(hi, c.h); });
+    const pad = (hi - lo) * 0.05 || 1; lo -= pad; hi += pad;
+    const y = p => H * (1 - (p - lo) / (hi - lo)), xw = W / cs.length;
+
+    // EMA20 line
+    const ema20 = ema(cs.map(c => c.c), 20);
+
+    // Draw candles
+    cs.forEach((c, i) => {
+      const xx = i * xw + xw / 2, up = c.c >= c.o;
+      ctx.strokeStyle = up ? "#00a08c" : "#e5484d"; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(xx, y(c.h)); ctx.lineTo(xx, y(c.l)); ctx.stroke();
+      const bw = Math.max(1, xw * 0.55), t2 = Math.min(y(c.o), y(c.c)), h2 = Math.max(1, Math.abs(y(c.o) - y(c.c)));
+      if (up) { ctx.fillStyle = "#0a0a0a"; ctx.fillRect(xx - bw / 2, t2, bw, h2); ctx.strokeRect(xx - bw / 2 + .5, t2 + .5, bw - 1, h2 - 1); }
+      else { ctx.fillStyle = "#e5484d"; ctx.fillRect(xx - bw / 2, t2, bw, h2); }
+    });
+
+    // EMA20 line (amber)
+    ctx.strokeStyle = "#ffa028"; ctx.lineWidth = 1.2; ctx.setLineDash([3, 2]); ctx.beginPath();
+    let started = false;
+    ema20.forEach((v, i) => { if (v == null) return; const xx = i * xw + xw / 2; started ? ctx.lineTo(xx, y(v)) : (ctx.moveTo(xx, y(v)), started = true); });
+    ctx.stroke(); ctx.setLineDash([]);
+
+    // Current price line
+    const last = cs[cs.length - 1];
+    const priceY = y(last.c);
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 0.5; ctx.setLineDash([2, 3]);
+    ctx.beginPath(); ctx.moveTo(0, priceY); ctx.lineTo(W, priceY); ctx.stroke(); ctx.setLineDash([]);
+
+    // Price + change text
+    const chg = (last.c - cs[0].c) / cs[0].c * 100;
+    ctx.fillStyle = chg >= 0 ? "#1fd3b4" : "#ff6b66";
+    ctx.font = "bold 11px " + getComputedStyle(document.body).fontFamily;
+    ctx.textAlign = "right"; ctx.textBaseline = "top";
+    ctx.fillText(`$${fmtPrice(last.c)}  ${chg >= 0 ? "+" : ""}${chg.toFixed(1)}%`, W - 4, 2);
+
+    // EMA20 label
+    const lastEma = ema20[ema20.length - 1];
+    if (lastEma != null) {
+      ctx.fillStyle = "#ffa028"; ctx.font = "9px " + getComputedStyle(document.body).fontFamily;
+      ctx.fillText("EMA20", W - 4, 16);
+    }
+  }
+
+  // ═══ 2. NOTIFICATION CENTER ═══
+  // Create stack container
+  if (!document.getElementById('notif-stack')) {
+    const stack = document.createElement('div');
+    stack.id = 'notif-stack';
+    document.body.appendChild(stack);
+  }
+
+  function pushNotification(title, body, type) {
+    const stack = document.getElementById('notif-stack');
+    if (!stack) return;
+    const el = document.createElement('div');
+    el.className = 'notif ' + (type || '');
+    const now = new Date();
+    const timeStr = pad2(now.getHours()) + ':' + pad2(now.getMinutes()) + ':' + pad2(now.getSeconds());
+    el.innerHTML = `<div class="notif-head"><span class="notif-title">${title}</span><span class="notif-time">${timeStr}</span></div><div class="notif-body">${body}</div>`;
+    stack.appendChild(el);
+    // Max 5 visible
+    while (stack.children.length > 5) stack.removeChild(stack.firstChild);
+    // Auto-remove after 5s
+    setTimeout(() => {
+      el.style.animation = 'notifOut .3s ease-in forwards';
+      setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 300);
+    }, 5000);
+  }
+  window._pushNotification = pushNotification;
+
+  // Position change detection via polling /api/paper/status
+  let _prevPositions = null;
+  let _prevPosHash = '';
+
+  async function pollPositionChanges() {
+    try {
+      const res = await fetch(`${TT_FEAT}/api/paper/status`, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) return;
+      const data = await res.json();
+      const positions = data.positions || [];
+      const curHash = positions.map(p => (p.symbol || '') + '|' + (p.direction || p.side || '')).sort().join(',');
+
+      if (_prevPosHash !== '' && curHash !== _prevPosHash) {
+        // Detect new entries
+        const prevSyms = new Set((_prevPositions || []).map(p => p.symbol));
+        const curSyms = new Set(positions.map(p => p.symbol));
+        positions.forEach(p => {
+          if (!prevSyms.has(p.symbol)) {
+            const sym = (p.symbol || '').replace('USDT', '');
+            const dir = (p.direction || p.side || '').toUpperCase();
+            const isLong = dir === 'BUY' || dir === 'LONG';
+            pushNotification(
+              '진입 · ' + sym,
+              `<b>${isLong ? 'LONG' : 'SHORT'}</b> @ $${fmtPrice(p.entryPrice || p.entry || 0)}`,
+              'entry'
+            );
+          }
+        });
+        // Detect exits
+        (_prevPositions || []).forEach(p => {
+          if (!curSyms.has(p.symbol)) {
+            const sym = (p.symbol || '').replace('USDT', '');
+            pushNotification(
+              '청산 · ' + sym,
+              `포지션 종료`,
+              'exit'
+            );
+          }
+        });
+      }
+      _prevPositions = positions;
+      _prevPosHash = curHash;
+    } catch(e) {}
+  }
+
+  // Poll every 10 seconds
+  setTimeout(pollPositionChanges, 5000);
+  setInterval(pollPositionChanges, 10000);
+
+  // ═══ 3. BACKTEST OVERLAY ═══
+  let _btVisible = false;
+  window.toggleBacktest = function() {
+    _btVisible = !_btVisible;
+    const el = document.getElementById('bt-overlay');
+    if (!el) return;
+    if (_btVisible) {
+      el.classList.add('on');
+      loadBacktestData();
+    } else {
+      el.classList.remove('on');
+    }
+  };
+
+  async function loadBacktestData() {
+    const body = document.getElementById('bt-body');
+    if (!body) return;
+    body.innerHTML = '<div style="padding:20px;color:var(--ink3);text-align:center">데이터 로딩 중…</div>';
+    try {
+      const res = await fetch(`${TT_FEAT}/api/paper/performance`, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error('fetch failed');
+      const data = await res.json();
+      renderBacktest(data);
+    } catch(e) {
+      // Try fallback from /api/paper/status
+      try {
+        const res2 = await fetch(`${TT_FEAT}/api/paper/status`, { signal: AbortSignal.timeout(5000) });
+        if (!res2.ok) throw new Error('status failed');
+        const data2 = await res2.json();
+        renderBacktestFromStatus(data2);
+      } catch(e2) {
+        body.innerHTML = '<div style="padding:20px;color:var(--ink3);text-align:center">Paper Trader 미연결<br><span style="font-size:10px">Trading Team 서버를 확인하세요</span></div>';
+      }
+    }
+  }
+
+  function renderBacktest(data) {
+    const body = document.getElementById('bt-body');
+    if (!body) return;
+    let html = '';
+
+    // Summary stats
+    const totalPnl = data.totalPnl || data.total_pnl || 0;
+    const winRate = data.winRate || data.win_rate || 0;
+    const totalTrades = data.totalTrades || data.total_trades || data.trades?.length || 0;
+    const maxDD = data.maxDrawdown || data.max_drawdown || 0;
+    const sharpe = data.sharpe || data.sharpeRatio || 0;
+    const avgRoe = data.avgRoe || data.avg_roe || 0;
+    const pnlCol = totalPnl >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+    const wrCol = winRate >= 50 ? 'var(--up-text)' : 'var(--down-text)';
+
+    html += `<div class="bt-stats-grid">
+      <div class="bt-stat"><small>TOTAL P&L</small><b style="color:${pnlCol}">${totalPnl >= 0 ? '+' : ''}$${Math.abs(totalPnl).toFixed(2)}</b></div>
+      <div class="bt-stat"><small>WIN RATE</small><b style="color:${wrCol}">${winRate.toFixed(1)}%</b></div>
+      <div class="bt-stat"><small>TRADES</small><b style="color:var(--ink)">${totalTrades}</b></div>
+      <div class="bt-stat"><small>MAX DD</small><b style="color:var(--down-text)">${maxDD.toFixed(2)}%</b></div>
+      <div class="bt-stat"><small>SHARPE</small><b style="color:var(--ink)">${sharpe.toFixed(2)}</b></div>
+      <div class="bt-stat"><small>AVG ROE</small><b style="color:${avgRoe >= 0 ? 'var(--up-text)' : 'var(--down-text)'}">${avgRoe >= 0 ? '+' : ''}${avgRoe.toFixed(2)}%</b></div>
+    </div>`;
+
+    // Per-coin win rate bar chart
+    const bySymbol = data.bySymbol || data.by_symbol || data.coinStats || {};
+    const coins = Object.keys(bySymbol);
+    if (coins.length) {
+      html += `<div class="bt-section"><h3>코인별 승률</h3><div class="bt-bars">`;
+      coins.sort((a, b) => (bySymbol[b].winRate || bySymbol[b].win_rate || 0) - (bySymbol[a].winRate || bySymbol[a].win_rate || 0));
+      coins.forEach(coin => {
+        const s = bySymbol[coin];
+        const wr = s.winRate || s.win_rate || 0;
+        const trades = s.trades || s.total || 0;
+        const pnl = s.pnl || s.totalPnl || 0;
+        const col = wr >= 50 ? 'var(--up)' : 'var(--down)';
+        html += `<div class="bt-bar-row">
+          <span class="bt-bar-label">${coin.replace('USDT','')}</span>
+          <div class="bt-bar-wrap"><div class="bt-bar-fill" style="width:${Math.min(100,wr)}%;background:${col}"></div></div>
+          <span class="bt-bar-val" style="color:${col}">${wr.toFixed(0)}%</span>
+          <span class="bt-bar-val" style="color:var(--ink3);font-size:10px">${trades}건</span>
+        </div>`;
+      });
+      html += `</div></div>`;
+    }
+
+    // Time-based heatmap
+    const byHour = data.byHour || data.by_hour || data.hourlyStats || null;
+    if (byHour) {
+      html += `<div class="bt-section"><h3>시간대별 성과 히트맵</h3><div class="bt-heatmap">`;
+      const hours = Object.keys(byHour).sort((a,b) => +a - +b);
+      hours.forEach(h => {
+        const s = byHour[h];
+        const pnl = s.pnl || s.totalPnl || 0;
+        const wr = s.winRate || s.win_rate || 0;
+        const intensity = Math.min(1, Math.abs(pnl) / (Math.max(...Object.values(byHour).map(x => Math.abs(x.pnl || x.totalPnl || 0))) || 1));
+        const bg = pnl >= 0
+          ? `rgba(0,160,140,${0.1 + intensity * 0.5})`
+          : `rgba(229,72,77,${0.1 + intensity * 0.5})`;
+        html += `<div class="bt-heat-cell" style="background:${bg}">
+          <span style="color:var(--ink3)">${String(h).padStart(2,'0')}:00</span>
+          <span class="hl" style="color:${pnl >= 0 ? 'var(--up-text)' : 'var(--down-text)'}">${pnl >= 0 ? '+' : ''}${pnl.toFixed(1)}</span>
+          <span style="color:var(--ink2);font-size:8px">${wr.toFixed(0)}% · ${s.trades || s.count || 0}건</span>
+        </div>`;
+      });
+      html += `</div></div>`;
+    }
+
+    // Trade list (recent)
+    const trades = data.trades || data.recentTrades || [];
+    if (trades.length) {
+      html += `<div class="bt-section"><h3>최근 거래 (${Math.min(trades.length, 20)}건)</h3>`;
+      html += `<div style="font-size:10px;">`;
+      trades.slice(0, 20).forEach(t => {
+        const sym = (t.symbol || '').replace('USDT', '');
+        const dir = t.direction || t.side || '';
+        const isLong = dir === 'BUY' || dir === 'LONG';
+        const pnl = t.pnl || t.realizedPnl || 0;
+        const pCol = pnl >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+        const dCol = isLong ? 'var(--up-text)' : 'var(--down-text)';
+        let timeStr = '';
+        if (t.closedAt || t.closeTime || t.timestamp) {
+          const d = new Date(t.closedAt || t.closeTime || t.timestamp);
+          timeStr = `${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+        }
+        html += `<div style="display:grid;grid-template-columns:auto 1fr auto auto;gap:6px;padding:3px 0;border-bottom:1px solid #101010;font-variant-numeric:tabular-nums;align-items:center">
+          <span style="font-weight:600">${sym}</span>
+          <span style="color:${dCol};font-size:9px;font-weight:700">${isLong ? 'LONG' : 'SHORT'}</span>
+          <span style="color:${pCol};text-align:right">${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}</span>
+          <span style="color:var(--ink3);font-size:9px;text-align:right">${timeStr}</span>
+        </div>`;
+      });
+      html += `</div></div>`;
+    }
+
+    if (!html) html = '<div style="padding:20px;color:var(--ink3);text-align:center">데이터 없음</div>';
+    body.innerHTML = html;
+  }
+
+  function renderBacktestFromStatus(data) {
+    const body = document.getElementById('bt-body');
+    if (!body) return;
+    // Build simplified backtest view from status data
+    const totalPnl = data.totalPnl || 0;
+    const winRate = data.winRate || 0;
+    const totalTrades = data.totalTrades || 0;
+    const returnPct = data.returnPct || 0;
+    const pnlCol = totalPnl >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+
+    let html = `<div class="bt-stats-grid">
+      <div class="bt-stat"><small>TOTAL P&L</small><b style="color:${pnlCol}">${totalPnl >= 0 ? '+' : ''}$${Math.abs(totalPnl).toFixed(2)}</b></div>
+      <div class="bt-stat"><small>WIN RATE</small><b style="color:${winRate >= 50 ? 'var(--up-text)' : 'var(--down-text)'}">${winRate.toFixed(1)}%</b></div>
+      <div class="bt-stat"><small>TRADES</small><b style="color:var(--ink)">${totalTrades}</b></div>
+      <div class="bt-stat"><small>RETURN</small><b style="color:${pnlCol}">${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(2)}%</b></div>
+      <div class="bt-stat"><small>CAPITAL</small><b style="color:var(--ink)">$${fmtN(data.capital || 10000, 0)}</b></div>
+      <div class="bt-stat"><small>STATUS</small><b style="color:${data.running !== false ? 'var(--up-text)' : 'var(--down-text)'}">${data.running !== false ? 'RUNNING' : 'STOPPED'}</b></div>
+    </div>`;
+
+    // Positions as coin stats
+    const positions = data.positions || [];
+    if (positions.length) {
+      html += `<div class="bt-section"><h3>현재 포지션 (${positions.length})</h3><div class="bt-bars">`;
+      positions.forEach(p => {
+        const sym = (p.symbol || '').replace('USDT', '');
+        const pnl = p.unrealizedPnl || 0;
+        const roe = Math.abs(p.unrealizedPnlPct || p.roe || 0);
+        const col = pnl >= 0 ? 'var(--up)' : 'var(--down)';
+        const dir = (p.direction || p.side || '').toUpperCase();
+        const isLong = dir === 'BUY' || dir === 'LONG';
+        html += `<div class="bt-bar-row">
+          <span class="bt-bar-label">${sym}</span>
+          <div class="bt-bar-wrap"><div class="bt-bar-fill" style="width:${Math.min(100, roe * 10)}%;background:${col}"></div></div>
+          <span class="bt-bar-val" style="color:${pnl >= 0 ? 'var(--up-text)' : 'var(--down-text)'}">${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}</span>
+          <span class="bt-bar-val" style="color:var(--ink3);font-size:10px">${isLong ? 'LONG' : 'SHORT'}</span>
+        </div>`;
+      });
+      html += `</div></div>`;
+    }
+
+    // Recent trades
+    const trades = data.recentTrades || data.trades || [];
+    if (trades.length) {
+      html += `<div class="bt-section"><h3>최근 거래</h3><div style="font-size:10px;">`;
+      trades.slice(0, 15).forEach(t => {
+        const sym = (t.symbol || '').replace('USDT', '');
+        const pnl = t.pnl || t.realizedPnl || 0;
+        const pCol = pnl >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+        const dir = t.direction || t.side || '';
+        const isLong = dir === 'BUY' || dir === 'LONG';
+        html += `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #101010">
+          <span style="font-weight:600">${sym} <span style="color:${isLong ? 'var(--up-text)' : 'var(--down-text)'};font-size:9px">${isLong ? 'LONG' : 'SHORT'}</span></span>
+          <span style="color:${pCol}">${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}</span>
+        </div>`;
+      });
+      html += `</div></div>`;
+    }
+
+    html += `<div style="padding:8px;font-size:9px;color:var(--ink3);text-align:center">/api/paper/performance 미응답 · status 데이터로 표시</div>`;
+    body.innerHTML = html;
+  }
+
+  // ═══ 4. KEYBOARD SHORTCUTS (Q, B) ═══
+  document.addEventListener("keydown", function(e) {
+    const t = e.target;
+    if (t === $("cmd") || t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+    // Q: toggle quad view
+    if (e.key === "q" || e.key === "Q") {
+      e.preventDefault();
+      e._proHandled = true;
+      quadToggle();
+      showKbHint(QUAD.on ? "QUAD ON" : "QUAD OFF");
+      return;
+    }
+
+    // B: toggle backtest overlay
+    if (e.key === "b" || e.key === "B") {
+      e.preventDefault();
+      e._proHandled = true;
+      toggleBacktest();
+      showKbHint(_btVisible ? "BACKTEST" : "BACKTEST OFF");
+      return;
+    }
+  }, true);
+
+  // ═══ 5. COMMAND BAR SUPPORT ═══
+  // Hook into command bar for BACKTEST command
+  const _origCmdHandler = $("cmd") ? $("cmd").onkeydown : null;
+  const cmdEl = $("cmd");
+  if (cmdEl) {
+    cmdEl.addEventListener("keydown", function(e) {
+      if (e.key !== "Enter") return;
+      const raw = cmdEl.value.trim().toUpperCase();
+      if (raw === "BACKTEST" || raw === "BT") {
+        e.preventDefault(); e.stopPropagation();
+        toggleBacktest();
+        cmdEl.value = "";
+        return;
+      }
+    }, true);
+  }
+
+  // ═══ 6. ADD BUTTONS TO CHART TOOLBAR ═══
+  const chartInfo = document.getElementById('chartinfo');
+  if (chartInfo) {
+    const btnGroup = chartInfo.querySelector('span[style*="margin-left:auto"]');
+    if (btnGroup) {
+      const btBtn = document.createElement('span');
+      btBtn.className = 'lgd';
+      btBtn.id = 'btbtn';
+      btBtn.title = '백테스트 결과 (B키)';
+      btBtn.textContent = 'BT';
+      btBtn.onclick = function() { toggleBacktest(); };
+      btnGroup.insertBefore(btBtn, btnGroup.firstChild);
+    }
+  }
+
+  // ═══ 7. UPDATE FKEYS + KEYS OVERLAY ═══
+  const fk = $("fkeys");
+  if (fk) {
+    fk.innerHTML += ' <span><b>Q</b> 쿼드</span><span><b>B</b> 백테스트</span>';
+  }
+
+  // Override keysOverlay to add new shortcuts
+  const _prevKeysOverlay = window.keysOverlay;
+  window.keysOverlay = function() {
+    _prevKeysOverlay();
+    const bdy = $("btov-body");
+    if (!bdy) return;
+    bdy.innerHTML += `
+      <div style="padding:4px 10px;color:var(--amber);font-size:10px;letter-spacing:1px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">쿼드뷰 & 백테스트</div>
+      <table style="width:100%;border-collapse:collapse;font-size:11px;">
+        <tr style="border-bottom:1px solid #101010">
+          <td style="padding:5px 10px"><kbd style="background:#1a1a1a;border:1px solid var(--border);padding:2px 8px;color:var(--amber);font-family:var(--mono);font-size:11px">Q</kbd></td>
+          <td style="padding:5px 10px;color:var(--ink2)">쿼드뷰 토글 (BTC/ETH/SOL/현재코인)</td>
+        </tr>
+        <tr style="border-bottom:1px solid #101010">
+          <td style="padding:5px 10px"><kbd style="background:#1a1a1a;border:1px solid var(--border);padding:2px 8px;color:var(--amber);font-family:var(--mono);font-size:11px">B</kbd></td>
+          <td style="padding:5px 10px;color:var(--ink2)">백테스트 결과 오버레이</td>
+        </tr>
+      </table>`;
+  };
+
+  // Help command update
+  const _origHelpHTML = window.helpHTML;
+  if (_origHelpHTML) {
+    window.helpHTML = function() {
+      let result = _origHelpHTML();
+      return result;
+    };
+  }
+})();
 </script>
+<div id="notif-stack"></div>
 </body>
 </html>
