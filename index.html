@@ -72,7 +72,7 @@
   /* ── Main grid ───────────────────────────────── */
   #main{
     flex:1 1 auto; display:grid; min-height:0;
-    grid-template-columns:240px minmax(0,1fr) 280px 240px; gap:1px; background:var(--border2); padding:1px;
+    grid-template-columns:220px minmax(0,1fr) 260px; gap:1px; background:var(--border2); padding:1px;
   }
   .col{display:flex; flex-direction:column; gap:1px; min-width:0; min-height:0;}
   .panel{
@@ -280,10 +280,59 @@
   #signals .le-wt .wr .nm{min-width:56px;color:var(--ink2);}
   #signals .le-wt .wr .vl{min-width:36px;text-align:right;font-variant-numeric:tabular-nums;}
 
+  /* ── Position cards (right col top) ──────────── */
+  #pos-panel .pos-card{
+    padding:6px 8px;border-bottom:1px solid #1a1a1a;cursor:pointer;transition:background .15s;
+  }
+  #pos-panel .pos-card:hover{background:#131313;}
+  #pos-panel .pos-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+  #pos-panel .pos-sym{font-weight:700;font-size:11px;}
+  #pos-panel .pos-dir{font-size:10px;font-weight:700;padding:1px 5px;letter-spacing:.5px;}
+  #pos-panel .pos-dir.long{color:var(--up-text);background:rgba(0,160,140,.12);border:1px solid rgba(0,160,140,.3);}
+  #pos-panel .pos-dir.short{color:var(--down-text);background:rgba(229,72,77,.12);border:1px solid rgba(229,72,77,.3);}
+  #pos-panel .pos-prices{display:flex;gap:8px;font-size:10px;color:var(--ink2);margin-bottom:2px;font-variant-numeric:tabular-nums;}
+  #pos-panel .pos-pnl{display:flex;justify-content:space-between;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;}
+  #pos-panel .pos-time{font-size:9px;color:var(--ink3);margin-top:1px;}
+  #pos-panel .pos-empty{padding:12px 8px;color:var(--ink3);font-size:10px;text-align:center;}
+
+  /* ── Compact Paper Trader (left col) ────────── */
+  #pt-compact .ptc-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border2);}
+  #pt-compact .ptc-cell{background:var(--panel);padding:4px 6px;text-align:center;}
+  #pt-compact .ptc-cell small{color:var(--ink3);font-size:8px;display:block;letter-spacing:.5px;}
+  #pt-compact .ptc-cell b{font-size:11px;font-variant-numeric:tabular-nums;}
+  #pt-compact .ptc-pos{padding:3px 8px;font-size:9px;border-bottom:1px solid #101010;display:flex;justify-content:space-between;cursor:pointer;}
+  #pt-compact .ptc-pos:hover{background:#131313;}
+
+  /* ── AI Signals list (left col) ─────────────── */
+  #ai-signals-list .ais-item{padding:5px 8px;border-bottom:1px solid #101010;cursor:pointer;font-size:10px;}
+  #ai-signals-list .ais-item:hover{background:#131313;}
+  #ai-signals-list .ais-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;}
+  #ai-signals-list .ais-sym{font-weight:700;color:var(--ink);}
+  #ai-signals-list .ais-dir{font-weight:700;font-size:9px;padding:1px 4px;letter-spacing:.5px;}
+  #ai-signals-list .ais-dir.buy{color:var(--up-text);background:rgba(0,160,140,.1);}
+  #ai-signals-list .ais-dir.sell{color:var(--down-text);background:rgba(229,72,77,.1);}
+  #ai-signals-list .ais-dir.hold{color:var(--ink3);background:rgba(100,100,100,.1);}
+  #ai-signals-list .ais-conf{height:3px;background:#1a1a1a;margin-top:3px;}
+  #ai-signals-list .ais-conf .fill{height:100%;transition:width .4s;}
+  #ai-signals-list .ais-time{color:var(--ink3);font-size:9px;}
+  #ai-signals-list .ais-empty{padding:10px 8px;color:var(--ink3);font-size:10px;text-align:center;}
+
+  /* ── Bottom status bar ──────────────────────── */
+  #bottombar{
+    flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:4px 10px;
+    background:#030303;border-top:1px solid var(--border);font-size:10px;color:var(--ink3);
+    font-variant-numeric:tabular-nums;overflow-x:auto;white-space:nowrap;
+  }
+  #bottombar .bb-item{display:flex;align-items:center;gap:4px;}
+  #bottombar .bb-item b{color:var(--ink);font-weight:600;}
+  #bottombar .bb-sep{width:1px;height:12px;background:var(--border);flex-shrink:0;}
+  #bottombar .bb-pt-status{padding:2px 6px;font-weight:700;letter-spacing:.5px;font-size:9px;}
+  #bottombar .bb-pt-status.running{color:var(--up-text);border:1px solid var(--up);}
+  #bottombar .bb-pt-status.stopped{color:var(--down-text);border:1px solid var(--down);}
+
   /* responsive fallback */
-  @media (max-width:1380px){ #col4{display:none;} #main{grid-template-columns:240px minmax(0,1fr) 280px;} }
   @media (max-width:1100px){
-    #rightcol{display:none;} #main{grid-template-columns:240px minmax(0,1fr);}
+    #rightcol{display:none;} #main{grid-template-columns:220px minmax(0,1fr);}
   }
   @media (max-width:800px){
     #leftcol{display:none;} #main{grid-template-columns:1fr;}
@@ -318,7 +367,7 @@
     #main{grid-template-columns:1fr; gap:0; padding:0; overflow:visible;}
     #leftcol{display:none !important;}
     #rightcol{display:none !important;}
-    #col4{display:none !important;}
+    #bottombar{font-size:9px;gap:8px;padding:3px 6px;}
 
     /* ── Mobile quote ticker (horizontal scroll above chart) ── */
     #mob-quotes{
@@ -390,17 +439,11 @@
     .obmid{font-size:13px; padding:6px 8px;}
   }
 
-  /* ── Col3 (RIGHT) compact Bloomberg density ──── */
+  /* ── Col3 (RIGHT) panel density ──────────────── */
   #rightcol>.panel{flex:0 0 auto !important; max-height:none;}
   #rightcol{overflow-y:auto;}
   #rightcol .ptitle{padding:3px 6px; font-size:10px;}
   #rightcol .pbody{font-size:10px;}
-  #rightcol #papertrading .pt-row{padding:2px 6px;}
-  #rightcol #papertrading .pt-cell{padding:3px 4px;}
-  #rightcol #papertrading .pt-cell small{font-size:7px;}
-  #rightcol #ecocalendar .eco-ev{padding:2px 6px; font-size:9px;}
-  #rightcol #fundingheat .fh-row{padding:2px 6px; font-size:9px;}
-  #rightcol #realportfolio .rp-row{padding:2px 6px; font-size:9px;}
 
 /* ── Auth Gate ─────────────────────────────── */
 #auth-gate{
@@ -781,10 +824,11 @@
 
   <div id="main">
 
-    <!-- LEFT -->
+    <!-- LEFT (220px) -->
     <div class="col" id="leftcol">
-      <div class="panel" style="flex:1.5;">
-        <div class="ptitle">QUOTES
+      <!-- WATCHLIST -->
+      <div class="panel" style="flex:1.2;">
+        <div class="ptitle">WATCHLIST
           <span class="ntab on" data-qtab="watch">관심</span>
           <span class="ntab" data-qtab="up">급등</span>
           <span class="ntab" data-qtab="dn">급락</span>
@@ -795,44 +839,46 @@
           <tbody id="qbody"></tbody>
         </table><div id="palerts"></div><div id="positions"></div></div>
       </div>
-      <div class="panel" style="flex:0 0 auto;">
-        <div class="ptitle">KIMCHI PREMIUM <small>업비트 vs 선물</small><span class="age" id="age-kim"></span></div>
-        <div class="pbody" id="kimchi"><div class="note">로드 중…</div></div>
+      <!-- PAPER TRADER (compact) -->
+      <div class="panel" style="flex:0 0 auto;" id="pt-compact">
+        <div class="ptitle">PAPER TRADER <small>가상매매</small><span class="age" id="age-paper"></span></div>
+        <div class="pbody" id="papertrading"><div style="padding:6px;color:var(--ink3)">데이터 로딩 중…</div></div>
       </div>
-      <div class="panel" style="flex:1;">
-        <div class="ptitle">MARKET OVERVIEW <small>글로벌</small><span class="age" id="age-glob"></span></div>
-        <div class="pbody" id="globals">
-          <div class="rowline"><span>TOTAL MCAP</span><b id="g-mcap">—</b></div>
-          <div class="rowline"><span>24H VOLUME</span><b id="g-vol">—</b></div>
-          <div class="rowline"><span>BTC DOMINANCE</span><b id="g-btcd">—</b></div>
-          <div class="rowline"><span>ETH DOMINANCE</span><b id="g-ethd">—</b></div>
-          <div class="rowline"><span>DXY <small style="color:var(--ink3)">환율근사·일간</small></span><b id="g-dxy">—</b></div>
-          <div class="rowline"><span>GOLD <small style="color:var(--ink3)">PAXG 실시간</small></span><b id="g-gold">—</b></div>
-          <div class="rowline"><span>USD / KRW</span><b id="g-usdkrw">—</b></div>
-          <div class="rowline"><span>BTC 24H HIGH/LOW</span><b id="g-btchl">—</b></div>
-          <div class="rowline"><span>ETH/BTC</span><b id="g-ethbtc">—</b></div>
-          <div id="fng">
-            <div style="display:flex;justify-content:space-between;">
-              <span style="color:var(--ink2)">FEAR &amp; GREED</span>
-              <b id="fngval">—</b>
-            </div>
-            <div id="fngbar"><div id="fngmark" style="left:50%"></div></div>
-            <div id="fngtext"><span>공포 0</span><span>탐욕 100</span></div>
-            <div id="fng-spark"></div>
+      <!-- AI SIGNALS (recent 3) -->
+      <div class="panel" style="flex:0 0 auto;" id="ai-signals-list">
+        <div class="ptitle">AI SIGNALS <small>최근 분석</small><span class="age" id="age-aisig"></span></div>
+        <div class="pbody" id="ai-signals-body"><div class="ais-empty">시그널 로드 중…</div></div>
+      </div>
+    </div>
+
+    <!-- HIDDEN: original globals data holders (keep for JS compatibility) -->
+    <div style="display:none">
+      <div id="kimchi"></div>
+      <div id="globals">
+        <div class="rowline"><span>TOTAL MCAP</span><b id="g-mcap">—</b></div>
+        <div class="rowline"><span>24H VOLUME</span><b id="g-vol">—</b></div>
+        <div class="rowline"><span>BTC DOMINANCE</span><b id="g-btcd">—</b></div>
+        <div class="rowline"><span>ETH DOMINANCE</span><b id="g-ethd">—</b></div>
+        <div class="rowline"><span>DXY</span><b id="g-dxy">—</b></div>
+        <div class="rowline"><span>GOLD</span><b id="g-gold">—</b></div>
+        <div class="rowline"><span>USD / KRW</span><b id="g-usdkrw">—</b></div>
+        <div class="rowline"><span>BTC 24H HIGH/LOW</span><b id="g-btchl">—</b></div>
+        <div class="rowline"><span>ETH/BTC</span><b id="g-ethbtc">—</b></div>
+        <div id="fng">
+          <div style="display:flex;justify-content:space-between;">
+            <span style="color:var(--ink2)">FEAR &amp; GREED</span>
+            <b id="fngval">—</b>
           </div>
-          <div style="padding:4px 10px;border-top:1px solid #101010;">
-            <div style="display:flex;justify-content:space-between;color:var(--ink3);font-size:10px;margin-bottom:3px">
-              <span>MARKET DOMINANCE</span>
-            </div>
-            <div id="g-dom-bar" style="display:flex;height:8px;border:1px solid #222;overflow:hidden;"></div>
-            <div id="g-dom-labels" style="display:flex;justify-content:space-between;font-size:9px;color:var(--ink3);margin-top:2px;"></div>
-          </div>
+          <div id="fngbar"><div id="fngmark" style="left:50%"></div></div>
+          <div id="fngtext"><span>공포 0</span><span>탐욕 100</span></div>
+          <div id="fng-spark"></div>
+        </div>
+        <div>
+          <div id="g-dom-bar" style="display:flex;height:8px;border:1px solid #222;overflow:hidden;"></div>
+          <div id="g-dom-labels" style="display:flex;justify-content:space-between;font-size:9px;color:var(--ink3);margin-top:2px;"></div>
         </div>
       </div>
-      <div class="panel" style="flex:0 0 auto; max-height:200px;">
-        <div class="ptitle">MACRO CALENDAR <small>ECO · KST</small><span class="age" id="age-eco"></span></div>
-        <div class="pbody" id="eco"><div class="rowline"><span style="color:var(--ink3)">로드 중…</span></div></div>
-      </div>
+      <div id="eco"></div>
     </div>
 
     <!-- CENTER -->
@@ -977,70 +1023,23 @@
       </div>
     </div>
 
-    <!-- RIGHT: Bloomberg-style stacked panels -->
+    <!-- RIGHT (260px): Positions + OrderBook + Trades -->
     <div class="col" id="rightcol">
-      <div class="panel">
-        <div class="ptitle">PAPER TRADING <small>가상매매</small><span class="age" id="age-paper"></span></div>
-        <div class="pbody" id="papertrading"><div style="padding:6px;color:var(--ink3)">데이터 로딩 중…</div></div>
-      </div>
-      <div class="panel">
-        <div class="ptitle">LEARN ENGINE <small>학습형 AI</small>
-          <span class="ntab on" data-sigtab="live">실시간</span>
-          <span class="ntab" data-sigtab="hist">학습기록</span>
-          <span class="ntab" data-sigtab="wt">가중치</span>
-          <span class="age" id="age-sig"></span>
+      <!-- OPEN POSITIONS (가장 중요) -->
+      <div class="panel" style="flex:0 0 auto; max-height:45%;" id="pos-panel">
+        <div class="ptitle" style="background:#120e05;color:var(--amber);">POSITIONS <small>보유 포지션</small>
+          <span style="margin-left:auto;font-size:9px;color:var(--ink3);font-weight:400" id="pos-count">0</span>
+          <span class="age" id="age-pos"></span>
         </div>
-        <div class="pbody" id="signals"><div style="padding:6px;color:var(--ink3)">엔진 초기화 중…</div></div>
+        <div class="pbody" id="pos-body"><div class="pos-empty">포지션 로드 중…</div></div>
       </div>
-      <div class="panel">
-        <div class="ptitle">TRADING FLOOR <small>13-agent</small>
-          <span class="age" id="age-tt"></span>
-        </div>
-        <div class="pbody" id="tt-panel" style="padding:4px 6px; font-size:10px; line-height:1.5;">
-          <div style="color:var(--ink3)">연결 대기 중…</div>
-        </div>
-      </div>
-      <div class="panel">
-        <div class="ptitle">ECONOMIC CALENDAR <small>매크로</small><span class="age" id="age-ecal"></span></div>
-        <div class="pbody" id="ecocalendar"><div style="padding:6px;color:var(--ink3)">로드 중…</div></div>
-      </div>
-      <div class="panel">
-        <div class="ptitle">FUNDING HEATMAP <small>Top 5</small><span class="age" id="age-fheat"></span></div>
-        <div class="pbody" id="fundingheat"><div style="padding:6px;color:var(--ink3)">로드 중…</div></div>
-      </div>
-      <div class="panel">
-        <div class="ptitle">PORTFOLIO <small>실계좌</small><span class="age" id="age-rport"></span></div>
-        <div class="pbody" id="realportfolio"><div style="padding:6px;color:var(--ink3)">Investment 연결 중…</div></div>
-      </div>
-      <div class="panel">
-        <div class="ptitle">POSITION SIZER <small>레버리지</small></div>
-        <div class="pbody" id="psizer" style="padding:4px 6px;">
-          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px; font-size:9px; margin-bottom:3px;">
-            <div><span style="color:var(--ink3)">자본</span><br><input id="ps-cap" value="10000" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:2px 3px;text-align:right;"></div>
-            <div><span style="color:var(--ink3)">리스크%</span><br><input id="ps-risk" value="1" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:2px 3px;text-align:right;"></div>
-            <div><span style="color:var(--ink3)">레버리지</span><br><input id="ps-lev" value="20" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:2px 3px;text-align:right;"></div>
-          </div>
-          <div id="ps-result" style="font-size:9px; color:var(--ink2); line-height:1.4;">신호 선택 시 자동 계산</div>
-        </div>
-      </div>
-      <div class="panel" style="flex:1 1 auto !important;">
-        <div class="ptitle">NEWS WIRE
-          <span class="ntab on" data-ntab="all">전체</span>
-          <span class="ntab" data-ntab="sym" id="ntab-sym">SOL</span>
-          <span class="ntab" data-ntab="defi">DeFi</span>
-          <span class="ntab" data-ntab="kr" id="ntab-kr" style="opacity:.45" title="Vercel 배포 시 활성화">한국</span>
-          <span class="age" id="age-news"></span></div>
-        <div class="pbody" id="news"><div class="item" style="color:var(--ink3)">로드 중…</div></div>
-      </div>
-    </div>
-
-    <!-- COL4: 실시간 오더플로우 -->
-    <div class="col" id="col4">
-      <div class="panel" style="flex:1.15;">
+      <!-- ORDER BOOK -->
+      <div class="panel" style="flex:1;">
         <div class="ptitle">ORDER BOOK <small id="ob-sym">SOLUSDT</small><span class="age" id="age-ob"></span></div>
         <div class="pbody" id="ob"><div class="obmsg">WebSocket 연결 중…<br><span style="font-size:10px">브라우저에서 직접 열면 실시간 호가가 표시됩니다.</span></div></div>
       </div>
-      <div class="panel" style="flex:1;">
+      <!-- TRADES -->
+      <div class="panel" style="flex:0.8;">
         <div class="ptitle">
           <span class="ntab on" data-ftab="ts">체결</span>
           <span class="ntab" data-ftab="lq">청산</span>
@@ -1048,6 +1047,28 @@
           <span class="age" id="age-ts"></span></div>
         <div class="pbody" id="tsfeed"><div class="obmsg">체결 대기 중…</div></div>
       </div>
+    </div>
+
+    <!-- HIDDEN: panels moved from right col (keep for JS compatibility) -->
+    <div style="display:none" id="col4">
+      <div id="signals"><div style="padding:6px;color:var(--ink3)">엔진 초기화 중…</div></div>
+      <div id="tt-panel" style="padding:4px 6px; font-size:10px; line-height:1.5;">
+        <div style="color:var(--ink3)">연결 대기 중…</div>
+      </div>
+      <div id="ecocalendar"></div>
+      <div id="fundingheat"></div>
+      <div id="realportfolio"></div>
+      <div id="psizer" style="padding:4px 6px;">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px; font-size:9px; margin-bottom:3px;">
+          <div><span style="color:var(--ink3)">자본</span><br><input id="ps-cap" value="10000" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:2px 3px;text-align:right;"></div>
+          <div><span style="color:var(--ink3)">리스크%</span><br><input id="ps-risk" value="1" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:2px 3px;text-align:right;"></div>
+          <div><span style="color:var(--ink3)">레버리지</span><br><input id="ps-lev" value="20" style="width:100%;background:#111;border:1px solid var(--border);color:var(--ink);font-family:var(--mono);font-size:10px;padding:2px 3px;text-align:right;"></div>
+        </div>
+        <div id="ps-result" style="font-size:9px; color:var(--ink2); line-height:1.4;">신호 선택 시 자동 계산</div>
+      </div>
+      <span id="ntab-sym" style="display:none">SOL</span>
+      <span id="ntab-kr" style="display:none"></span>
+      <div id="news"><div class="item" style="color:var(--ink3)">로드 중…</div></div>
     </div>
 
   </div>
@@ -1064,7 +1085,27 @@
     <div id="mob-panel-content"></div>
   </div>
 
-  <div id="tape"><div id="tapetrack">시세 로드 중…</div></div>
+  <!-- Bottom status bar: derivatives + paper trader status -->
+  <div id="bottombar">
+    <div class="bb-item"><span>FUNDING</span> <b id="bb-fund">—</b></div>
+    <div class="bb-sep"></div>
+    <div class="bb-item"><span>OI</span> <b id="bb-oi">—</b></div>
+    <div class="bb-sep"></div>
+    <div class="bb-item"><span>L/S</span> <b id="bb-ls">—</b></div>
+    <div class="bb-sep"></div>
+    <div class="bb-item"><span>REGIME</span> <b id="bb-regime">—</b></div>
+    <div class="bb-sep"></div>
+    <div class="bb-item"><span>PAPER</span> <span class="bb-pt-status stopped" id="bb-pt-status">OFFLINE</span></div>
+    <div class="bb-sep"></div>
+    <div class="bb-item"><span>다음 분석</span> <b id="bb-pt-cd">--:--</b></div>
+    <div class="bb-sep"></div>
+    <div class="bb-item"><span>F&G</span> <b id="bb-fng">—</b></div>
+    <div style="margin-left:auto;"></div>
+    <div class="bb-item"><span>BTC.D</span> <b id="bb-btcd">—</b></div>
+    <div class="bb-sep"></div>
+    <div class="bb-item"><span>MCAP</span> <b id="bb-mcap">—</b></div>
+  </div>
+  <div id="tape" style="display:none"><div id="tapetrack">시세 로드 중…</div></div>
   <div id="notif-area"></div>
   <div id="alert-center"></div>
 
@@ -11797,6 +11838,247 @@ window.keysOverlay = function () {
 
 // Initial load of drawings
 setTimeout(() => { loadDrawings(); }, 1000);
+
+// ══════════════════════════════════════════════════════════════
+// NEW DASHBOARD PANELS — Positions, AI Signals List, Bottom Bar
+// ══════════════════════════════════════════════════════════════
+(function initNewDashboard() {
+  const TT_DASH = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:8000' : 'https://trading-team.mot-era.com';
+
+  // ═══ 1. RIGHT-COL POSITIONS PANEL ═══
+  const POS_CACHE = { data: null, ts: 0 };
+
+  async function loadPositionsPanel() {
+    const body = document.getElementById('pos-body');
+    if (!body) return;
+    try {
+      if (Date.now() - POS_CACHE.ts < 8000 && POS_CACHE.data) {
+        renderPositionsPanel(POS_CACHE.data);
+        return;
+      }
+      const res = await fetch(`${TT_DASH}/api/paper/positions`, { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) throw new Error('fetch failed');
+      const data = await res.json();
+      POS_CACHE.data = data;
+      POS_CACHE.ts = Date.now();
+      renderPositionsPanel(data);
+    } catch {
+      body.innerHTML = '<div class="pos-empty">Paper Trader 미연결</div>';
+    }
+  }
+
+  function renderPositionsPanel(data) {
+    const body = document.getElementById('pos-body');
+    const countEl = document.getElementById('pos-count');
+    if (!body) return;
+    const positions = data.positions || [];
+    if (countEl) countEl.textContent = positions.length;
+
+    if (!positions.length) {
+      body.innerHTML = '<div class="pos-empty">보유 포지션 없음</div>';
+      return;
+    }
+
+    let html = '';
+    positions.forEach(p => {
+      const sym = (p.symbol || '').replace('USDT', '');
+      const dir = p.direction || p.side || '';
+      const isLong = dir === 'BUY' || dir === 'LONG';
+      const dirLabel = isLong ? 'LONG' : 'SHORT';
+      const dirClass = isLong ? 'long' : 'short';
+      const entry = p.entryPrice || p.entry || 0;
+      const current = p.currentPrice || p.markPrice || 0;
+      const pnl = p.unrealizedPnl || 0;
+      const roe = p.unrealizedPnlPct || p.roe || 0;
+      const pnlCol = pnl >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+
+      // Holding time
+      let holdTime = '';
+      if (p.openedAt || p.entryTime || p.timestamp) {
+        const opened = new Date(p.openedAt || p.entryTime || p.timestamp);
+        const diffMs = Date.now() - opened.getTime();
+        const diffH = Math.floor(diffMs / 3600000);
+        const diffM = Math.floor((diffMs % 3600000) / 60000);
+        holdTime = diffH > 0 ? `${diffH}h ${diffM}m` : `${diffM}m`;
+      }
+
+      html += `<div class="pos-card" onclick="if(typeof switchTo==='function')switchTo('${sym}',S.tf)">`;
+      html += `<div class="pos-head">`;
+      html += `<span class="pos-sym">${sym}</span>`;
+      html += `<span class="pos-dir ${dirClass}">${dirLabel}</span>`;
+      html += `</div>`;
+      html += `<div class="pos-prices">`;
+      html += `<span>진입 $${typeof fmtPrice==='function'?fmtPrice(entry):entry}</span>`;
+      html += `<span style="color:var(--ink3)">→</span>`;
+      html += `<span style="color:${pnlCol}">$${typeof fmtPrice==='function'?fmtPrice(current):current}</span>`;
+      html += `</div>`;
+      html += `<div class="pos-pnl">`;
+      html += `<span style="color:${pnlCol}">${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}</span>`;
+      html += `<span style="color:${pnlCol};font-size:12px">${roe >= 0 ? '+' : ''}${roe.toFixed(2)}%</span>`;
+      html += `</div>`;
+      if (holdTime) {
+        html += `<div class="pos-time">보유 ${holdTime}</div>`;
+      }
+      html += `</div>`;
+    });
+
+    body.innerHTML = html;
+    const ageEl = document.getElementById('age-pos');
+    if (ageEl) ageEl.textContent = 'now';
+  }
+
+  // ═══ 2. AI SIGNALS LIST (left col, recent 3) ═══
+  const SIG_LIST_CACHE = { data: null, ts: 0 };
+
+  async function loadAISignalsList() {
+    const body = document.getElementById('ai-signals-body');
+    if (!body) return;
+    try {
+      if (Date.now() - SIG_LIST_CACHE.ts < 15000 && SIG_LIST_CACHE.data) {
+        renderAISignalsList(SIG_LIST_CACHE.data);
+        return;
+      }
+      // Fetch signals for watchlist coins
+      const coins = (typeof S !== 'undefined' && S.syms) ? S.syms.slice(0, 6) : ['BTC','ETH','SOL'];
+      const results = [];
+      const promises = coins.map(async sym => {
+        try {
+          const res = await fetch(`${TT_DASH}/api/paper/signal/${sym}`, { signal: AbortSignal.timeout(4000) });
+          if (!res.ok) return;
+          const d = await res.json();
+          if (d && d.latest) results.push({ sym, ...d.latest, ts: d.latest.timestamp || Date.now() });
+        } catch {}
+      });
+      await Promise.allSettled(promises);
+      // Sort by recency
+      results.sort((a, b) => new Date(b.ts) - new Date(a.ts));
+      SIG_LIST_CACHE.data = results.slice(0, 3);
+      SIG_LIST_CACHE.ts = Date.now();
+      renderAISignalsList(SIG_LIST_CACHE.data);
+    } catch {
+      body.innerHTML = '<div class="ais-empty">시그널 없음</div>';
+    }
+  }
+
+  function renderAISignalsList(items) {
+    const body = document.getElementById('ai-signals-body');
+    if (!body) return;
+    if (!items || !items.length) {
+      body.innerHTML = '<div class="ais-empty">최근 시그널 없음</div>';
+      return;
+    }
+    let html = '';
+    items.forEach(s => {
+      const action = s.action || 'HOLD';
+      const dirClass = action === 'BUY' ? 'buy' : action === 'SELL' ? 'sell' : 'hold';
+      const conf = s.confidence || 0;
+      const confCol = action === 'BUY' ? 'var(--up)' : action === 'SELL' ? 'var(--down)' : 'var(--ink3)';
+      let timeStr = '--:--';
+      if (s.timestamp) {
+        timeStr = new Date(s.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+      }
+      html += `<div class="ais-item" onclick="if(typeof switchTo==='function')switchTo('${s.sym}',S.tf)">`;
+      html += `<div class="ais-head">`;
+      html += `<span class="ais-sym">${s.sym || '?'}</span>`;
+      html += `<span class="ais-dir ${dirClass}">${action}</span>`;
+      html += `<span class="ais-time">${timeStr}</span>`;
+      html += `</div>`;
+      html += `<div class="ais-conf"><div class="fill" style="width:${Math.min(100,conf)}%;background:${confCol}"></div></div>`;
+      html += `</div>`;
+    });
+    body.innerHTML = html;
+    const ageEl = document.getElementById('age-aisig');
+    if (ageEl) ageEl.textContent = 'now';
+  }
+
+  // ═══ 3. BOTTOM BAR UPDATER ═══
+  function updateBottomBar() {
+    // Funding rate from deriv
+    const fundEl = document.getElementById('fund-rate');
+    const bbFund = document.getElementById('bb-fund');
+    if (fundEl && bbFund) bbFund.textContent = fundEl.textContent || '—';
+
+    // OI
+    const oiEl = document.getElementById('oi-val');
+    const bbOi = document.getElementById('bb-oi');
+    if (oiEl && bbOi) bbOi.textContent = oiEl.textContent || '—';
+
+    // L/S
+    const lsL = document.getElementById('ls-l');
+    const lsS = document.getElementById('ls-s');
+    const bbLs = document.getElementById('bb-ls');
+    if (lsL && lsS && bbLs) {
+      const lv = lsL.textContent || '—';
+      const sv = lsS.textContent || '—';
+      bbLs.innerHTML = `<span class="u">${lv}</span>/<span class="d">${sv}</span>`;
+    }
+
+    // Regime
+    const regEl = document.getElementById('regime-label');
+    const bbReg = document.getElementById('bb-regime');
+    if (regEl && bbReg) bbReg.textContent = regEl.textContent || '—';
+
+    // F&G
+    const fngVal = document.getElementById('fngval');
+    const bbFng = document.getElementById('bb-fng');
+    if (fngVal && bbFng) bbFng.textContent = fngVal.textContent || '—';
+
+    // BTC.D / MCAP
+    const btcd = document.getElementById('ss-btcd') || document.getElementById('g-btcd');
+    const mcap = document.getElementById('ss-mcap') || document.getElementById('g-mcap');
+    const bbBtcd = document.getElementById('bb-btcd');
+    const bbMcap = document.getElementById('bb-mcap');
+    if (btcd && bbBtcd) bbBtcd.textContent = btcd.textContent || '—';
+    if (mcap && bbMcap) bbMcap.textContent = mcap.textContent || '—';
+
+    // Paper Trader status
+    if (PAPER_CACHE && PAPER_CACHE.data) {
+      const d = PAPER_CACHE.data;
+      const statusEl = document.getElementById('bb-pt-status');
+      if (statusEl) {
+        const running = d.running !== false;
+        statusEl.textContent = running ? 'RUNNING' : 'STOPPED';
+        statusEl.className = 'bb-pt-status ' + (running ? 'running' : 'stopped');
+      }
+      // Countdown
+      const cdEl = document.getElementById('bb-pt-cd');
+      if (cdEl && d.nextAnalysis) {
+        const diff = new Date(d.nextAnalysis) - Date.now();
+        if (diff > 0) {
+          const m = Math.floor(diff / 60000);
+          const s = Math.floor((diff % 60000) / 1000);
+          cdEl.textContent = `${m}:${String(s).padStart(2, '0')}`;
+        } else {
+          cdEl.textContent = 'now';
+        }
+      }
+    }
+  }
+
+  // ═══ BOOT HOOKS ═══
+  function dashboardBoot() {
+    // Positions panel
+    loadPositionsPanel();
+    setInterval(loadPositionsPanel, 10000);
+
+    // AI Signals list
+    setTimeout(loadAISignalsList, 3000);
+    setInterval(loadAISignalsList, 20000);
+
+    // Bottom bar sync
+    setInterval(updateBottomBar, 3000);
+    setTimeout(updateBottomBar, 5000);
+  }
+
+  // Wait for boot
+  const _dashWatcher = setInterval(() => {
+    if (typeof _booted !== 'undefined' && _booted) {
+      clearInterval(_dashWatcher);
+      setTimeout(dashboardBoot, 1500);
+    }
+  }, 300);
+})();
 </script>
 </body>
 </html>
