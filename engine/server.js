@@ -1676,6 +1676,143 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // ── /api/market/summary — 시장 요약 ──
+    if (req.method === 'GET' && pathname === '/api/market/summary') {
+      try {
+        const status = paperTrader.getStatus();
+        const prices = priceFeed.getAllPrices ? priceFeed.getAllPrices() : {};
+        const regime = status.marketRegime || {};
+
+        return sendJson(res, 200, {
+          regime: regime.regime || 'UNKNOWN',
+          btcChange: regime.btcChange || 0,
+          capital: status.capital || 3000,
+          returnPct: status.returnPct || 0,
+          totalPnl: status.totalPnl || 0,
+          positions: (status.positions || []).length + (status.swingPositions || []).length,
+          running: status.running || false,
+          winRate: status.winRate || 0,
+          totalTrades: status.totalTrades || 0,
+          lastAnalysis: status.lastAnalysis || null,
+          circuitBreaker: status.circuitBreakerActive || false,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (e) {
+        return sendJson(res, 500, { error: e.message });
+      }
+    }
+
+    // ── /api/signals/all — 전 코인 시그널 스캔 ──
+    if (req.method === 'GET' && pathname === '/api/signals/all') {
+      try {
+        const symbols = ['BTC','ETH','SOL','AVAX','DOGE','LINK','SUI','PEPE','WIF','TON'];
+        const results = [];
+
+        // Get latest decisions from paper trader
+        const status = paperTrader.getStatus();
+        const recentTrades = status.recentTrades || [];
+        const positions = [...(status.positions || []), ...(status.swingPositions || [])];
+
+        for (const sym of symbols) {
+          const pos = positions.find(p => p.symbol === sym);
+          const lastTrade = recentTrades.find(t => t.symbol === sym);
+
+          let signal = null;
+          try {
+            signal = await quantSignals.getSignalForSymbol(sym + 'USDT');
+          } catch {}
+
+          results.push({
+            symbol: sym,
+            action: signal?.action || (pos ? pos.direction : 'HOLD'),
+            confidence: signal?.confidence || (pos ? pos.confidence : 0),
+            grade: signal?.grade || (pos ? pos.grade : '?'),
+            score: signal?.totalScore || signal?.score || 0,
+            hasPosition: !!pos,
+            posDirection: pos?.direction || null,
+            lastTradeResult: lastTrade ? (lastTrade.pnl >= 0 ? 'WIN' : 'LOSS') : null,
+          });
+        }
+
+        return sendJson(res, 200, { results, timestamp: new Date().toISOString() });
+      } catch (e) {
+        return sendJson(res, 500, { error: e.message });
+      }
+    }
+
+    // ── /api/paper/stats — 거래 통계 상세 ──
+    if (req.method === 'GET' && pathname === '/api/paper/stats') {
+      try {
+        const history = paperTrader.getHistory();
+        const trades = history.trades || history || [];
+
+        // Coin-by-coin stats
+        const coinStats = {};
+        trades.forEach(t => {
+          const sym = t.symbol || 'UNKNOWN';
+          if (!coinStats[sym]) coinStats[sym] = { wins: 0, losses: 0, totalPnl: 0, trades: [] };
+          if ((t.pnl || 0) > 0) coinStats[sym].wins++;
+          else coinStats[sym].losses++;
+          coinStats[sym].totalPnl += (t.pnl || 0);
+          coinStats[sym].trades.push({ pnl: t.pnl || 0, direction: t.direction, reason: t.closeReason });
+        });
+
+        // Hourly performance
+        const hourlyStats = {};
+        trades.forEach(t => {
+          const hour = t.entryTime ? new Date(t.entryTime).getHours() : 0;
+          if (!hourlyStats[hour]) hourlyStats[hour] = { wins: 0, losses: 0 };
+          if ((t.pnl || 0) > 0) hourlyStats[hour].wins++;
+          else hourlyStats[hour].losses++;
+        });
+
+        // Direction stats
+        const longTrades = trades.filter(t => t.direction === 'BUY' || t.direction === 'LONG');
+        const shortTrades = trades.filter(t => t.direction === 'SELL' || t.direction === 'SHORT');
+        const longWR = longTrades.length > 0 ? (longTrades.filter(t => (t.pnl||0) > 0).length / longTrades.length * 100) : 0;
+        const shortWR = shortTrades.length > 0 ? (shortTrades.filter(t => (t.pnl||0) > 0).length / shortTrades.length * 100) : 0;
+
+        // Close reason stats
+        const reasons = {};
+        trades.forEach(t => {
+          const r = t.closeReason || 'OTHER';
+          if (!reasons[r]) reasons[r] = 0;
+          reasons[r]++;
+        });
+
+        return sendJson(res, 200, {
+          totalTrades: trades.length,
+          coinStats,
+          hourlyStats,
+          longTrades: longTrades.length,
+          shortTrades: shortTrades.length,
+          longWinRate: longWR,
+          shortWinRate: shortWR,
+          closeReasons: reasons,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (e) {
+        return sendJson(res, 500, { error: e.message });
+      }
+    }
+
+    // ── /api/engine/config — 엔진 설정 조회/변경 ──
+    if (req.method === 'GET' && pathname === '/api/engine/config') {
+      try {
+        const status = paperTrader.getStatus();
+        return sendJson(res, 200, {
+          symbols: status.symbols || [],
+          swingSymbols: status.swingSymbols || [],
+          config: status.config || {},
+          strategyMode: status.strategyMode || 'both',
+          analysisInterval: status.analysisInterval || '',
+          running: status.running || false,
+        });
+      } catch (e) {
+        return sendJson(res, 500, { error: e.message });
+      }
+    }
+
     // ── /api/calendar — 경제 캘린더 (FCS v4 전용, 캐시 6시간) ──
     if (req.method === 'GET' && pathname === '/api/calendar') {
       const calCache = global.__calCache || {};
