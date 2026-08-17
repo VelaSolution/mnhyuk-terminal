@@ -1543,29 +1543,39 @@ const server = http.createServer(async (req, res) => {
       } catch(e) { return sendJson(res, 500, { error: e.message }); }
     }
 
-    // ── /api/calendar — 경제 캘린더 (캐시 6시간) ──
+    // ── /api/calendar — 경제 캘린더 (FCS v4 전용, 캐시 6시간) ──
     if (req.method === 'GET' && pathname === '/api/calendar') {
       const calCache = global.__calCache || {};
       if (calCache.data && Date.now() - calCache.ts < 6 * 3600000) {
         return sendJson(res, 200, calCache.data);
       }
+      const FCS_KEY = process.env.FCS_API_KEY || '';
+      if (!FCS_KEY) return sendJson(res, 500, { source: 'none', events: [], error: 'FCS_API_KEY 미설정' });
       try {
-        // ForexFactory
-        const ffRes = await fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.json', {
-          headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000)
+        const fcsRes = await fetch(`https://api-v4.fcsapi.com/forex/economy_cal?access_key=${FCS_KEY}`, {
+          signal: AbortSignal.timeout(10000)
         });
-        if (ffRes.ok) {
-          const ffData = await ffRes.json();
-          if (Array.isArray(ffData) && ffData.length) {
-            const events = ffData.filter(e => e.impact === 'High' || e.impact === 'Medium')
-              .map(e => ({ title: e.title || '', country: e.country || '', date: e.date || '', impact: e.impact || '', actual: e.actual || '', forecast: e.forecast || '', previous: e.previous || '' }));
-            const result = { source: 'forexfactory', events };
-            global.__calCache = { data: result, ts: Date.now() };
-            return sendJson(res, 200, result);
-          }
-        }
-      } catch (_) {}
-      return sendJson(res, 200, { source: 'none', events: [] });
+        if (!fcsRes.ok) throw new Error('FCS API 응답 실패: ' + fcsRes.status);
+        const fcsData = await fcsRes.json();
+        const rawEvents = fcsData.response || fcsData.data || [];
+        if (!Array.isArray(rawEvents) || !rawEvents.length) throw new Error('FCS 데이터 없음');
+        const events = rawEvents
+          .filter(e => e.importance === '3' || e.importance === '2' || e.importance === 'High' || e.importance === 'Medium')
+          .map(e => ({
+            title: e.title || e.event || '',
+            country: e.currency || e.country || '',
+            date: e.date || '',
+            impact: (e.importance === '3' || e.importance === 'High') ? 'High' : 'Medium',
+            actual: e.actual || '',
+            forecast: e.forecast || e.estimate || '',
+            previous: e.previous || '',
+          }));
+        const result = { source: 'fcs-v4', events };
+        global.__calCache = { data: result, ts: Date.now() };
+        return sendJson(res, 200, result);
+      } catch (e) {
+        return sendJson(res, 500, { source: 'none', events: [], error: 'FCS 캘린더 로드 실패: ' + e.message });
+      }
     }
 
     // ── /api/rss — RSS 뉴스 프록시 ──
