@@ -9622,8 +9622,8 @@ function economicCalendarOverlay(){
 }
 
 /* ── Trading Team 베이스 URL ── */
-const TT_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-  ? 'http://localhost:8000' : 'https://trading-team.mot-era.com';
+const TT_BASE = window.__TT_BASE || ((location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:8000' : 'https://trading-team.mot-era.com');
 
 /* ── 2. PAPER TRADING 패널 ── */
 const PAPER_CACHE={data:null, ts:0};
@@ -10860,8 +10860,7 @@ document.getElementById("cmd").addEventListener("keydown", function(e) {
 // Multi-TF Mini Charts, Alert Center, One-Click Analysis
 // ══════════════════════════════════════════════════════════════
 (function initEnhancedFeatures() {
-  const TT = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-    ? 'http://localhost:8000' : 'https://trading-team.mot-era.com';
+  const TT = TT_BASE;
 
   // ═══ 1. AI SIGNAL OVERLAY — 차트 위 반투명 뱃지 ═══
   const AI_OVL = { data: null, ts: 0 };
@@ -12091,8 +12090,7 @@ setTimeout(() => { loadDrawings(); }, 1000);
 // NEW DASHBOARD PANELS — Positions, AI Signals List, Bottom Bar
 // ══════════════════════════════════════════════════════════════
 (function initNewDashboard() {
-  const TT_DASH = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-    ? 'http://localhost:8000' : 'https://trading-team.mot-era.com';
+  const TT_DASH = TT_BASE;
 
   // ═══ 1. RIGHT-COL POSITIONS PANEL ═══
   const POS_CACHE = { data: null, ts: 0 };
@@ -12434,8 +12432,7 @@ setTimeout(() => { loadDrawings(); }, 1000);
 // FEATURE: Enhanced Quad View (Q key), Notification Center, Backtest (B key)
 // ══════════════════════════════════════════════════════════════
 (function initNewFeatures() {
-  const TT_FEAT = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-    ? 'http://localhost:8000' : 'https://trading-team.mot-era.com';
+  const TT_FEAT = TT_BASE;
 
   // ═══ 1. ENHANCED QUAD VIEW ═══
   // Override existing quadLoad to use BTC/ETH/SOL + current coin, with EMA20
@@ -12936,8 +12933,7 @@ setTimeout(() => { loadDrawings(); }, 1000);
    Trading Team 데이터를 터미널 Right Column에 실시간 표시
    ═══════════════════════════════════════════════════════════ */
 (function() {
-  const TT = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-    ? 'http://localhost:8000' : 'https://trading-team.mot-era.com';
+  const TT = TT_BASE;
 
   // ── Health Score 업데이트 ──
   async function updateHealthPanel() {
