@@ -1430,6 +1430,73 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // ── /api/calendar — 경제 캘린더 (캐시 6시간) ──
+    if (req.method === 'GET' && pathname === '/api/calendar') {
+      const calCache = global.__calCache || {};
+      if (calCache.data && Date.now() - calCache.ts < 6 * 3600000) {
+        return sendJson(res, 200, calCache.data);
+      }
+      try {
+        // ForexFactory
+        const ffRes = await fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.json', {
+          headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000)
+        });
+        if (ffRes.ok) {
+          const ffData = await ffRes.json();
+          if (Array.isArray(ffData) && ffData.length) {
+            const events = ffData.filter(e => e.impact === 'High' || e.impact === 'Medium')
+              .map(e => ({ title: e.title || '', country: e.country || '', date: e.date || '', impact: e.impact || '', actual: e.actual || '', forecast: e.forecast || '', previous: e.previous || '' }));
+            const result = { source: 'forexfactory', events };
+            global.__calCache = { data: result, ts: Date.now() };
+            return sendJson(res, 200, result);
+          }
+        }
+      } catch (_) {}
+      return sendJson(res, 200, { source: 'none', events: [] });
+    }
+
+    // ── /api/rss — RSS 뉴스 프록시 ──
+    if (req.method === 'GET' && pathname === '/api/rss') {
+      const feed = searchParams?.get('feed') || 'kr';
+      const FEEDS = {
+        kr: 'https://www.blockmedia.co.kr/feed/',
+        coindesk: 'https://www.coindesk.com/arc/outboundfeeds/rss/',
+        cointelegraph: 'https://cointelegraph.com/rss',
+        theblock: 'https://www.theblock.co/rss.xml',
+        decrypt: 'https://decrypt.co/feed',
+      };
+      const feedUrl = FEEDS[feed];
+      if (!feedUrl) return sendJson(res, 400, { error: 'Unknown feed' });
+      try {
+        const r = await fetch(feedUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(8000) });
+        const text = await r.text();
+        const items = [];
+        const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+        let match;
+        while ((match = itemRegex.exec(text)) !== null && items.length < 15) {
+          const xml = match[1];
+          const title = (xml.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/) || [])[1] || '';
+          const link = (xml.match(/<link>(.*?)<\/link>/) || [])[1] || '';
+          const pubDate = (xml.match(/<pubDate>(.*?)<\/pubDate>/) || [])[1] || '';
+          if (title && link) items.push({ title: title.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'), url: link, ts: pubDate ? Date.parse(pubDate) : Date.now(), source: feed.toUpperCase() });
+        }
+        return sendJson(res, 200, { items });
+      } catch (e) { return sendJson(res, 500, { error: e.message, items: [] }); }
+    }
+
+    // ── /api/auth-config — Supabase 인증 설정 ──
+    if (req.method === 'GET' && pathname === '/api/auth-config') {
+      const url = process.env.TERMINAL_SUPABASE_URL;
+      const key = process.env.TERMINAL_SUPABASE_ANON_KEY;
+      if (!url || !key) return sendJson(res, 200, { error: 'Supabase not configured' });
+      return sendJson(res, 200, { url, key });
+    }
+
+    // ── /api/health — 헬스 체크 ──
+    if (req.method === 'GET' && pathname === '/api/health') {
+      return sendJson(res, 200, { status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+    }
+
     // ── /dashboard 라우트 ──
     if (req.method === 'GET' && pathname === '/dashboard') {
       return await handleStatic(req, res, '/dashboard.html');
