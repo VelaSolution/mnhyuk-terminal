@@ -19,39 +19,15 @@
     --sans: -apple-system, 'Apple SD Gothic Neo', 'SF Pro Display', sans-serif;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: radial-gradient(ellipse at 50% 20%, var(--bg3) 0%, var(--bg2) 55%, var(--bg) 100%);
-    color: var(--t2); font-family: var(--mono); min-height: 100vh;
-  }
-  body::after {
-    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.2;
-    background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(2,6,23,0.12) 2px 4px);
-  }
-  header {
-    position: sticky; top: 0; z-index: 100;
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 16px 28px;
-    background: rgba(5,11,30,0.95); backdrop-filter: blur(16px);
-    border-bottom: 1px solid var(--border);
-  }
-  .logo {
-    font-size: 18px; letter-spacing: 5px; font-weight: 800; text-decoration: none;
-    background: linear-gradient(135deg, var(--accent2), var(--accent));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-  }
+  body { background: radial-gradient(ellipse at 50% 20%, var(--bg3) 0%, var(--bg2) 55%, var(--bg) 100%); color: var(--t2); font-family: var(--mono); min-height: 100vh; }
+  body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.2; background: repeating-linear-gradient(0deg, transparent 0 2px, rgba(2,6,23,0.12) 2px 4px); }
+  header { position: sticky; top: 0; z-index: 100; display: flex; justify-content: space-between; align-items: center; padding: 16px 28px; background: rgba(5,11,30,0.95); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+  .logo { font-size: 18px; letter-spacing: 5px; font-weight: 800; text-decoration: none; background: linear-gradient(135deg, var(--accent2), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   .badge { font-size: 9px; padding: 3px 10px; border-radius: 4px; letter-spacing: 2px; background: rgba(232,89,12,0.1); border: 1px solid rgba(232,89,12,0.2); color: var(--accent2); }
   .layout { display: flex; max-width: 1400px; margin: 0 auto; }
-  nav {
-    position: sticky; top: 60px; align-self: flex-start;
-    width: 180px; flex-shrink: 0; padding: 24px 0 24px 20px;
-    height: calc(100vh - 60px); overflow-y: auto;
-  }
+  nav { position: sticky; top: 60px; align-self: flex-start; width: 200px; flex-shrink: 0; padding: 24px 0 24px 20px; height: calc(100vh - 60px); overflow-y: auto; }
   nav .label { font-size: 9px; color: var(--t6); letter-spacing: 2px; margin-bottom: 16px; padding-left: 12px; }
-  nav a {
-    display: block; padding: 8px 12px; margin-bottom: 2px;
-    font-size: 10px; letter-spacing: 1.5px; color: var(--t5); text-decoration: none;
-    border-left: 2px solid transparent; border-radius: 0 4px 4px 0; transition: all 0.15s;
-  }
+  nav a { display: block; padding: 8px 12px; margin-bottom: 2px; font-size: 10px; letter-spacing: 1.5px; color: var(--t5); text-decoration: none; border-left: 2px solid transparent; border-radius: 0 4px 4px 0; transition: all 0.15s; }
   nav a:hover { color: var(--accent2); background: rgba(232,89,12,0.08); border-left-color: var(--accent); font-weight: 700; }
   main { flex: 1; padding: 32px 40px 80px; max-width: 1100px; }
   .sec-title { margin-bottom: 24px; }
@@ -60,68 +36,54 @@
   .sec-title h2 { font-size: 20px; font-weight: 800; letter-spacing: 3px; color: var(--t1); }
   .sec-title .sub { font-size: 11px; color: var(--t5); letter-spacing: 1px; font-family: var(--sans); }
   .sec-title .line { width: 40px; height: 2px; margin-top: 12px; background: linear-gradient(90deg, var(--accent), transparent); }
-  .subtitle { font-size: 10px; letter-spacing: 2px; color: var(--t6); font-weight: 700; margin: 20px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border2); }
-  section { margin-bottom: 64px; }
+  section { margin-bottom: 56px; }
   .intro { padding: 28px; border-radius: 12px; background: linear-gradient(135deg, rgba(232,89,12,0.06), rgba(139,92,246,0.03)); border: 1px solid rgba(232,89,12,0.15); margin-bottom: 24px; }
   .intro p { font-size: 14px; color: var(--t3); line-height: 2; font-family: var(--sans); }
-  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
   .grid-6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
-  .stat-card { padding: 20px; border-radius: 8px; background: var(--panel2); border-left: 3px solid; text-align: center; }
-  .stat-card .val { font-size: 28px; font-weight: 800; letter-spacing: -1px; }
-  .stat-card .lbl { font-size: 9px; color: var(--t5); letter-spacing: 1.5px; margin-top: 6px; }
-  .cmd-group-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding: 10px 16px; border-radius: 6px; }
-  .cmd-group-header .name { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; }
-  .cmd-group-header .count { font-size: 9px; color: var(--t6); }
-  .cmd-row { padding: 12px 20px; border-bottom: 1px solid var(--border2); transition: background 0.15s; }
-  .cmd-row:hover { background: rgba(232,89,12,0.03); }
-  .cmd-name { display: inline-block; font-size: 11px; font-weight: 700; color: var(--t2); padding: 2px 8px; border-radius: 4px; background: rgba(30,41,59,0.5); border: 1px solid rgba(51,65,85,0.4); margin-bottom: 4px; }
-  .cmd-desc { font-size: 12px; color: var(--t4); font-family: var(--sans); }
-  .cmd-example { font-size: 10px; margin-top: 2px; }
-  .cmd-example .label { color: var(--t6); }
-  .cmd-example .val { color: var(--accent2); font-family: var(--sans); }
-  @media (max-width:768px) { nav{display:none;} main{padding:20px 16px;} .grid-3,.grid-6{grid-template-columns:1fr 1fr;} }
+  .stat-card { padding: 16px 8px; border-radius: 8px; background: var(--panel2); border-left: 3px solid; text-align: center; }
+  .stat-card .val { font-size: 24px; font-weight: 800; }
+  .stat-card .lbl { font-size: 8px; color: var(--t5); letter-spacing: 1.5px; margin-top: 4px; }
+  .g { margin-bottom: 28px; }
+  .gh { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 10px 16px; border-radius: 6px; }
+  .gh .n { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; }
+  .gh .c { font-size: 9px; color: var(--t6); }
+  .r { padding: 10px 20px; border-bottom: 1px solid var(--border2); transition: background 0.15s; display: flex; gap: 12px; align-items: baseline; }
+  .r:hover { background: rgba(232,89,12,0.03); }
+  .r .k { display: inline-block; font-size: 11px; font-weight: 700; color: var(--t2); padding: 2px 8px; border-radius: 4px; background: rgba(30,41,59,0.5); border: 1px solid rgba(51,65,85,0.4); white-space: nowrap; flex-shrink: 0; min-width: 140px; }
+  .r .d { font-size: 12px; color: var(--t4); font-family: var(--sans); }
   .back-btn { display: inline-block; margin-top: 32px; padding: 8px 16px; font-size: 9px; letter-spacing: 1.5px; color: var(--accent2); background: rgba(232,89,12,0.06); border: 1px solid rgba(232,89,12,0.2); border-radius: 6px; text-decoration: none; }
+  @media (max-width:768px) { nav{display:none;} main{padding:20px 16px;} .grid-6{grid-template-columns:repeat(3,1fr);} .r{flex-direction:column;gap:4px;} .r .k{min-width:auto;} }
 </style>
 </head>
 <body>
-
 <header>
   <a href="https://terminal.mot-era.com" class="logo">BILLION AI</a>
-  <div style="display:flex;align-items:center;gap:14px">
-    <span class="badge">TERMINAL v3</span>
-    <span style="font-size:11px;color:var(--t6)">HEDGE FUND OS</span>
-  </div>
+  <div style="display:flex;align-items:center;gap:14px"><span class="badge">TERMINAL v3</span><span style="font-size:11px;color:var(--t6)">HEDGE FUND OS</span></div>
 </header>
-
 <div class="layout">
 <nav>
-  <div class="label">GUIDE</div>
+  <div class="label">SECTIONS</div>
   <a href="#overview">OVERVIEW</a>
-  <a href="#chart">CHART</a>
+  <a href="#nav">NAVIGATION</a>
   <a href="#market">MARKET DATA</a>
   <a href="#trading">TRADING</a>
-  <a href="#fund">FUND OS</a>
+  <a href="#fundos">FUND OS</a>
   <a href="#analysis">ANALYSIS</a>
+  <a href="#onchain">ON-CHAIN</a>
+  <a href="#invest">INVESTMENT</a>
   <a href="#tools">TOOLS</a>
-  <a href="#settings">SETTINGS</a>
+  <a href="#system">SYSTEM</a>
   <a href="#keys">SHORTCUTS</a>
+  <a href="#telegram">TELEGRAM</a>
   <a href="https://terminal.mot-era.com" class="back-btn">← TERMINAL</a>
 </nav>
-
 <main>
 
-<!-- ══════ OVERVIEW ══════ -->
 <section id="overview">
-  <div class="sec-title">
-    <div class="top"><span class="num">01</span><h2>OVERVIEW</h2></div>
-    <div class="sub">BILLION AI HEDGE FUND OS — Terminal Command Guide</div>
-    <div class="line"></div>
-  </div>
-  <div class="intro">
-    <p>BILLION AI Terminal은 13-Agent AI 분석 엔진, 14개 퀀트 지표, 자동 매매 시스템, 포트폴리오 관리를 하나의 화면에서 제어하는 크립토 트레이딩 터미널입니다. 상단 커맨드바에 명령어를 입력하거나 텔레그램으로 제어할 수 있습니다.</p>
-  </div>
+  <div class="sec-title"><div class="top"><span class="num">01</span><h2>OVERVIEW</h2></div><div class="sub">BILLION AI HEDGE FUND OS — 전체 106개 명령어</div><div class="line"></div></div>
+  <div class="intro"><p>상단 커맨드바에 명령어 입력 · 자동완성 지원 · 텔레그램 80+ 명령어 병행 제어 가능</p></div>
   <div class="grid-6">
-    <div class="stat-card" style="border-color:var(--accent)"><div class="val" style="color:var(--accent)">90+</div><div class="lbl">COMMANDS</div></div>
+    <div class="stat-card" style="border-color:var(--accent)"><div class="val" style="color:var(--accent)">106</div><div class="lbl">COMMANDS</div></div>
     <div class="stat-card" style="border-color:var(--orange)"><div class="val" style="color:var(--orange)">13</div><div class="lbl">AI AGENTS</div></div>
     <div class="stat-card" style="border-color:var(--green)"><div class="val" style="color:var(--green)">19</div><div class="lbl">STRATEGIES</div></div>
     <div class="stat-card" style="border-color:var(--yellow)"><div class="val" style="color:var(--yellow)">14</div><div class="lbl">INDICATORS</div></div>
@@ -130,218 +92,246 @@
   </div>
 </section>
 
-<!-- ══════ CHART ══════ -->
-<section id="chart">
-  <div class="sec-title">
-    <div class="top"><span class="num">02</span><h2>CHART & NAVIGATION</h2></div>
-    <div class="sub">심볼 전환, 타임프레임, 차트 모드</div>
-    <div class="line"></div>
-  </div>
-  <div style="margin-bottom:28px">
-    <div class="cmd-group-header" style="background:rgba(232,89,12,0.04);border-left:3px solid var(--accent)"><span class="name" style="color:var(--accent)">NAVIGATION</span><span class="count">8 commands</span></div>
-    <div class="cmd-row"><div class="cmd-name">BTC 4H</div><div class="cmd-desc">심볼·타임프레임 전환 (임의 심볼 + 15M/1H/4H/1D)</div></div>
-    <div class="cmd-row"><div class="cmd-name">TV</div><div class="cmd-desc">TradingView 차트 전환 (트뷰 전체 지표 사용 가능)</div></div>
-    <div class="cmd-row"><div class="cmd-name">QUAD</div><div class="cmd-desc">2×2 멀티차트 (관심종목 상위 4개 동시 표시)</div></div>
-    <div class="cmd-row"><div class="cmd-name">MTF</div><div class="cmd-desc">멀티 타임프레임 미니차트 (15M/1H/4H 동시)</div></div>
-    <div class="cmd-row"><div class="cmd-name">PLAN</div><div class="cmd-desc">트레이드 플래너 (진입/SL/TP/레버리지 계산기)</div></div>
-    <div class="cmd-row"><div class="cmd-name">DES SOL</div><div class="cmd-desc">종목 개요 — 시총, 공급량, ATH (CoinGecko)</div></div>
-    <div class="cmd-row"><div class="cmd-name">SAVE</div><div class="cmd-desc">현재 설정을 URL로 저장 (북마크 복원)</div></div>
-    <div class="cmd-row"><div class="cmd-name">OPEN</div><div class="cmd-desc">현재 심볼 Bybit 주문 페이지 열기</div></div>
+<section id="nav">
+  <div class="sec-title"><div class="top"><span class="num">02</span><h2>NAVIGATION</h2></div><div class="sub">심볼 전환 · 차트 모드 · 뷰 전환</div><div class="line"></div></div>
+  <div class="g"><div class="gh" style="background:rgba(232,89,12,0.04);border-left:3px solid var(--accent)"><span class="n" style="color:var(--accent)">CHART & VIEW</span><span class="c">10</span></div>
+    <div class="r"><span class="k">BTC 4H</span><span class="d">심볼·타임프레임 전환 (임의 심볼 가능)</span></div>
+    <div class="r"><span class="k">TV</span><span class="d">TradingView 차트 전환 (트뷰 전체 지표)</span></div>
+    <div class="r"><span class="k">QUAD</span><span class="d">2×2 멀티차트 (관심종목 상위 4개)</span></div>
+    <div class="r"><span class="k">MTF</span><span class="d">멀티타임프레임 미니차트 (15M/1H/4H)</span></div>
+    <div class="r"><span class="k">VP</span><span class="d">볼륨 프로파일 토글</span></div>
+    <div class="r"><span class="k">LIQ</span><span class="d">청산맵(추정) 토글</span></div>
+    <div class="r"><span class="k">DES SOL</span><span class="d">종목 개요 — 시총·공급량·ATH (CoinGecko)</span></div>
+    <div class="r"><span class="k">PLAN</span><span class="d">트레이드 플래너 (진입/SL/TP/레버리지 계산기)</span></div>
+    <div class="r"><span class="k">OPEN</span><span class="d">현재 심볼 Bybit 주문 페이지 열기</span></div>
+    <div class="r"><span class="k">SAVE</span><span class="d">설정을 URL로 저장 (북마크 복원)</span></div>
   </div>
 </section>
 
-<!-- ══════ MARKET ══════ -->
 <section id="market">
-  <div class="sec-title">
-    <div class="top"><span class="num">03</span><h2>MARKET DATA</h2></div>
-    <div class="sub">시장 데이터, 스크리너, 순위</div>
-    <div class="line"></div>
+  <div class="sec-title"><div class="top"><span class="num">03</span><h2>MARKET DATA</h2></div><div class="sub">스크리너 · 순위 · 시장 분석</div><div class="line"></div></div>
+  <div class="g"><div class="gh" style="background:rgba(74,222,128,0.04);border-left:3px solid var(--green)"><span class="n" style="color:var(--green)">SCREENER & RANKING</span><span class="c">10</span></div>
+    <div class="r"><span class="k">MOST</span><span class="d">급등 스크리너로 전환</span></div>
+    <div class="r"><span class="k">TOP</span><span class="d">실시간 거래량·변동률 TOP 순위</span></div>
+    <div class="r"><span class="k">VOL24</span><span class="d">전 종목 24h 변동률 순위 (변동성 랭킹)</span></div>
+    <div class="r"><span class="k">MOMENTUM</span><span class="d">전 종목 모멘텀 스코어 순위</span></div>
+    <div class="r"><span class="k">SCANNER</span><span class="d">전 종목 조건 스캐너 (RSI 과매도 + 볼륨 급증)</span></div>
+    <div class="r"><span class="k">SCREENER RSI&lt;30</span><span class="d">조건식 스크리너 (RSI&lt;30, VOL&gt;2 등)</span></div>
+    <div class="r"><span class="k">HMAP</span><span class="d">전 종목 24h 변동률 히트맵 (시총 기반)</span></div>
+    <div class="r"><span class="k">FMAP</span><span class="d">전 종목 펀딩레이트 히트맵</span></div>
+    <div class="r"><span class="k">FUNDMAP</span><span class="d">Top 코인 펀딩레이트 히트맵</span></div>
+    <div class="r"><span class="k">PREMIUM</span><span class="d">전 종목 김치 프리미엄 순위</span></div>
   </div>
-  <div style="margin-bottom:28px">
-    <div class="cmd-group-header" style="background:rgba(74,222,128,0.04);border-left:3px solid var(--green)"><span class="name" style="color:var(--green)">SCREENER & RANKING</span><span class="count">12 commands</span></div>
-    <div class="cmd-row"><div class="cmd-name">MOST</div><div class="cmd-desc">급등 스크리너로 전환</div></div>
-    <div class="cmd-row"><div class="cmd-name">TOP</div><div class="cmd-desc">실시간 거래량·변동률 TOP 순위</div></div>
-    <div class="cmd-row"><div class="cmd-name">VOL24</div><div class="cmd-desc">전 종목 24h 변동률 순위 (변동성 랭킹)</div></div>
-    <div class="cmd-row"><div class="cmd-name">MOMENTUM</div><div class="cmd-desc">전 종목 모멘텀 스코어 순위</div></div>
-    <div class="cmd-row"><div class="cmd-name">SCANNER</div><div class="cmd-desc">전 종목 조건 스캐너 (RSI 과매도 + 볼륨 급증)</div></div>
-    <div class="cmd-row"><div class="cmd-name">SCREENER RSI&lt;30</div><div class="cmd-desc">조건식 스크리너 (RSI<30, VOL>2 등)</div></div>
-    <div class="cmd-row"><div class="cmd-name">HMAP</div><div class="cmd-desc">전 종목 24h 변동률 히트맵 (시총 기반)</div></div>
-    <div class="cmd-row"><div class="cmd-name">FMAP</div><div class="cmd-desc">전 종목 펀딩레이트 히트맵</div></div>
-    <div class="cmd-row"><div class="cmd-name">FUNDMAP</div><div class="cmd-desc">Top 코인 펀딩레이트 히트맵</div></div>
-    <div class="cmd-row"><div class="cmd-name">PREMIUM</div><div class="cmd-desc">전 종목 김치 프리미엄 순위</div></div>
-    <div class="cmd-row"><div class="cmd-name">SECTOR</div><div class="cmd-desc">섹터별 성과 분석 (L1·DeFi·Meme·AI 등)</div></div>
-    <div class="cmd-row"><div class="cmd-name">ALTSEASON</div><div class="cmd-desc">알트시즌 지표 (BTC 도미넌스 기반)</div></div>
-  </div>
-  <div style="margin-bottom:28px">
-    <div class="cmd-group-header" style="background:rgba(56,189,248,0.04);border-left:3px solid var(--sky)"><span class="name" style="color:var(--sky)">MARKET ANALYSIS</span><span class="count">10 commands</span></div>
-    <div class="cmd-row"><div class="cmd-name">BRIEF</div><div class="cmd-desc">자동 시황 브리핑 생성</div></div>
-    <div class="cmd-row"><div class="cmd-name">REPORT</div><div class="cmd-desc">오늘의 종합 리포트 (전 지표 한눈에)</div></div>
-    <div class="cmd-row"><div class="cmd-name">SUMMARY</div><div class="cmd-desc">현재 종목 종합 요약 (한줄 분석)</div></div>
-    <div class="cmd-row"><div class="cmd-name">FEAR</div><div class="cmd-desc">공포/탐욕 지수 상세 분석</div></div>
-    <div class="cmd-row"><div class="cmd-name">DOMINANCE</div><div class="cmd-desc">도미넌스 상세 분석 (BTC·ETH·알트)</div></div>
-    <div class="cmd-row"><div class="cmd-name">CORR</div><div class="cmd-desc">BTC 대비 알트코인 상관관계 분석</div></div>
-    <div class="cmd-row"><div class="cmd-name">COMPARE ETH</div><div class="cmd-desc">현재 종목과 다른 종목 24h 비교</div></div>
-    <div class="cmd-row"><div class="cmd-name">BENCHMARK</div><div class="cmd-desc">현재 종목 vs BTC·ETH 성과 벤치마크</div></div>
-    <div class="cmd-row"><div class="cmd-name">SPREAD</div><div class="cmd-desc">거래소간 가격 비교 (재정거래 기회)</div></div>
-    <div class="cmd-row"><div class="cmd-name">RATIO</div><div class="cmd-desc">핵심 시장 비율 (ETH/BTC·SOL/ETH·금/BTC 등)</div></div>
+  <div class="g"><div class="gh" style="background:rgba(56,189,248,0.04);border-left:3px solid var(--sky)"><span class="n" style="color:var(--sky)">MARKET ANALYSIS</span><span class="c">13</span></div>
+    <div class="r"><span class="k">BRIEF</span><span class="d">자동 시황 브리핑 생성</span></div>
+    <div class="r"><span class="k">REPORT</span><span class="d">오늘의 종합 리포트 (전 지표 한눈에)</span></div>
+    <div class="r"><span class="k">DASH</span><span class="d">퀵 대시보드 — 핵심 정보 한 화면</span></div>
+    <div class="r"><span class="k">SUMMARY</span><span class="d">현재 종목 종합 요약 (한줄 분석)</span></div>
+    <div class="r"><span class="k">MATRIX</span><span class="d">시장 조건 매트릭스 (전체 조건 한눈에)</span></div>
+    <div class="r"><span class="k">FEAR</span><span class="d">공포/탐욕 지수 상세 분석</span></div>
+    <div class="r"><span class="k">DOMINANCE</span><span class="d">도미넌스 상세 분석 (BTC·ETH·알트)</span></div>
+    <div class="r"><span class="k">ALTSEASON</span><span class="d">알트시즌 지표 (BTC 도미넌스 기반)</span></div>
+    <div class="r"><span class="k">SECTOR</span><span class="d">섹터별 성과 분석 (L1·DeFi·Meme·AI 등)</span></div>
+    <div class="r"><span class="k">CORR</span><span class="d">BTC 대비 알트코인 상관관계 분석</span></div>
+    <div class="r"><span class="k">COMPARE ETH</span><span class="d">현재 종목과 다른 종목 24h 비교</span></div>
+    <div class="r"><span class="k">BENCHMARK</span><span class="d">현재 종목 vs BTC·ETH 성과 벤치마크</span></div>
+    <div class="r"><span class="k">SPREAD</span><span class="d">거래소간 가격 비교 (재정거래 기회)</span></div>
   </div>
 </section>
 
-<!-- ══════ TRADING ══════ -->
 <section id="trading">
-  <div class="sec-title">
-    <div class="top"><span class="num">04</span><h2>TRADING</h2></div>
-    <div class="sub">포지션 관리, 주문, 알림</div>
-    <div class="line"></div>
+  <div class="sec-title"><div class="top"><span class="num">04</span><h2>TRADING</h2></div><div class="sub">포지션 · 주문 · 알림 · 스나이퍼</div><div class="line"></div></div>
+  <div class="g"><div class="gh" style="background:rgba(255,138,61,0.04);border-left:3px solid var(--orange)"><span class="n" style="color:var(--orange)">POSITIONS & ORDERS</span><span class="c">8</span></div>
+    <div class="r"><span class="k">POS LONG SOL 162 158</span><span class="d">포지션 기록 (실시간 PnL·SL 알림)</span></div>
+    <div class="r"><span class="k">POS</span><span class="d">포지션 목록 · POS CLOSE 1 · POS CLEAR</span></div>
+    <div class="r"><span class="k">ORDER LONG SOL 162 158</span><span class="d">실주문 (Vercel+API키 필요, 테스트넷 기본)</span></div>
+    <div class="r"><span class="k">ORDER STATUS</span><span class="d">거래소 포지션·미체결 조회</span></div>
+    <div class="r"><span class="k">ORDER CANCEL</span><span class="d">현재 심볼 미체결 전체 취소</span></div>
+    <div class="r"><span class="k">PIN 1234</span><span class="d">주문 PIN 입력 (ORDER_PIN 설정 시)</span></div>
+    <div class="r"><span class="k">RISK</span><span class="d">포지션 리스크 대시보드 (합산 손익·최대손실)</span></div>
+    <div class="r"><span class="k">LOG</span><span class="d">알림 로그 전체 보기</span></div>
   </div>
-  <div style="margin-bottom:28px">
-    <div class="cmd-group-header" style="background:rgba(255,138,61,0.04);border-left:3px solid var(--orange)"><span class="name" style="color:var(--orange)">POSITIONS & ORDERS</span><span class="count">10 commands</span></div>
-    <div class="cmd-row"><div class="cmd-name">POS LONG SOL 162 158</div><div class="cmd-desc">포지션 기록 (실시간 PnL·SL 알림)</div></div>
-    <div class="cmd-row"><div class="cmd-name">POS</div><div class="cmd-desc">포지션 목록 · POS CLOSE 1 · POS CLEAR</div></div>
-    <div class="cmd-row"><div class="cmd-name">ORDER LONG SOL 162 158</div><div class="cmd-desc">실주문 (Vercel+API키 필요, 테스트넷 기본)</div></div>
-    <div class="cmd-row"><div class="cmd-name">ORDER STATUS</div><div class="cmd-desc">거래소 포지션·미체결 조회</div></div>
-    <div class="cmd-row"><div class="cmd-name">ORDER CANCEL</div><div class="cmd-desc">현재 심볼 미체결 전체 취소</div></div>
-    <div class="cmd-row"><div class="cmd-name">CALC 162 158</div><div class="cmd-desc">수수료·펀딩·청산가·R목표 계산기</div></div>
-    <div class="cmd-row"><div class="cmd-name">RR 162 158 170</div><div class="cmd-desc">R:R 계산기 (진입·손절·익절)</div></div>
-    <div class="cmd-row"><div class="cmd-name">PROFIT 162 170 10 20</div><div class="cmd-desc">수익 계산기 (진입·청산·수량·레버리지)</div></div>
-    <div class="cmd-row"><div class="cmd-name">GRID 150 170 10</div><div class="cmd-desc">그리드 트레이딩 계산기 (하한·상한·격자수)</div></div>
-    <div class="cmd-row"><div class="cmd-name">SNIPER SOL 160 LONG</div><div class="cmd-desc">스나이퍼 — 가격 도달 시 방향 알림 + 자동 계산</div></div>
+  <div class="g"><div class="gh" style="background:rgba(250,204,21,0.04);border-left:3px solid var(--yellow)"><span class="n" style="color:var(--yellow)">CALCULATORS</span><span class="c">5</span></div>
+    <div class="r"><span class="k">CALC 162 158</span><span class="d">수수료·펀딩·청산가·R목표 계산기</span></div>
+    <div class="r"><span class="k">RR 162 158 170</span><span class="d">R:R 계산기 (진입·손절·익절)</span></div>
+    <div class="r"><span class="k">PROFIT 162 170 10 20</span><span class="d">수익 계산기 (진입·청산·수량·레버리지)</span></div>
+    <div class="r"><span class="k">GRID 150 170 10</span><span class="d">그리드 트레이딩 계산기 (하한·상한·격자수)</span></div>
+    <div class="r"><span class="k">FUND</span><span class="d">3개 거래소 펀딩 비교 (아비트라지)</span></div>
   </div>
-  <div style="margin-bottom:28px">
-    <div class="cmd-group-header" style="background:rgba(250,204,21,0.04);border-left:3px solid var(--yellow)"><span class="name" style="color:var(--yellow)">ALERTS & WATCH</span><span class="count">8 commands</span></div>
-    <div class="cmd-row"><div class="cmd-name">ALERT SOL 200</div><div class="cmd-desc">가격 도달 알림 등록</div></div>
-    <div class="cmd-row"><div class="cmd-name">ALERT CLEAR</div><div class="cmd-desc">가격 알림 전체 해제</div></div>
-    <div class="cmd-row"><div class="cmd-name">ALERT LIST</div><div class="cmd-desc">현재 알림 목록</div></div>
-    <div class="cmd-row"><div class="cmd-name">WATCH</div><div class="cmd-desc">관심종목 목록 보기</div></div>
-    <div class="cmd-row"><div class="cmd-name">WATCH ADD PEPE</div><div class="cmd-desc">관심종목 추가</div></div>
-    <div class="cmd-row"><div class="cmd-name">WATCH DEL XRP</div><div class="cmd-desc">관심종목 제거</div></div>
-    <div class="cmd-row"><div class="cmd-name">WATCHVIEW</div><div class="cmd-desc">관심종목 상세 뷰 (전체 지표 포함)</div></div>
-    <div class="cmd-row"><div class="cmd-name">SNIPER</div><div class="cmd-desc">스나이퍼 목록 / SNIPER CLEAR 전체 해제</div></div>
-  </div>
-</section>
-
-<!-- ══════ FUND OS ══════ -->
-<section id="fund">
-  <div class="sec-title">
-    <div class="top"><span class="num">05</span><h2>AI HEDGE FUND OS</h2></div>
-    <div class="sub">포트폴리오 관리, 전략 제어, 백테스트</div>
-    <div class="line"></div>
-  </div>
-  <div style="margin-bottom:28px">
-    <div class="cmd-group-header" style="background:rgba(232,89,12,0.04);border-left:3px solid var(--accent)"><span class="name" style="color:var(--accent)">FUND MANAGEMENT</span><span class="count">6 commands</span></div>
-    <div class="cmd-row"><div class="cmd-name">FUNDOS</div><div class="cmd-desc">AI 펀드 전체 현황 — 자본, 수익률, 포지션, 시스템 상태</div></div>
-    <div class="cmd-row"><div class="cmd-name">PAPER</div><div class="cmd-desc">Paper Trading 상태 (가상매매 현황)</div></div>
-    <div class="cmd-row"><div class="cmd-name">HEDGE</div><div class="cmd-desc">헷지 분석 — 포트폴리오 방향 편향 감지 + 헷지 권고</div></div>
-    <div class="cmd-row"><div class="cmd-name">ALLOCATION</div><div class="cmd-desc">배분 규칙 체크 — 포지션 비중, 섹터 집중도, 현금 유보율</div></div>
-    <div class="cmd-row"><div class="cmd-name">REBALANCE</div><div class="cmd-desc">리밸런스 권고 — 약한 종목 축소, 강한 종목 확대 (텔레그램)</div></div>
-    <div class="cmd-row"><div class="cmd-name">PORTFOLIO</div><div class="cmd-desc">가상 포트폴리오 (보유 현황 + PnL)</div></div>
-  </div>
-  <div style="margin-bottom:28px">
-    <div class="cmd-group-header" style="background:rgba(167,139,250,0.04);border-left:3px solid var(--purple)"><span class="name" style="color:var(--purple)">STRATEGY & BACKTEST</span><span class="count">6 commands</span></div>
-    <div class="cmd-row"><div class="cmd-name">BACKTEST / BT</div><div class="cmd-desc">백테스트 결과 오버레이 (B키)</div></div>
-    <div class="cmd-row"><div class="cmd-name">SWEEP BTC</div><div class="cmd-desc">전략 대량 스위프 (N코인 × 19전략) — 텔레그램</div></div>
-    <div class="cmd-row"><div class="cmd-name">TUNE BTC</div><div class="cmd-desc">파라미터 자동 튜닝 (SL×TP×레버리지 조합) — 텔레그램</div></div>
-    <div class="cmd-row"><div class="cmd-name">CRASH BTC</div><div class="cmd-desc">급락 반등 P1-P4 분석</div></div>
-    <div class="cmd-row"><div class="cmd-name">FGRID BTC</div><div class="cmd-desc">그리드 트레이딩 레벨 계산</div></div>
-    <div class="cmd-row"><div class="cmd-name">FSCAN</div><div class="cmd-desc">급변동 실시간 감지 (5분 패스트스캔) — 텔레그램</div></div>
+  <div class="g"><div class="gh" style="background:rgba(244,114,182,0.04);border-left:3px solid var(--pink)"><span class="n" style="color:var(--pink)">ALERTS & SNIPER</span><span class="c">9</span></div>
+    <div class="r"><span class="k">ALERT SOL 200</span><span class="d">가격 도달 알림 등록</span></div>
+    <div class="r"><span class="k">ALERT SET BTC 65000</span><span class="d">가격 알림 설정 (심볼 목표가)</span></div>
+    <div class="r"><span class="k">ALERT LIST</span><span class="d">현재 알림 목록</span></div>
+    <div class="r"><span class="k">ALERT CLEAR</span><span class="d">가격 알림 전체 해제</span></div>
+    <div class="r"><span class="k">SNIPER SOL 160 LONG</span><span class="d">스나이퍼 — 가격 도달 시 방향 알림 + 자동 계산</span></div>
+    <div class="r"><span class="k">SNIPER</span><span class="d">스나이퍼 목록 보기</span></div>
+    <div class="r"><span class="k">SNIPER CLEAR</span><span class="d">스나이퍼 전체 해제</span></div>
+    <div class="r"><span class="k">WATCH / ADD / DEL</span><span class="d">관심종목 관리 (목록/추가/제거)</span></div>
+    <div class="r"><span class="k">WATCHVIEW</span><span class="d">관심종목 상세 뷰 (전체 지표 포함)</span></div>
   </div>
 </section>
 
-<!-- ══════ ANALYSIS ══════ -->
+<section id="fundos">
+  <div class="sec-title"><div class="top"><span class="num">05</span><h2>AI HEDGE FUND OS</h2></div><div class="sub">포트폴리오 관리 · 전략 · 백테스트</div><div class="line"></div></div>
+  <div class="g"><div class="gh" style="background:rgba(232,89,12,0.04);border-left:3px solid var(--accent)"><span class="n" style="color:var(--accent)">FUND MANAGEMENT</span><span class="c">7</span></div>
+    <div class="r"><span class="k">FUNDOS</span><span class="d">AI 펀드 전체 현황 (자본·수익률·포지션·시스템)</span></div>
+    <div class="r"><span class="k">PAPER</span><span class="d">Paper Trading 상태 (가상매매 현황)</span></div>
+    <div class="r"><span class="k">HEDGE</span><span class="d">헷지 권고 (방향 편향 분석)</span></div>
+    <div class="r"><span class="k">ALLOCATION</span><span class="d">배분 규칙 체크 (비중·섹터·편향·현금유보)</span></div>
+    <div class="r"><span class="k">REBALANCE</span><span class="d">리밸런스 권고 (약한→강한 이동)</span></div>
+    <div class="r"><span class="k">PORTFOLIO</span><span class="d">가상 포트폴리오 (보유 현황 + PnL)</span></div>
+    <div class="r"><span class="k">PORTFOLIO ADD 0.5 SOL 150</span><span class="d">포트폴리오에 종목 추가</span></div>
+  </div>
+  <div class="g"><div class="gh" style="background:rgba(167,139,250,0.04);border-left:3px solid var(--purple)"><span class="n" style="color:var(--purple)">STRATEGY & BACKTEST</span><span class="c">6</span></div>
+    <div class="r"><span class="k">BACKTEST / BT</span><span class="d">백테스트 결과 오버레이 (B키)</span></div>
+    <div class="r"><span class="k">SWEEP BTC</span><span class="d">전략 대량 스위프 (N코인 × 19전략)</span></div>
+    <div class="r"><span class="k">TUNE BTC</span><span class="d">파라미터 자동 튜닝 (SL×TP×레버 조합)</span></div>
+    <div class="r"><span class="k">CRASH BTC</span><span class="d">급락 반등 P1-P4 분석</span></div>
+    <div class="r"><span class="k">FGRID BTC</span><span class="d">그리드 트레이딩 레벨 계산</span></div>
+    <div class="r"><span class="k">FSCAN</span><span class="d">급변동 실시간 감지 (5분 패스트스캔)</span></div>
+  </div>
+</section>
+
 <section id="analysis">
-  <div class="sec-title">
-    <div class="top"><span class="num">06</span><h2>TECHNICAL ANALYSIS</h2></div>
-    <div class="sub">기술 분석, AI 시그널, 온체인</div>
-    <div class="line"></div>
+  <div class="sec-title"><div class="top"><span class="num">06</span><h2>TECHNICAL ANALYSIS</h2></div><div class="sub">AI 시그널 · 패턴 · 지지/저항</div><div class="line"></div></div>
+  <div class="g"><div class="gh" style="background:rgba(59,130,246,0.04);border-left:3px solid var(--blue)"><span class="n" style="color:var(--blue)">AI & SIGNALS</span><span class="c">8</span></div>
+    <div class="r"><span class="k">AI 분석 (버튼)</span><span class="d">현재 종목 13-Agent AI 분석 실행</span></div>
+    <div class="r"><span class="k">Q: 배지 (클릭)</span><span class="d">퀀트 시그널 상세 (14지표 점수/breakdown)</span></div>
+    <div class="r"><span class="k">BILLION</span><span class="d">Billion AI Engine 시그널 상세</span></div>
+    <div class="r"><span class="k">SIGNAL</span><span class="d">학습엔진 현재 시그널 요약</span></div>
+    <div class="r"><span class="k">PATTERN</span><span class="d">캔들스틱 패턴 자동 감지 (최근 10봉)</span></div>
+    <div class="r"><span class="k">DIVERGE</span><span class="d">RSI·MACD 다이버전스 자동 감지</span></div>
+    <div class="r"><span class="k">LEVELS</span><span class="d">자동 지지/저항 레벨 감지</span></div>
+    <div class="r"><span class="k">PIVOT</span><span class="d">피벗 포인트 계산 (R1-R3, S1-S3)</span></div>
   </div>
-  <div style="margin-bottom:28px">
-    <div class="cmd-group-header" style="background:rgba(59,130,246,0.04);border-left:3px solid var(--blue)"><span class="name" style="color:var(--blue)">AI & QUANT</span><span class="count">8 commands</span></div>
-    <div class="cmd-row"><div class="cmd-name">AI 분석 (버튼)</div><div class="cmd-desc">현재 종목 13-Agent AI 분석 실행</div></div>
-    <div class="cmd-row"><div class="cmd-name">Q: 배지 (클릭)</div><div class="cmd-desc">현재 종목 퀀트 시그널 상세 오버레이 (점수/지표/breakdown)</div></div>
-    <div class="cmd-row"><div class="cmd-name">SIGNAL</div><div class="cmd-desc">학습엔진 현재 시그널 요약</div></div>
-    <div class="cmd-row"><div class="cmd-name">BILLION</div><div class="cmd-desc">Billion AI Engine 시그널 상세 (팀원별 분석)</div></div>
-    <div class="cmd-row"><div class="cmd-name">PATTERN</div><div class="cmd-desc">캔들스틱 패턴 자동 감지 (최근 10봉)</div></div>
-    <div class="cmd-row"><div class="cmd-name">DIVERGE</div><div class="cmd-desc">RSI·MACD 다이버전스 자동 감지</div></div>
-    <div class="cmd-row"><div class="cmd-name">LEVELS</div><div class="cmd-desc">자동 지지/저항 레벨 감지</div></div>
-    <div class="cmd-row"><div class="cmd-name">PIVOT</div><div class="cmd-desc">피벗 포인트 계산 (R1-R3, S1-S3)</div></div>
-  </div>
-  <div style="margin-bottom:28px">
-    <div class="cmd-group-header" style="background:rgba(45,212,191,0.04);border-left:3px solid var(--cyan)"><span class="name" style="color:var(--cyan)">ON-CHAIN & FLOW</span><span class="count">6 commands</span></div>
-    <div class="cmd-row"><div class="cmd-name">ONCHAIN</div><div class="cmd-desc">온체인 데이터 (거래소 잔고·해시레이트·활성주소)</div></div>
-    <div class="cmd-row"><div class="cmd-name">WHALE</div><div class="cmd-desc">최근 대량 체결 내역 (고래 추적)</div></div>
-    <div class="cmd-row"><div class="cmd-name">WHALEMAP</div><div class="cmd-desc">고래 활동 맵 (대규모 체결 + 청산 종합)</div></div>
-    <div class="cmd-row"><div class="cmd-name">LIQUIDMAP / LIQ</div><div class="cmd-desc">추정 청산 가격대 분포 (10x-100x)</div></div>
-    <div class="cmd-row"><div class="cmd-name">DEPTH</div><div class="cmd-desc">오더북 누적 깊이 차트 (매수벽/매도벽)</div></div>
-    <div class="cmd-row"><div class="cmd-name">FLOW</div><div class="cmd-desc">매수/매도 자금 흐름 추적 (체결 기반)</div></div>
+  <div class="g"><div class="gh" style="background:rgba(255,215,0,0.04);border-left:3px solid var(--gold)"><span class="n" style="color:var(--gold)">PERFORMANCE</span><span class="c">4</span></div>
+    <div class="r"><span class="k">POWER</span><span class="d">파워 분석 (시장 강도 + 모멘텀 + 변동성 종합)</span></div>
+    <div class="r"><span class="k">PULSE</span><span class="d">마켓 펄스 — 시장 건강도 체크</span></div>
+    <div class="r"><span class="k">PERF</span><span class="d">전 종목 멀티 타임프레임 성과 매트릭스</span></div>
+    <div class="r"><span class="k">PNL</span><span class="d">학습엔진 에쿼티 커브 (누적 수익 그래프)</span></div>
   </div>
 </section>
 
-<!-- ══════ TOOLS ══════ -->
+<section id="onchain">
+  <div class="sec-title"><div class="top"><span class="num">07</span><h2>ON-CHAIN & FLOW</h2></div><div class="sub">온체인 · 고래 · 청산맵 · 오더북</div><div class="line"></div></div>
+  <div class="g"><div class="gh" style="background:rgba(45,212,191,0.04);border-left:3px solid var(--cyan)"><span class="n" style="color:var(--cyan)">ON-CHAIN</span><span class="c">7</span></div>
+    <div class="r"><span class="k">ONCHAIN</span><span class="d">온체인 데이터 (거래소 잔고·해시레이트·활성주소)</span></div>
+    <div class="r"><span class="k">WHALE</span><span class="d">최근 대량 체결 내역 (고래 추적)</span></div>
+    <div class="r"><span class="k">WHALEMAP</span><span class="d">고래 활동 맵 (대규모 체결 + 청산 종합)</span></div>
+    <div class="r"><span class="k">LIQUIDMAP</span><span class="d">추정 청산 가격대 분포 (10x-100x)</span></div>
+    <div class="r"><span class="k">DEPTH</span><span class="d">오더북 누적 깊이 차트 (매수벽/매도벽)</span></div>
+    <div class="r"><span class="k">FLOW</span><span class="d">매수/매도 자금 흐름 추적 (체결 기반)</span></div>
+    <div class="r"><span class="k">GAPS</span><span class="d">가격 갭 감지 (FVG · CME 갭)</span></div>
+  </div>
+</section>
+
+<section id="invest">
+  <div class="sec-title"><div class="top"><span class="num">08</span><h2>INVESTMENT</h2></div><div class="sub">실계좌 연동 (Investment 서비스)</div><div class="line"></div></div>
+  <div class="g"><div class="gh" style="background:rgba(248,113,113,0.04);border-left:3px solid var(--red)"><span class="n" style="color:var(--red)">INVESTMENT</span><span class="c">8</span></div>
+    <div class="r"><span class="k">INVEST</span><span class="d">Investment PnL 분석 (오늘/주간/월간)</span></div>
+    <div class="r"><span class="k">ISTATS</span><span class="d">Investment 트레이딩 통계</span></div>
+    <div class="r"><span class="k">ICALC</span><span class="d">포지션 계산기 (진입/레버리지/증거금/방향)</span></div>
+    <div class="r"><span class="k">IWATCH</span><span class="d">즐겨찾기 워치리스트 (별표 코인만)</span></div>
+    <div class="r"><span class="k">IWATCH ADD/DEL</span><span class="d">워치리스트 코인 추가/제거</span></div>
+    <div class="r"><span class="k">IPORT</span><span class="d">실계좌 포트폴리오 (잔고/포지션/PnL)</span></div>
+    <div class="r"><span class="k">ICAL</span><span class="d">트레이딩 캘린더 (일별 손익)</span></div>
+    <div class="r"><span class="k">REALPORT</span><span class="d">실계좌 포트폴리오 (Investment 연동)</span></div>
+  </div>
+</section>
+
 <section id="tools">
-  <div class="sec-title">
-    <div class="top"><span class="num">07</span><h2>TOOLS & UTILITIES</h2></div>
-    <div class="sub">계산기, 변환, 뉴스, 기타</div>
-    <div class="line"></div>
-  </div>
-  <div style="margin-bottom:28px">
-    <div class="cmd-group-header" style="background:rgba(244,114,182,0.04);border-left:3px solid var(--pink)"><span class="name" style="color:var(--pink)">UTILITIES</span><span class="count">10 commands</span></div>
-    <div class="cmd-row"><div class="cmd-name">FUND</div><div class="cmd-desc">3개 거래소 펀딩 비교 (아비트라지)</div></div>
-    <div class="cmd-row"><div class="cmd-name">SUPPLY</div><div class="cmd-desc">토큰 공급량 분석 (유통·총·최대)</div></div>
-    <div class="cmd-row"><div class="cmd-name">CONVERT 1 BTC</div><div class="cmd-desc">암호화폐 단위 변환 (USD·KRW·사토시)</div></div>
-    <div class="cmd-row"><div class="cmd-name">KRW</div><div class="cmd-desc">원화 환산 계산기 (현재 종목 기준)</div></div>
-    <div class="cmd-row"><div class="cmd-name">ETA 200</div><div class="cmd-desc">목표가 도달 예상 시간 (ATR 기반)</div></div>
-    <div class="cmd-row"><div class="cmd-name">RANGE</div><div class="cmd-desc">가격 범위 분석 (일간·주간·월간 레인지)</div></div>
-    <div class="cmd-row"><div class="cmd-name">TIMELINE</div><div class="cmd-desc">가격 히스토리 타임라인 (7일·30일·90일 변동)</div></div>
-    <div class="cmd-row"><div class="cmd-name">MULTI BTC ETH SOL</div><div class="cmd-desc">멀티 심볼 실시간 비교 테이블</div></div>
-    <div class="cmd-row"><div class="cmd-name">NEWS BTC</div><div class="cmd-desc">뉴스 키워드 검색</div></div>
-    <div class="cmd-row"><div class="cmd-name">MEMO 지지 162 돌파 시 롱</div><div class="cmd-desc">현재 종목 메모 저장 / MEMO 보기 / MEMO CLEAR 삭제</div></div>
-  </div>
-</section>
-
-<!-- ══════ SETTINGS ══════ -->
-<section id="settings">
-  <div class="sec-title">
-    <div class="top"><span class="num">08</span><h2>SETTINGS</h2></div>
-    <div class="sub">테마, 알림, 시스템 설정</div>
-    <div class="line"></div>
-  </div>
-  <div style="margin-bottom:28px">
-    <div class="cmd-group-header" style="background:rgba(248,113,113,0.04);border-left:3px solid var(--red)"><span class="name" style="color:var(--red)">SYSTEM</span><span class="count">8 commands</span></div>
-    <div class="cmd-row"><div class="cmd-name">STATUS</div><div class="cmd-desc">시스템 상태 대시보드 (연결·데이터·성능)</div></div>
-    <div class="cmd-row"><div class="cmd-name">HEALTH</div><div class="cmd-desc">시장 건강도 종합 체크 (10개 지표)</div></div>
-    <div class="cmd-row"><div class="cmd-name">ABOUT</div><div class="cmd-desc">버전·데이터 소스 정보</div></div>
-    <div class="cmd-row"><div class="cmd-name">STATS</div><div class="cmd-desc">터미널 사용 통계</div></div>
-    <div class="cmd-row"><div class="cmd-name">COLOR</div><div class="cmd-desc">차트 색상 테마 변경 (CLASSIC·NEON·MONO)</div></div>
-    <div class="cmd-row"><div class="cmd-name">PIN 1234</div><div class="cmd-desc">주문 PIN 입력 (ORDER_PIN 설정 시)</div></div>
-    <div class="cmd-row"><div class="cmd-name">TG OFF / TG ON</div><div class="cmd-desc">텔레그램 알림 릴레이 켜기/끄기</div></div>
-    <div class="cmd-row"><div class="cmd-name">HELP</div><div class="cmd-desc">전체 명령어 도움말</div></div>
+  <div class="sec-title"><div class="top"><span class="num">09</span><h2>TOOLS & UTILITIES</h2></div><div class="sub">변환 · 뉴스 · 메모 · 기타</div><div class="line"></div></div>
+  <div class="g"><div class="gh" style="background:rgba(34,211,238,0.04);border-left:3px solid var(--sky)"><span class="n" style="color:var(--sky)">UTILITIES</span><span class="c">14</span></div>
+    <div class="r"><span class="k">CONVERT 1 BTC</span><span class="d">암호화폐 단위 변환 (USD·KRW·사토시)</span></div>
+    <div class="r"><span class="k">KRW</span><span class="d">원화 환산 계산기 (현재 종목 기준)</span></div>
+    <div class="r"><span class="k">RATIO</span><span class="d">핵심 시장 비율 (ETH/BTC·SOL/ETH·금/BTC)</span></div>
+    <div class="r"><span class="k">SUPPLY</span><span class="d">토큰 공급량 분석 (유통·총·최대)</span></div>
+    <div class="r"><span class="k">ETA 200</span><span class="d">목표가 도달 예상 시간 (ATR 기반)</span></div>
+    <div class="r"><span class="k">RANGE</span><span class="d">가격 범위 분석 (일간·주간·월간 레인지)</span></div>
+    <div class="r"><span class="k">TIMELINE</span><span class="d">가격 히스토리 타임라인 (7일·30일·90일)</span></div>
+    <div class="r"><span class="k">VPROFILE</span><span class="d">가격대별 거래량 분포 (볼륨 프로파일 텍스트)</span></div>
+    <div class="r"><span class="k">MULTI BTC ETH SOL</span><span class="d">멀티 심볼 실시간 비교 테이블</span></div>
+    <div class="r"><span class="k">NEWS BTC</span><span class="d">뉴스 키워드 검색</span></div>
+    <div class="r"><span class="k">CALENDAR</span><span class="d">경제 캘린더 (CPI·FOMC·NFP)</span></div>
+    <div class="r"><span class="k">MEMO / MEMO CLEAR</span><span class="d">현재 종목 메모 저장/보기/삭제</span></div>
+    <div class="r"><span class="k">EXPORT</span><span class="d">학습엔진 거래내역 CSV 다운로드</span></div>
+    <div class="r"><span class="k">HISTORY</span><span class="d">명령어 사용 기록</span></div>
   </div>
 </section>
 
-<!-- ══════ SHORTCUTS ══════ -->
+<section id="system">
+  <div class="sec-title"><div class="top"><span class="num">10</span><h2>SYSTEM</h2></div><div class="sub">상태 · 테마 · 텔레그램 · 설정</div><div class="line"></div></div>
+  <div class="g"><div class="gh" style="background:rgba(167,139,250,0.04);border-left:3px solid var(--purple)"><span class="n" style="color:var(--purple)">SYSTEM</span><span class="c">8</span></div>
+    <div class="r"><span class="k">STATUS</span><span class="d">시스템 상태 대시보드 (연결·데이터·성능)</span></div>
+    <div class="r"><span class="k">HEALTH</span><span class="d">시장 건강도 종합 체크 (10개 지표)</span></div>
+    <div class="r"><span class="k">ABOUT</span><span class="d">버전·데이터 소스 정보</span></div>
+    <div class="r"><span class="k">STATS</span><span class="d">터미널 사용 통계</span></div>
+    <div class="r"><span class="k">COLOR</span><span class="d">차트 색상 테마 (CLASSIC·NEON·MONO)</span></div>
+    <div class="r"><span class="k">TG OFF / TG ON</span><span class="d">텔레그램 알림 릴레이 켜기/끄기</span></div>
+    <div class="r"><span class="k">KEYS</span><span class="d">키보드 단축키 목록</span></div>
+    <div class="r"><span class="k">HELP</span><span class="d">전체 명령어 도움말</span></div>
+  </div>
+</section>
+
 <section id="keys">
-  <div class="sec-title">
-    <div class="top"><span class="num">09</span><h2>KEYBOARD SHORTCUTS</h2></div>
-    <div class="sub">단축키</div>
-    <div class="line"></div>
+  <div class="sec-title"><div class="top"><span class="num">11</span><h2>KEYBOARD SHORTCUTS</h2></div><div class="sub">단축키</div><div class="line"></div></div>
+  <div class="g"><div class="gh" style="background:rgba(255,215,0,0.04);border-left:3px solid var(--gold)"><span class="n" style="color:var(--gold)">KEYS</span><span class="c">8</span></div>
+    <div class="r"><span class="k">1-9</span><span class="d">코인 빠른 전환 (1=BTC, 2=ETH, 3=SOL...)</span></div>
+    <div class="r"><span class="k">Q</span><span class="d">쿼드뷰 토글 (2×2 멀티차트)</span></div>
+    <div class="r"><span class="k">B</span><span class="d">백테스트 결과 오버레이</span></div>
+    <div class="r"><span class="k">S</span><span class="d">라이브 스크리너 토글</span></div>
+    <div class="r"><span class="k">T</span><span class="d">타임프레임 순환 (15M→1H→4H→1D)</span></div>
+    <div class="r"><span class="k">WHEEL</span><span class="d">차트 확대/축소</span></div>
+    <div class="r"><span class="k">DRAG</span><span class="d">차트 좌우 이동</span></div>
+    <div class="r"><span class="k">DBLCLK</span><span class="d">차트 최신 봉으로 이동</span></div>
   </div>
-  <div style="margin-bottom:28px">
-    <div class="cmd-group-header" style="background:rgba(255,215,0,0.04);border-left:3px solid var(--gold)"><span class="name" style="color:var(--gold)">KEYS</span><span class="count">8 shortcuts</span></div>
-    <div class="cmd-row"><div class="cmd-name">1-9</div><div class="cmd-desc">코인 빠른 전환 (1=BTC, 2=ETH, 3=SOL...)</div></div>
-    <div class="cmd-row"><div class="cmd-name">Q</div><div class="cmd-desc">쿼드뷰 토글 (2×2 멀티차트)</div></div>
-    <div class="cmd-row"><div class="cmd-name">B</div><div class="cmd-desc">백테스트 결과 오버레이</div></div>
-    <div class="cmd-row"><div class="cmd-name">S</div><div class="cmd-desc">라이브 스크리너 토글</div></div>
-    <div class="cmd-row"><div class="cmd-name">T</div><div class="cmd-desc">타임프레임 순환 (15M→1H→4H→1D)</div></div>
-    <div class="cmd-row"><div class="cmd-name">WHEEL</div><div class="cmd-desc">차트 확대/축소</div></div>
-    <div class="cmd-row"><div class="cmd-name">DRAG</div><div class="cmd-desc">차트 좌우 이동</div></div>
-    <div class="cmd-row"><div class="cmd-name">DBLCLK</div><div class="cmd-desc">차트 최신 봉으로 이동</div></div>
+</section>
+
+<section id="telegram">
+  <div class="sec-title"><div class="top"><span class="num">12</span><h2>TELEGRAM COMMANDS</h2></div><div class="sub">텔레그램 봇 전용 명령어 (80+)</div><div class="line"></div></div>
+  <div class="g"><div class="gh" style="background:rgba(74,222,128,0.04);border-left:3px solid var(--green)"><span class="n" style="color:var(--green)">MANUAL TRADING</span><span class="c">10</span></div>
+    <div class="r"><span class="k">/long BTC [%] [SL] [TP]</span><span class="d">수동 롱 진입 (ATR 자동 또는 커스텀)</span></div>
+    <div class="r"><span class="k">/short BTC [%] [SL] [TP]</span><span class="d">수동 숏 진입</span></div>
+    <div class="r"><span class="k">/sl BTC 61000</span><span class="d">포지션 SL 변경</span></div>
+    <div class="r"><span class="k">/tp BTC 65000</span><span class="d">포지션 TP 변경</span></div>
+    <div class="r"><span class="k">/be BTC</span><span class="d">SL을 손익분기(BE)로 이동</span></div>
+    <div class="r"><span class="k">/add BTC 30</span><span class="d">보유 포지션 30% 추가 (스케일 인)</span></div>
+    <div class="r"><span class="k">/reduce BTC 50</span><span class="d">보유 포지션 50% 축소 (스케일 아웃)</span></div>
+    <div class="r"><span class="k">/flip BTC</span><span class="d">방향 전환 (청산→반대 진입)</span></div>
+    <div class="r"><span class="k">/close BTC</span><span class="d">전량 청산</span></div>
+    <div class="r"><span class="k">/closeall</span><span class="d">모든 포지션 전체 청산</span></div>
+  </div>
+  <div class="g"><div class="gh" style="background:rgba(232,89,12,0.04);border-left:3px solid var(--accent)"><span class="n" style="color:var(--accent)">STRATEGY CONTROL</span><span class="c">12</span></div>
+    <div class="r"><span class="k">/strategy [이름]</span><span class="d">전략 변경 (19개: bb_bounce, crash_bounce...)</span></div>
+    <div class="r"><span class="k">/set risk 2</span><span class="d">리스크 2%로 변경</span></div>
+    <div class="r"><span class="k">/set sl 1.5</span><span class="d">기본 SL 1.5%</span></div>
+    <div class="r"><span class="k">/set tp 3</span><span class="d">기본 TP 3%</span></div>
+    <div class="r"><span class="k">/set confidence 50</span><span class="d">최소 확신도 50%</span></div>
+    <div class="r"><span class="k">/set maxhold 12</span><span class="d">최대 보유 12시간</span></div>
+    <div class="r"><span class="k">/set maxpos 5</span><span class="d">최대 포지션 5개</span></div>
+    <div class="r"><span class="k">/set circuit 3</span><span class="d">서킷 3연패 정지</span></div>
+    <div class="r"><span class="k">/mode scalp / attack</span><span class="d">분석 모드 강제 전환</span></div>
+    <div class="r"><span class="k">/auto</span><span class="d">자동 모드 복귀</span></div>
+    <div class="r"><span class="k">/skip / unskip BTC</span><span class="d">분석 제외/해제</span></div>
+    <div class="r"><span class="k">/leverage 20</span><span class="d">레버리지 변경</span></div>
+  </div>
+  <div class="g"><div class="gh" style="background:rgba(59,130,246,0.04);border-left:3px solid var(--blue)"><span class="n" style="color:var(--blue)">FUND OS (TELEGRAM)</span><span class="c">10</span></div>
+    <div class="r"><span class="k">/health</span><span class="d">포트폴리오 헬스 스코어 (0-100)</span></div>
+    <div class="r"><span class="k">/fund</span><span class="d">펀드 퍼포먼스 (Sharpe/Sortino/Calmar)</span></div>
+    <div class="r"><span class="k">/allocation</span><span class="d">배분 규칙 체크</span></div>
+    <div class="r"><span class="k">/rebalance</span><span class="d">리밸런스 권고</span></div>
+    <div class="r"><span class="k">/hedge</span><span class="d">헷지 권고</span></div>
+    <div class="r"><span class="k">/sweep [코인]</span><span class="d">전략 대량 스위프</span></div>
+    <div class="r"><span class="k">/crash [코인]</span><span class="d">급락 반등 P1-P4</span></div>
+    <div class="r"><span class="k">/grid [코인]</span><span class="d">그리드 레벨 계산</span></div>
+    <div class="r"><span class="k">/tune [코인] [전략]</span><span class="d">파라미터 자동 튜닝</span></div>
+    <div class="r"><span class="k">/dashboard</span><span class="d">성과 대시보드</span></div>
   </div>
 </section>
 
 <div style="text-align:center;padding:40px 0;color:var(--t6);font-size:10px;letter-spacing:2px;">
-  BILLION AI HEDGE FUND OS v3 · POWERED BY 13 AI AGENTS · 24/7 AUTOMATED
+  BILLION AI HEDGE FUND OS v3 · 106 TERMINAL + 80 TELEGRAM COMMANDS · 13 AI AGENTS · 24/7
 </div>
-
 </main>
 </div>
 </body>
