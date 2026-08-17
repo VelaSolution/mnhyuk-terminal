@@ -377,8 +377,8 @@
     body{font-size:13px; overflow:auto;}
     #app{height:auto; min-height:100vh;}
 
-    /* ── Pipeline: hide on mobile ── */
-    #pipeline{display:none !important;}
+    /* ── Hero Stats: hide on mobile ── */
+    #hero-stats{display:none !important;}
     /* ── Topbar ── */
     #topbar{flex-wrap:wrap; gap:6px; padding:6px 8px;}
     #brand{font-size:12px; width:100%; order:-1;}
@@ -832,21 +832,27 @@
     </div>
   </div>
 
-  <div id="pipeline" style="display:flex;background:#060606;border-bottom:1px solid var(--border);padding:0;flex:0 0 auto;font-family:var(--sans);">
-    <div style="flex:1;text-align:center;padding:5px 4px;font-size:8px;letter-spacing:1.5px;color:var(--amber);font-weight:600;border-right:1px solid var(--border);background:rgba(232,89,12,0.04);">
-      <span style="font-size:11px;display:block;">🔍</span>RESEARCH
+  <!-- Hero Stats Bar (seb.ai style) -->
+  <div id="hero-stats" style="display:flex;background:#060606;border-bottom:1px solid var(--border);padding:0;flex:0 0 auto;font-family:var(--mono);">
+    <div style="flex:1;padding:6px 12px;border-right:1px solid var(--border);">
+      <div style="font-size:8px;color:var(--ink3);letter-spacing:1.5px;font-family:var(--sans);">ALL TIME RETURN</div>
+      <div style="font-size:18px;font-weight:800;" id="hero-return">+0.0%</div>
     </div>
-    <div style="flex:1;text-align:center;padding:5px 4px;font-size:8px;letter-spacing:1.5px;color:var(--amber);font-weight:600;border-right:1px solid var(--border);background:rgba(232,89,12,0.04);">
-      <span style="font-size:11px;display:block;">📊</span>ANALYZE
+    <div style="flex:1;padding:6px 12px;border-right:1px solid var(--border);">
+      <div style="font-size:8px;color:var(--ink3);letter-spacing:1.5px;font-family:var(--sans);">SHARPE RATIO</div>
+      <div style="font-size:18px;font-weight:800;color:var(--ink);" id="hero-sharpe">--</div>
     </div>
-    <div style="flex:1;text-align:center;padding:5px 4px;font-size:8px;letter-spacing:1.5px;color:var(--amber);font-weight:600;border-right:1px solid var(--border);background:rgba(232,89,12,0.04);">
-      <span style="font-size:11px;display:block;">⚖️</span>ALLOCATE
+    <div style="flex:1;padding:6px 12px;border-right:1px solid var(--border);">
+      <div style="font-size:8px;color:var(--ink3);letter-spacing:1.5px;font-family:var(--sans);">MAX DRAWDOWN</div>
+      <div style="font-size:18px;font-weight:800;color:var(--down-text);" id="hero-mdd">--%</div>
     </div>
-    <div style="flex:1;text-align:center;padding:5px 4px;font-size:8px;letter-spacing:1.5px;color:var(--amber);font-weight:600;border-right:1px solid var(--border);background:rgba(232,89,12,0.04);">
-      <span style="font-size:11px;display:block;">🛡️</span>MANAGE
+    <div style="flex:1;padding:6px 12px;border-right:1px solid var(--border);">
+      <div style="font-size:8px;color:var(--ink3);letter-spacing:1.5px;font-family:var(--sans);">WIN RATE</div>
+      <div style="font-size:18px;font-weight:800;" id="hero-wr">--%</div>
     </div>
-    <div style="flex:1;text-align:center;padding:5px 4px;font-size:8px;letter-spacing:1.5px;color:var(--amber);font-weight:600;background:rgba(232,89,12,0.04);">
-      <span style="font-size:11px;display:block;">💎</span>COMPOUND
+    <div style="flex:1;padding:6px 12px;">
+      <div style="font-size:8px;color:var(--ink3);letter-spacing:1.5px;font-family:var(--sans);">TRADES</div>
+      <div style="font-size:18px;font-weight:800;color:var(--ink);" id="hero-trades">0</div>
     </div>
   </div>
 
@@ -13323,13 +13329,34 @@ setTimeout(() => { loadDrawings(); }, 1000);
   setTimeout(updateBottomFund, 3000);
 
   // 글로벌 노출
-  // ── Top bar AI 상태 표시 ──
+  // ── Top bar + Hero Stats 업데이트 ──
   function updateTopBarStatus(s) {
     const el = document.getElementById('billion-status');
     if (!el) return;
     const ret = s.startCapital > 0 ? ((s.capital - s.startCapital) / s.startCapital * 100) : 0;
     const posCount = (s.positions||[]).length + (s.swingPositions||[]).length;
     el.innerHTML = `<span style="color:${ret>=0?'var(--up-text)':'var(--down-text)'}">$${(s.capital||0).toFixed(0)} ${ret>=0?'+':''}${ret.toFixed(1)}%</span> · <span style="color:var(--ink2)">${posCount}pos</span>`;
+
+    // Hero Stats Bar
+    const wr = s.totalTrades > 0 ? (s.wins / s.totalTrades * 100) : 0;
+    const heroRet = document.getElementById('hero-return');
+    if (heroRet) {
+      heroRet.textContent = `${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%`;
+      heroRet.style.color = ret >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+    }
+    const heroMdd = document.getElementById('hero-mdd');
+    if (heroMdd) heroMdd.textContent = `-${(s.maxDrawdown || 0).toFixed(1)}%`;
+    const heroWr = document.getElementById('hero-wr');
+    if (heroWr) {
+      heroWr.textContent = `${wr.toFixed(0)}%`;
+      heroWr.style.color = wr >= 50 ? 'var(--up-text)' : wr >= 35 ? 'var(--ink)' : 'var(--down-text)';
+    }
+    const heroTrades = document.getElementById('hero-trades');
+    if (heroTrades) heroTrades.textContent = s.totalTrades || 0;
+    // Sharpe는 health-sharpe에서 가져옴
+    const heroSharpe = document.getElementById('hero-sharpe');
+    const srcSharpe = document.getElementById('health-sharpe');
+    if (heroSharpe && srcSharpe) heroSharpe.textContent = srcSharpe.textContent;
   }
 
   // ── Pipeline 바 상태 업데이트 ──
