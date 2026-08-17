@@ -3843,26 +3843,45 @@ const ECO_STATIC=(()=>{
 const ecoAlerted=new Set();
 async function loadEco(){
   let evs=[];
+  // 1차: 서버 프록시 캘린더 API (다중 소스 자동 폴백)
   try{
-    const j=await fetchJson("https://nfs.faireconomy.media/ff_calendar_thisweek.json");
-    if(Array.isArray(j)&&j.length){
-      // High + Medium 임팩트, 주요 국가 (US, UK, EU, CH, JP, AU, CA)
-      evs=j.filter(e=>(e.impact==="High"||e.impact==="Medium") && ["USD","GBP","EUR","CNY","JPY","AUD","CAD","CHF","NZD"].includes(e.country))
-           .map(e=>({
-             n:e.title,
-             t:Date.parse(e.date),
-             country:e.country,
-             impact:e.impact,
-             forecast:e.forecast||'',
-             previous:e.previous||'',
-             actual:e.actual||'',
-           })).filter(e=>!isNaN(e.t));
+    const j=await fetchJson("/api/calendar");
+    if(j.events && j.events.length){
+      evs = j.events.map(e => {
+        const t = Date.parse(e.date);
+        // 국가코드 변환
+        const cMap = {'USD':'USD','United States':'USD','GBP':'GBP','United Kingdom':'GBP','EUR':'EUR','Euro Area':'EUR',
+          'CNY':'CNY','China':'CNY','JPY':'JPY','Japan':'JPY','AUD':'AUD','Australia':'AUD','CAD':'CAD','Canada':'CAD',
+          'CHF':'CHF','Switzerland':'CHF','NZD':'NZD','New Zealand':'NZD'};
+        return {
+          n: e.title,
+          t: isNaN(t) ? 0 : t,
+          country: cMap[e.country] || e.country || '',
+          impact: e.impact || 'Medium',
+          forecast: e.forecast || '',
+          previous: e.previous || '',
+          actual: e.actual || '',
+        };
+      }).filter(e => e.t > 0);
     }
   }catch(e){}
+  // 2차 폴백: 직접 ForexFactory
+  if(!evs.length){
+    try{
+      const j=await fetchJson("https://nfs.faireconomy.media/ff_calendar_thisweek.json");
+      if(Array.isArray(j)&&j.length){
+        evs=j.filter(e=>(e.impact==="High"||e.impact==="Medium"))
+             .map(e=>({
+               n:e.title, t:Date.parse(e.date), country:e.country||'',
+               impact:e.impact, forecast:e.forecast||'', previous:e.previous||'', actual:e.actual||'',
+             })).filter(e=>!isNaN(e.t));
+      }
+    }catch(e){}
+  }
   const now=Date.now();
   let list=[...evs,...ECO_STATIC.map(e=>({...e,country:'USD',impact:'High'}))].filter(e=>e.t>now-2*36e5).sort((a,b)=>a.t-b.t);
   const seen=new Set();
-  list=list.filter(e=>{ const k=e.n+Math.floor(e.t/36e5); if(seen.has(k))return false; seen.add(k); return true; }).slice(0,20);
+  list=list.filter(e=>{ const k=e.n+Math.floor(e.t/36e5); if(seen.has(k))return false; seen.add(k); return true; }).slice(0,25);
   S.ecoList=list; renderEco(); setAge("eco");
 }
 const _countryFlag = {USD:'🇺🇸',GBP:'🇬🇧',EUR:'🇪🇺',CNY:'🇨🇳',JPY:'🇯🇵',AUD:'🇦🇺',CAD:'🇨🇦',CHF:'🇨🇭',NZD:'🇳🇿'};
