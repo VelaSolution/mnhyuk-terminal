@@ -956,6 +956,7 @@
             <span class="lgd" id="quadbtn" title="2×2 멀티차트 (관심종목 상위 4개)">◱4</span>
             <span id="mtf-toggle" onclick="toggleMtfMiniPanel()" title="멀티 타임프레임 미니차트">MTF</span>
             <span class="lgd" id="plannerbtn" onclick="toggleTradePlanner()" title="트레이드 플래너">PLAN</span>
+            <span id="quant-quick" style="font-size:9px;padding:2px 6px;border-radius:3px;cursor:pointer;font-weight:700" onclick="quantQuickView()" title="퀀트 시그널 빠른 조회">Q:--</span>
             <button id="ai-analyze-btn" onclick="oneClickAnalyze()" title="현재 종목 AI 분석 실행">AI 분석</button>
           </span>
         </div>
@@ -9659,17 +9660,21 @@ function renderPaperTrading(data){
     <div class="pt-cell"><small>RETURN</small><b style="color:${pnlCol}">${ret>=0?'+':''}${ret.toFixed(2)}%</b></div>
     <div class="pt-cell"><small>WIN RATE</small><b style="color:${wr>=50?'var(--up-text)':'var(--down-text)'}">${wr.toFixed(0)}%</b></div>
   </div>`;
-  // Open positions
-  if(data.positions && data.positions.length){
-    html+='<div style="padding:2px 8px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid #101010;margin-top:2px">OPEN POSITIONS</div>';
-    data.positions.forEach(p=>{
+  // Open positions (scalp + swing)
+  const allPos = [...(data.positions||[]), ...(data.swingPositions||[])];
+  if(allPos.length){
+    html+='<div style="padding:2px 8px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid #101010;margin-top:2px">POSITIONS ('+allPos.length+')</div>';
+    allPos.forEach(p=>{
       const dir = p.direction || p.side || '';
       const isLong = dir === 'BUY' || dir === 'LONG';
       const dirCol = isLong ? 'var(--up-text)' : 'var(--down-text)';
       const entry = p.entryPrice || p.entry || 0;
-      const cost = p.costBasis || 0;
-      const qty = p.quantity || 0;
-      html+=`<div class="pt-row"><span style="color:${dirCol};font-weight:700">${dir.slice(0,1)} ${p.symbol||''}</span><span style="color:var(--ink2)">$${fmtPrice(entry)}</span><span style="color:var(--ink2)">$${fmtBig(cost)}</span></div>`;
+      const liveQ = (typeof S!=='undefined'&&S.quotes&&S.quotes[p.symbol]) ? S.quotes[p.symbol].last : 0;
+      const cur = liveQ || entry;
+      const pnl = isLong ? (cur-entry)*p.quantity : (entry-cur)*p.quantity;
+      const pnlCol = pnl>=0 ? 'var(--up-text)' : 'var(--down-text)';
+      const sw = p.strategy==='swing' ? '·S' : '';
+      html+=`<div class="pt-row"><span style="color:${dirCol};font-weight:700">${dir.slice(0,1)}${sw} ${p.symbol||''}</span><span style="color:var(--ink2)">$${fmtPrice(entry)}</span><span style="color:${pnlCol};font-weight:600">${pnl>=0?'+':''}$${pnl.toFixed(1)}</span></div>`;
     });
   }
   // Recent trades
@@ -13425,7 +13430,72 @@ setTimeout(() => { loadDrawings(); }, 1000);
   window.fscanOverlay = function() { showOverlay("FAST SCAN", '<div class="rowline"><span style="color:var(--ink3)">텔레그램 /scan 명령 사용</span></div>'); };
   window.fgridOverlay = function(sym) { showOverlay("GRID LEVELS · "+sym, '<div class="rowline"><span style="color:var(--ink3)">텔레그램 /grid '+sym+' 명령 사용</span></div>'); };
 
-  window._fundOS = { updateHealthPanel, addActivity, updateBottomFund, updateRecentTrades, drawEquityMini };
+  // ── 퀀트 Quick View (차트 toolbar) ──
+  async function updateQuantQuick() {
+    const el = document.getElementById('quant-quick');
+    if (!el) return;
+    const sym = (typeof S !== 'undefined' && S.sym) ? S.sym : 'BTC';
+    try {
+      const res = await fetch(`${TT}/api/quant/signal/${sym}`, { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return;
+      const d = await res.json();
+      const action = d.action || 'HOLD';
+      const grade = d.grade || '?';
+      el.textContent = `Q:${action} [${grade}]`;
+      el.style.background = action === 'BUY' ? 'rgba(34,197,94,0.15)' : action === 'SELL' ? 'rgba(239,68,68,0.15)' : 'rgba(100,100,100,0.1)';
+      el.style.color = action === 'BUY' ? 'var(--up-text)' : action === 'SELL' ? 'var(--down-text)' : 'var(--ink3)';
+    } catch { el.textContent = 'Q:--'; }
+  }
+
+  window.quantQuickView = async function() {
+    const sym = (typeof S !== 'undefined' && S.sym) ? S.sym : 'BTC';
+    try {
+      const res = await fetch(`${TT}/api/quant/signal/${sym}`, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error('API fail');
+      const d = await res.json();
+      let html = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">
+        <div style="background:var(--panel);padding:8px;text-align:center"><div style="color:var(--ink3);font-size:9px">ACTION</div><div style="font-size:16px;font-weight:800;color:${d.action==='BUY'?'var(--up-text)':d.action==='SELL'?'var(--down-text)':'var(--ink2)'}">${d.action||'HOLD'}</div></div>
+        <div style="background:var(--panel);padding:8px;text-align:center"><div style="color:var(--ink3);font-size:9px">GRADE</div><div style="font-size:16px;font-weight:800;color:var(--amber)">${d.grade||'?'}</div></div>
+        <div style="background:var(--panel);padding:8px;text-align:center"><div style="color:var(--ink3);font-size:9px">SCORE</div><div style="font-size:16px;font-weight:800">${d.totalScore||0}</div></div>
+      </div>`;
+      // 주요 지표
+      const ind = d.indicators || {};
+      html += `<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">INDICATORS</div>`;
+      const items = [
+        ['RSI', ind.rsi, ind.rsi < 30 ? 'var(--up-text)' : ind.rsi > 70 ? 'var(--down-text)' : 'var(--ink)'],
+        ['EMA9/21', ind.ema9 > ind.ema21 ? 'BULL' : 'BEAR', ind.ema9 > ind.ema21 ? 'var(--up-text)' : 'var(--down-text)'],
+        ['MACD', ind.macdHist > 0 ? '+' + (ind.macdHist||0).toFixed(2) : (ind.macdHist||0).toFixed(2), ind.macdHist > 0 ? 'var(--up-text)' : 'var(--down-text)'],
+        ['ADX', ind.adx, ind.adx > 25 ? 'var(--amber)' : 'var(--ink3)'],
+        ['StochRSI K', ind.stochRsiK, ind.stochRsiK < 20 ? 'var(--up-text)' : ind.stochRsiK > 80 ? 'var(--down-text)' : 'var(--ink)'],
+      ];
+      items.forEach(([name, val, col]) => {
+        html += `<div class="rowline"><span>${name}</span><b style="color:${col}">${val != null ? val : '--'}</b></div>`;
+      });
+      // 점수 breakdown
+      if (d.breakdown) {
+        html += `<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">SCORE BREAKDOWN</div>`;
+        Object.entries(d.breakdown).forEach(([k, v]) => {
+          if (v !== 0) {
+            html += `<div class="rowline"><span>${k}</span><b style="color:${v>0?'var(--up-text)':'var(--down-text)'}">${v>0?'+':''}${v}</b></div>`;
+          }
+        });
+      }
+      if (typeof showOverlay === 'function') showOverlay(`QUANT SIGNAL · ${sym}`, html);
+    } catch(e) {
+      if (typeof showOverlay === 'function') showOverlay('QUANT', `<div class="rowline"><span style="color:var(--down-text)">${e.message}</span></div>`);
+    }
+  };
+
+  // 30초마다 퀀트 quick badge 업데이트
+  updateQuantQuick();
+  setInterval(updateQuantQuick, 30000);
+  // 심볼 변경 시에도 업데이트
+  const _origSwitchTo = window.switchTo;
+  if (_origSwitchTo) {
+    window.switchTo = function() { _origSwitchTo.apply(this, arguments); setTimeout(updateQuantQuick, 1000); };
+  }
+
+  window._fundOS = { updateHealthPanel, addActivity, updateBottomFund, updateRecentTrades, drawEquityMini, updateQuantQuick };
 })();
 </script>
 <div id="notif-stack"></div>
