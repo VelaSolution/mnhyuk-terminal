@@ -460,6 +460,21 @@
   @keyframes notifIn{0%{opacity:0;transform:translateX(40px);}100%{opacity:1;transform:translateX(0);}}
   @keyframes notifOut{0%{opacity:1;transform:translateX(0);}100%{opacity:0;transform:translateX(40px);}}
 
+  /* ── Toast notifications ─────────────────────── */
+  .toast{
+    position:fixed; top:40px; right:12px; z-index:400;
+    padding:10px 16px; background:rgba(8,8,8,.95); border:1px solid var(--border);
+    border-radius:8px; box-shadow:0 4px 20px rgba(0,0,0,.6);
+    font-size:var(--fs-sm); color:var(--ink); max-width:320px;
+    animation:toastIn .3s ease-out; backdrop-filter:blur(8px);
+    display:flex; align-items:center; gap:8px;
+  }
+  .toast.success{border-color:var(--up);}
+  .toast.error{border-color:var(--down);}
+  .toast.warn{border-color:var(--amber);}
+  @keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(20px)}}
+
   /* ── Backtest Overlay ──────────────────────────── */
   #bt-overlay{position:absolute;inset:10px;background:rgba(8,8,8,.97);border:1px solid var(--amber-dim);
     display:none;flex-direction:column;z-index:7;box-shadow:0 4px 24px rgba(0,0,0,.8);overflow:hidden;
@@ -4042,6 +4057,13 @@ function pushLog(msg){
     else if(lower.includes('regime')||lower.includes('레짐')) icon = '📊';
     window._fundOS.addActivity(icon, msg.replace(/[\u{1F300}-\u{1F9FF}]/gu,'').trim());
   }
+  // Toast for important events
+  if(typeof showToast === 'function'){
+    if(lower.includes('entry') || lower.includes('진입')) showToast(msg.replace(/[\u{1F300}-\u{1F9FF}]/gu,'').trim(), 'success');
+    else if(lower.includes('sl') || lower.includes('손절')) showToast(msg.replace(/[\u{1F300}-\u{1F9FF}]/gu,'').trim(), 'error');
+    else if(lower.includes('tp') || lower.includes('익절')) showToast(msg.replace(/[\u{1F300}-\u{1F9FF}]/gu,'').trim(), 'success');
+    else if(lower.includes('alert') || lower.includes('알림')) showToast(msg.replace(/[\u{1F300}-\u{1F9FF}]/gu,'').trim(), 'warn');
+  }
 }
 function pushLogLocal(msg){ ALOG.unshift({t:Date.now(), msg}); if(ALOG.length>200) ALOG.length=200; }
 let lastAlertKey="";
@@ -5305,6 +5327,7 @@ function helpHTML(){
       ["SAVE","현재 설정을 URL 해시로 저장 (북마크 복원)"],
       ["OPEN","현재 심볼 Bybit 주문 페이지 열기"],
       ["COLOR","차트 색상 테마 변경 (CLASSIC·NEON·MONO)"],
+      ["THEME","터미널 테마 변경 (DARK·MIDNIGHT·AMOLED)"],
     ]},
     {cat:"MARKET DATA", color:"#1fd3b4", cmds:[
       ["DES SOL","종목 개요 — 시총·공급량·ATH (코인게코)"],
@@ -5375,6 +5398,7 @@ function helpHTML(){
       ["POS LONG SOL 162 158","포지션 기록 (실시간 PnL·SL 알림)"],
       ["POS","포지션 목록 · POS CLOSE 1 · POS CLEAR"],
       ["CALC 162 158","수수료·펀딩·청산가·R목표 계산기"],
+      ["CALC 1 BTC","암호화폐 계산기 — 수량 ↔ USD 변환"],
       ["RR 162 158 170","R:R 계산기 (진입·손절·익절)"],
       ["PROFIT 162 170 10 20","수익 계산기 (진입·청산·수량·레버리지)"],
       ["GRID 150 170 10","그리드 트레이딩 계산기 (하한·상한·격자수)"],
@@ -6601,6 +6625,8 @@ const CMD_LIST=[
   {c:"MEMO LIST", d:"전체 메모 목록 (모든 종목)"},
   {c:"MEMO SEARCH 키워드", d:"메모 검색"},
   {c:"TEXPORT", d:"거래 내역 CSV 다운로드 (API 연동)"},
+  {c:"THEME", d:"테마 변경 — DARK/MIDNIGHT/AMOLED"},
+  {c:"CALC 1 BTC", d:"암호화폐 계산기 — 수량 ↔ USD 변환"},
 ];
 let sugSel=-1, sugItems=[];
 function renderSug(){
@@ -6689,6 +6715,25 @@ $("cmd").addEventListener("keydown",e=>{
     if(!SYMBOLS.includes(psym)) watchCmd("ADD",psym);
     renderPositions(); pushLog(`포지션 등록: ${pm[1]} ${psym} @ ${fmtPrice(entry)}`);
     e.target.value=""; e.target.placeholder=`포지션 등록됨: ${pm[1]} ${psym}`; return;
+  }
+  var calcQM = raw.match(/^CALC\s+([\d.]+)\s+([A-Z][A-Z0-9]+)$/);
+  if(calcQM){
+    var qty = parseFloat(calcQM[1]);
+    var sym = calcQM[2];
+    var q = typeof S !== 'undefined' && S.quotes ? S.quotes[sym] : null;
+    if(q && q.last){
+      var usd = qty * q.last;
+      var chtml = '<div style="padding:12px;text-align:center">';
+      chtml += '<div style="font-size:var(--fs-2xl);font-weight:800;color:var(--ink)">' + qty + ' ' + sym + '</div>';
+      chtml += '<div style="font-size:var(--fs-xl);color:var(--amber);margin:8px 0">=</div>';
+      chtml += '<div style="font-size:var(--fs-2xl);font-weight:800;color:var(--up-text)">$' + usd.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) + '</div>';
+      chtml += '<div style="font-size:var(--fs-sm);color:var(--ink3);margin-top:8px">1 ' + sym + ' = $' + q.last.toLocaleString() + '</div>';
+      chtml += '</div>';
+      showOverlay("CALC \xb7 " + qty + " " + sym, chtml);
+    } else {
+      pushLog(sym + ' 시세 없음');
+    }
+    e.target.value=""; return;
   }
   const cm=raw.match(/^CALC(?:\s+([A-Z][A-Z0-9]{1,9}))?\s+([\d.]+)\s+([\d.]+)(?:\s+(\d{1,3})X?)?$/);
   if(cm){ calcOverlay(cm[1]||S.sym, +cm[2], +cm[3], cm[4]?+cm[4]:10); e.target.value=""; return; }
@@ -6883,6 +6928,16 @@ $("cmd").addEventListener("keydown",e=>{
   const colorm = raw.match(/^COLOR\s+(CLASSIC|NEON|MONO|DEFAULT)$/i);
   if(colorm){ applyTheme(colorm[1].toUpperCase()); e.target.value=""; return; }
   if(raw==="COLOR"){ themeOverlay(); e.target.value=""; return; }
+  var themeM = raw.match(/^THEME\s*(\w*)$/);
+  if(themeM){
+    var t = (themeM[1]||'').toLowerCase();
+    if(!t || t==='list'){
+      showOverlay("THEMES",'<div style="padding:8px"><div class="rowline" style="cursor:pointer" onclick="applyTerminalTheme(\'dark\');pushLog(\'테마: DARK\')"><span style="color:var(--amber)">DARK</span><b>기본 다크 (현재)</b></div><div class="rowline" style="cursor:pointer" onclick="applyTerminalTheme(\'midnight\');pushLog(\'테마: MIDNIGHT\')"><span style="color:#60a5fa">MIDNIGHT</span><b>딥 블루</b></div><div class="rowline" style="cursor:pointer" onclick="applyTerminalTheme(\'amoled\');pushLog(\'테마: AMOLED\')"><span style="color:#fff">AMOLED</span><b>순수 블랙</b></div></div>');
+    } else {
+      applyTerminalTheme(t); pushLog('테마 변경: ' + t.toUpperCase());
+    }
+    e.target.value=""; return;
+  }
   if(raw==="PREMIUM"||raw==="KIMCHI"){ premiumOverlay(); e.target.value=""; return; }
   if(raw==="PULSE"){ pulseOverlay(); e.target.value=""; return; }
   if(raw==="RANGE"){ rangeOverlay(); e.target.value=""; return; }
@@ -8856,6 +8911,65 @@ function statsOverlay(){
   showOverlay("STATS · 터미널 통계", html);
 }
 
+/* ── Terminal Theme (DARK/MIDNIGHT/AMOLED) ── */
+function applyTerminalTheme(theme){
+  var r = document.documentElement.style;
+  if(theme === 'midnight'){
+    r.setProperty('--bg','#0a0e1a');
+    r.setProperty('--panel','#0f1525');
+    r.setProperty('--panel2','#141c30');
+    r.setProperty('--border','#1e2d4a');
+    r.setProperty('--border2','#182440');
+    r.setProperty('--grid','#121a2e');
+  } else if(theme === 'amoled'){
+    r.setProperty('--bg','#000000');
+    r.setProperty('--panel','#000000');
+    r.setProperty('--panel2','#0a0a0a');
+    r.setProperty('--border','#1a1a1a');
+    r.setProperty('--border2','#111111');
+    r.setProperty('--grid','#0a0a0a');
+  } else { // dark (default)
+    r.setProperty('--bg','#050505');
+    r.setProperty('--panel','#0c0c0c');
+    r.setProperty('--panel2','#111');
+    r.setProperty('--border','#1e1e1e');
+    r.setProperty('--border2','#161616');
+    r.setProperty('--grid','#131313');
+  }
+  try { localStorage.setItem('terminal_theme', theme); } catch(ex){}
+}
+
+/* ── Toast notification system ── */
+var _toastStack = [];
+function showToast(message, type, duration){
+  type = type || 'info';
+  duration = duration || 4000;
+  var el = document.createElement('div');
+  el.className = 'toast ' + type;
+  var icon = type === 'success' ? '\u2713' : type === 'error' ? '\u2715' : type === 'warn' ? '\u26A0' : '\u2139';
+  var iconColor = type === 'success' ? 'var(--up-text)' : type === 'error' ? 'var(--down-text)' : type === 'warn' ? 'var(--amber)' : 'var(--cyan-text)';
+  el.innerHTML = '<span style="font-size:14px;color:' + iconColor + '">' + icon + '</span><span>' + message + '</span>';
+
+  // Stack toasts
+  var offset = 40;
+  _toastStack.forEach(function(t){ offset += t.offsetHeight + 8; });
+  el.style.top = offset + 'px';
+
+  document.body.appendChild(el);
+  _toastStack.push(el);
+
+  setTimeout(function(){
+    el.style.animation = 'toastOut .3s ease-in forwards';
+    setTimeout(function(){
+      el.remove();
+      _toastStack = _toastStack.filter(function(t){ return t !== el; });
+      // Reposition remaining
+      var y = 40;
+      _toastStack.forEach(function(t){ t.style.top = y + 'px'; y += t.offsetHeight + 8; });
+    }, 300);
+  }, duration);
+}
+
 /* ── COLOR — Chart color theme presets ── */
 function applyTheme(name){
   const themes = {
@@ -8909,6 +9023,8 @@ try {
   leInit();
   const savedTheme = localStorage.getItem("chart_theme");
   if(savedTheme) setTimeout(() => applyTheme(savedTheme), 2000);
+  var savedTermTheme = localStorage.getItem("terminal_theme");
+  if(savedTermTheme) applyTerminalTheme(savedTermTheme);
   requestNotifPermission();
   loadCfgFromHash();
   renderTabs(); renderQuotes();
