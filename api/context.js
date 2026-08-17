@@ -201,23 +201,64 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
+  // Fund 상태 fetch
+  async function fetchFundStatus() {
+    try {
+      const res = await fetchWithTimeout(`${TRADING_TEAM_URL}/api/paper/status`, {}, 5000);
+      if (!res.ok) return null;
+      const d = await res.json();
+      const allPos = [...(d.positions || []), ...(d.swingPositions || [])];
+      return {
+        version: d.version,
+        capital: d.capital,
+        startCapital: d.startCapital,
+        returnPct: d.returnPct,
+        totalPnl: d.totalPnl,
+        totalTrades: d.totalTrades,
+        wins: d.wins,
+        losses: d.losses,
+        winRate: d.winRate,
+        maxDrawdown: d.maxDrawdown,
+        running: d.running,
+        positions: allPos.map(p => ({
+          symbol: p.symbol,
+          direction: p.direction,
+          entryPrice: p.entryPrice,
+          slPrice: p.slPrice,
+          tpPrice: p.tpPrice,
+          grade: p.grade,
+          strategy: p.strategy || 'scalp',
+        })),
+        positionCount: allPos.length,
+        consecutiveLosses: d.consecutiveLosses,
+        circuitBreakerActive: d.circuitBreakerActive,
+        marketRegime: d.marketRegime?.regime,
+        activeStrategy: d.activeStrategy,
+        analysisInterval: d.analysisInterval,
+      };
+    } catch { return null; }
+  }
+
   // 병렬 fetch
-  const [prices, news, fearGreed, calendarResult] = await Promise.allSettled([
+  const [prices, news, fearGreed, calendarResult, fundResult] = await Promise.allSettled([
     fetchPrices(),
     fetchNews(),
     fetchFearGreed(),
     getEconomicCalendar(),
+    fetchFundStatus(),
   ]);
 
   const calendar = calendarResult.status === 'fulfilled' ? calendarResult.value : [];
   const terminal = getTerminalStatus();
+  const fund = fundResult.status === 'fulfilled' ? fundResult.value : null;
 
   res.json({
     prices: prices.status === 'fulfilled' ? prices.value : [],
     news: news.status === 'fulfilled' ? news.value : [],
     calendar,
     fearGreed: fearGreed.status === 'fulfilled' ? fearGreed.value : null,
-    alerts: [], // 향후 시장 알림 시스템 확장용
+    fund,
+    alerts: [],
     terminal,
     timestamp: new Date().toISOString(),
   });
