@@ -1633,9 +1633,26 @@
 "use strict";
 
 /* ═══════════════ GLOBAL CONFIG ═══════════════ */
-// VPS 직접 접속 → 같은 origin, Vercel → /api/tt 프록시 (HTTPS→HTTP 브릿지)
-window.__TT_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.port === '8000')
-  ? '' : '/api/tt';
+// VPS 직접 접속 → 같은 origin, Vercel → /api/tt?p= 프록시
+window.__TT_DIRECT = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.port === '8000');
+window.__TT_BASE = '';
+
+// 글로벌 fetch 인터셉터: /api/* 호출을 Vercel 프록시로 자동 라우팅
+if (!window.__TT_DIRECT) {
+  const _origFetch = window.fetch;
+  window.fetch = function(url, opts) {
+    if (typeof url === 'string' && url.startsWith('/api/') && !url.startsWith('/api/tt') && !url.startsWith('/api/auth') && !url.startsWith('/api/rss') && !url.startsWith('/api/calendar') && !url.startsWith('/api/chat') && !url.startsWith('/api/scan') && !url.startsWith('/api/health') && !url.startsWith('/api/gateway') && !url.startsWith('/api/context') && !url.startsWith('/api/analyze')) {
+      // /api/paper/status → /api/tt?p=/paper/status
+      const apiPath = url.replace(/^\/api/, '');
+      return _origFetch.call(this, '/api/tt?p=' + encodeURIComponent(apiPath), opts);
+    }
+    // analyze도 프록시
+    if (typeof url === 'string' && url.startsWith('/api/analyze')) {
+      return _origFetch.call(this, '/api/tt?p=' + encodeURIComponent(url.replace(/^\/api/, '')), opts);
+    }
+    return _origFetch.call(this, url, opts);
+  };
+}
 
 /* ═══════════════ ERROR HANDLER ═══════════════ */
 window.onerror = function(msg, src, line, col, err) {
