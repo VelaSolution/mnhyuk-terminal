@@ -139,7 +139,7 @@
     color:var(--ink3); pointer-events:none; text-align:center; line-height:1.7;}
 
   /* ── Derivatives strip ───────────────────────── */
-  #deriv{flex:0 0 auto; display:grid; grid-template-columns:1fr 1.2fr 1.2fr 1fr; gap:4px; background:var(--bg); border-top:1px solid var(--border); padding:4px;}
+  #deriv{flex:0 0 auto; display:grid; grid-template-columns:1fr 1.2fr 1.2fr 1fr 0.8fr; gap:4px; background:var(--bg); border-top:1px solid var(--border); padding:4px;}
   .dcell{background:var(--panel); padding:8px 10px; min-height:74px; border-radius:6px; border:1px solid var(--border);}
   .dcell h4{color:var(--ink3); font-size:9px; font-weight:600; letter-spacing:1px; margin-bottom:4px; font-family:var(--sans);}
   .dcell .big{font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; font-family:var(--mono);}
@@ -427,7 +427,7 @@
     .lgd{padding:4px 8px; min-height:32px; display:inline-flex; align-items:center; font-size:10px; flex-shrink:0;}
 
     /* ── Deriv strip: 2x2 grid ── */
-    #deriv{grid-template-columns:1fr 1fr; grid-template-rows:auto auto;}
+    #deriv{grid-template-columns:1fr 1fr; grid-template-rows:auto auto auto;}
     .dcell{padding:8px 10px; min-height:60px;}
     .dcell h4{font-size:11px;}
     .dcell .big{font-size:14px;}
@@ -1085,6 +1085,11 @@
             <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--ink3);margin-top:2px">
               <span>추세</span><span>횡보</span><span>변동</span>
             </div>
+          </div>
+          <div class="dcell" id="deriv-quant">
+            <h4>QUANT <span style="color:var(--ink3)">AI 점수</span></h4>
+            <div class="big" id="dq-action" style="font-size:14px;color:var(--ink3)">--</div>
+            <div class="sub"><span id="dq-grade" style="color:var(--amber)">?</span>급 · <span id="dq-score">0</span>점</div>
           </div>
         </div>
       </div>
@@ -13444,6 +13449,13 @@ setTimeout(() => { loadDrawings(); }, 1000);
       el.textContent = `Q:${action} [${grade}]`;
       el.style.background = action === 'BUY' ? 'rgba(34,197,94,0.15)' : action === 'SELL' ? 'rgba(239,68,68,0.15)' : 'rgba(100,100,100,0.1)';
       el.style.color = action === 'BUY' ? 'var(--up-text)' : action === 'SELL' ? 'var(--down-text)' : 'var(--ink3)';
+      // Derivatives strip도 업데이트
+      const dqAction = document.getElementById('dq-action');
+      const dqGrade = document.getElementById('dq-grade');
+      const dqScore = document.getElementById('dq-score');
+      if (dqAction) { dqAction.textContent = action; dqAction.style.color = el.style.color; }
+      if (dqGrade) dqGrade.textContent = grade;
+      if (dqScore) dqScore.textContent = d.totalScore || 0;
     } catch { el.textContent = 'Q:--'; }
   }
 
