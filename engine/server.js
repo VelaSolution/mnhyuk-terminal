@@ -1543,6 +1543,139 @@ const server = http.createServer(async (req, res) => {
       } catch(e) { return sendJson(res, 500, { error: e.message }); }
     }
 
+    // ── /api/chat — AI 채팅 (Billion 프록시 or 로컬) ──
+    if (req.method === 'POST' && pathname === '/api/chat') {
+      const body = await readBody(req);
+      const messages = body.messages || [];
+      const context = body.context || '';
+
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      if (!apiKey) return sendJson(res, 200, { text: 'ANTHROPIC_API_KEY 미설정 — AI 기능 비활성화 상태입니다.' });
+
+      try {
+        // Collect market context
+        const status = paperTrader.getStatus();
+        const systemPrompt = `당신은 BILLION AI — 암호화폐 헤지펀드 AI 비서입니다.
+현재 상태: 자본 $${(status.capital||3000).toFixed(0)}, 수익률 ${(status.returnPct||0).toFixed(1)}%, 승률 ${(status.winRate||0)}%, 포지션 ${(status.positions||[]).length}개
+추가 컨텍스트: ${context}
+간결하고 전문적으로 답하세요. 한국어로 답변하세요.`;
+
+        const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 1024,
+            system: systemPrompt,
+            messages: messages.map(m => ({ role: m.role || 'user', content: m.content || '' })),
+          }),
+          signal: AbortSignal.timeout(25000),
+        });
+
+        if (!claudeRes.ok) {
+          const err = await claudeRes.text();
+          return sendJson(res, 200, { text: 'AI 응답 실패: ' + claudeRes.status });
+        }
+
+        const claudeData = await claudeRes.json();
+        const text = claudeData.content?.[0]?.text || '응답 없음';
+        return sendJson(res, 200, { text });
+      } catch (e) {
+        return sendJson(res, 200, { text: 'AI 연결 실패: ' + e.message });
+      }
+    }
+
+    // ── /api/scan/quick — 전 코인 퀀트 빠른 스캔 ──
+    if (req.method === 'GET' && pathname === '/api/scan/quick') {
+      try {
+        const symbols = ['BTC','ETH','SOL','AVAX','DOGE','LINK','SUI','PEPE','WIF','TON'];
+        const results = [];
+        for (const sym of symbols) {
+          try {
+            const signal = await quantSignals.getSignalForSymbol(sym + 'USDT');
+            results.push({
+              symbol: sym,
+              action: signal?.action || 'HOLD',
+              confidence: signal?.confidence || 0,
+              grade: signal?.grade || '?',
+              score: signal?.totalScore || signal?.score || 0,
+            });
+          } catch { results.push({ symbol: sym, action: 'ERROR', confidence: 0, grade: '?', score: 0 }); }
+        }
+        results.sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
+        return sendJson(res, 200, { results, timestamp: new Date().toISOString() });
+      } catch (e) {
+        return sendJson(res, 500, { error: e.message });
+      }
+    }
+
+    // ── /api/fund/metrics — 펀드 상세 메트릭스 ──
+    if (req.method === 'GET' && pathname === '/api/fund/metrics') {
+      try {
+        const status = paperTrader.getStatus();
+        const detailed = paperTrader.getDetailedStats();
+        const history = paperTrader.getHistory();
+        const trades = history.trades || history || [];
+
+        // Calculate additional metrics
+        const wins = trades.filter(t => (t.pnl || 0) > 0);
+        const losses = trades.filter(t => (t.pnl || 0) <= 0);
+        const avgWin = wins.length > 0 ? wins.reduce((s, t) => s + (t.pnl || 0), 0) / wins.length : 0;
+        const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((s, t) => s + (t.pnl || 0), 0) / losses.length) : 0;
+        const profitFactor = avgLoss > 0 ? (avgWin * wins.length) / (avgLoss * losses.length) : 0;
+        const expectancy = trades.length > 0 ? trades.reduce((s, t) => s + (t.pnl || 0), 0) / trades.length : 0;
+
+        return sendJson(res, 200, {
+          capital: status.capital || 3000,
+          startCapital: status.startCapital || 3000,
+          returnPct: status.returnPct || 0,
+          totalPnl: status.totalPnl || 0,
+          todayPnl: status.todayPnl || 0,
+          totalTrades: trades.length,
+          wins: wins.length,
+          losses: losses.length,
+          winRate: trades.length > 0 ? (wins.length / trades.length * 100) : 0,
+          maxDrawdown: status.maxDrawdown || 0,
+          avgWin,
+          avgLoss,
+          profitFactor,
+          expectancy,
+          sharpe: detailed?.sharpe || 0,
+          sortino: detailed?.sortino || 0,
+          calmar: detailed?.calmar || 0,
+          positions: (status.positions || []).length,
+          swingPositions: (status.swingPositions || []).length,
+          running: status.running || false,
+          regime: status.marketRegime?.regime || 'UNKNOWN',
+          timestamp: new Date().toISOString(),
+        });
+      } catch (e) {
+        return sendJson(res, 500, { error: e.message });
+      }
+    }
+
+    // ── /api/paper/adjust — 포지션 SL/TP 조정 ──
+    if (req.method === 'POST' && pathname === '/api/paper/adjust') {
+      const body = await readBody(req);
+      const { symbol, sl, tp } = body;
+      if (!symbol) return sendJson(res, 400, { error: 'symbol 필요' });
+      try {
+        const status = paperTrader.getStatus();
+        const allPos = [...(status.positions || []), ...(status.swingPositions || [])];
+        const pos = allPos.find(p => p.symbol === symbol || p.symbol === symbol + 'USDT');
+        if (!pos) return sendJson(res, 404, { error: symbol + ' 포지션 없음' });
+        if (sl !== undefined) pos.slPrice = parseFloat(sl);
+        if (tp !== undefined) pos.tpPrice = parseFloat(tp);
+        return sendJson(res, 200, { success: true, symbol, sl: pos.slPrice, tp: pos.tpPrice, message: symbol + ' SL/TP 조정 완료' });
+      } catch (e) {
+        return sendJson(res, 500, { error: e.message });
+      }
+    }
+
     // ── /api/calendar — 경제 캘린더 (FCS v4 전용, 캐시 6시간) ──
     if (req.method === 'GET' && pathname === '/api/calendar') {
       const calCache = global.__calCache || {};
