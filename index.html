@@ -184,7 +184,7 @@
   #indmenu label:hover{background:#151515; color:var(--ink);}
   #indmenu input{accent-color:#ffa028; margin-right:5px; vertical-align:-1px;}
 
-  /* ── Generic overlay ─────────────────────────── */
+  /* ── Generic overlay (legacy — hidden) ─────── */
   #btov{position:absolute; right:10px; top:10px; width:420px; max-height:calc(100% - 20px);
     background:rgba(8,8,8,.96); border:1px solid var(--amber-dim); display:none;
     flex-direction:column; z-index:5; box-shadow:0 4px 24px rgba(0,0,0,.7);}
@@ -195,6 +195,36 @@
   #btov-body{overflow-y:auto; padding:4px 0;}
   #btov-body .rowline{display:flex; justify-content:space-between; padding:3px 10px; border-bottom:1px solid #101010;}
   #btov-body .rowline span{color:var(--ink2);} #btov-body .rowline b{font-variant-numeric:tabular-nums;}
+
+  /* ── Multi-window system ─────────────────────── */
+  .mwin{
+    position:absolute; display:flex; flex-direction:column;
+    background:rgba(8,8,8,.97); border:1px solid var(--amber-dim);
+    box-shadow:0 8px 32px rgba(0,0,0,.7); border-radius:6px; overflow:hidden;
+    min-width:280px; min-height:160px; z-index:50;
+  }
+  .mwin.focused{z-index:60; border-color:var(--amber); box-shadow:0 8px 40px rgba(232,89,12,.15);}
+  .mwin-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:5px 10px; background:#181205; color:var(--amber); font-weight:600;
+    font-size:var(--fs-base); letter-spacing:.5px; cursor:move; user-select:none;
+    border-bottom:1px solid var(--border2); flex:0 0 auto;
+  }
+  .mwin-head .mwin-btns{display:flex; gap:6px; align-items:center;}
+  .mwin-head .mwin-btn{cursor:pointer; color:var(--ink3); font-size:var(--fs-md); padding:0 2px; transition:color .15s;}
+  .mwin-head .mwin-btn:hover{color:var(--ink);}
+  .mwin-body{overflow-y:auto; padding:4px 0; flex:1 1 auto; min-height:0;}
+  .mwin-body .rowline{display:flex; justify-content:space-between; padding:3px 10px; border-bottom:1px solid #101010;}
+  .mwin-body .rowline span{color:var(--ink2);} .mwin-body .rowline b{font-variant-numeric:tabular-nums;}
+  .mwin-resize{
+    position:absolute; right:0; bottom:0; width:14px; height:14px;
+    cursor:nwse-resize; opacity:0.3;
+  }
+  .mwin-resize:hover{opacity:0.8;}
+  .mwin-resize::after{
+    content:''; position:absolute; right:2px; bottom:2px;
+    width:8px; height:8px; border-right:2px solid var(--ink3); border-bottom:2px solid var(--ink3);
+  }
 
   /* ── News ────────────────────────────────────── */
   #news .item, #news-feed .item{padding:5px 9px; border-bottom:1px solid #101010; line-height:1.45;}
@@ -467,6 +497,7 @@
 
     /* ── Overlays / Modals ── */
     #btov{width:min(90vw,420px); right:5vw; left:5vw; margin:0 auto;}
+    .mwin{width:90vw !important; left:5vw !important; min-width:auto;}
     #auth-box{width:min(90vw,340px);}
     #indmenu{width:min(85vw,210px); right:4px;}
     #cmdsug{max-height:60vh;}
@@ -4776,10 +4807,139 @@ async function loadOIPane(){
 }
 
 /* 범용 오버레이 (백테스트/DES/HELP 공용) */
+/* ═══ Multi-window system ═══ */
+let _mwinId = 0;
+let _mwinZBase = 50;
+const _mwinMap = new Map(); // id → element
+
 function showOverlay(title, html){
-  $("btov-title").textContent=title;
-  $("btov-body").innerHTML=html;
-  $("btov").classList.add("on");
+  createMWin(title, html);
+}
+
+function createMWin(title, html, opts={}){
+  const id = 'mwin-' + (++_mwinId);
+  const w = opts.width || 420;
+  const h = opts.height || 380;
+  // 새 창은 약간씩 오프셋
+  const offset = (_mwinMap.size % 6) * 24;
+  const x = opts.x ?? Math.min(window.innerWidth - w - 20, 60 + offset);
+  const y = opts.y ?? Math.min(window.innerHeight - h - 20, 60 + offset);
+
+  const el = document.createElement('div');
+  el.className = 'mwin focused';
+  el.id = id;
+  el.style.cssText = `left:${x}px;top:${y}px;width:${w}px;height:${h}px;`;
+  el.innerHTML = `
+    <div class="mwin-head" data-mwin="${id}">
+      <span class="mwin-title">${title}</span>
+      <span class="mwin-btns">
+        <span class="mwin-btn" onclick="minimizeMWin('${id}')" title="최소화">─</span>
+        <span class="mwin-btn" onclick="maximizeMWin('${id}')" title="최대화">□</span>
+        <span class="mwin-btn" onclick="closeMWin('${id}')" title="닫기">✕</span>
+      </span>
+    </div>
+    <div class="mwin-body">${html}</div>
+    <div class="mwin-resize" data-mwin="${id}"></div>
+  `;
+
+  // 포커스
+  el.onmousedown = () => focusMWin(id);
+
+  // 드래그 핸들러
+  const head = el.querySelector('.mwin-head');
+  head.addEventListener('mousedown', e => {
+    if(e.target.classList.contains('mwin-btn')) return;
+    e.preventDefault();
+    focusMWin(id);
+    const rect = el.getBoundingClientRect();
+    const ox = e.clientX - rect.left, oy = e.clientY - rect.top;
+    const onMove = ev => {
+      el.style.left = Math.max(0, ev.clientX - ox) + 'px';
+      el.style.top = Math.max(0, ev.clientY - oy) + 'px';
+    };
+    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  // 리사이즈 핸들러
+  const resizer = el.querySelector('.mwin-resize');
+  resizer.addEventListener('mousedown', e => {
+    e.preventDefault(); e.stopPropagation();
+    focusMWin(id);
+    const startW = el.offsetWidth, startH = el.offsetHeight;
+    const startX = e.clientX, startY = e.clientY;
+    const onMove = ev => {
+      el.style.width = Math.max(280, startW + ev.clientX - startX) + 'px';
+      el.style.height = Math.max(160, startH + ev.clientY - startY) + 'px';
+    };
+    const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  document.getElementById('app').appendChild(el);
+  _mwinMap.set(id, el);
+  focusMWin(id);
+
+  // 이전 btov도 닫기 (호환성)
+  const btov = $("btov");
+  if(btov) btov.classList.remove("on");
+
+  return id;
+}
+
+function focusMWin(id){
+  _mwinMap.forEach((el, k) => el.classList.toggle('focused', k === id));
+  const el = _mwinMap.get(id);
+  if(el) el.style.zIndex = ++_mwinZBase;
+}
+
+function closeMWin(id){
+  const el = _mwinMap.get(id);
+  if(el) { el.remove(); _mwinMap.delete(id); }
+}
+
+function minimizeMWin(id){
+  const el = _mwinMap.get(id);
+  if(!el) return;
+  const body = el.querySelector('.mwin-body');
+  const resizer = el.querySelector('.mwin-resize');
+  if(body.style.display === 'none'){
+    body.style.display = '';
+    resizer.style.display = '';
+    el.style.height = el.dataset.prevH || '380px';
+  } else {
+    el.dataset.prevH = el.style.height;
+    body.style.display = 'none';
+    resizer.style.display = 'none';
+    el.style.height = 'auto';
+  }
+}
+
+function maximizeMWin(id){
+  const el = _mwinMap.get(id);
+  if(!el) return;
+  if(el.dataset.maximized === '1'){
+    el.style.left = el.dataset.prevX;
+    el.style.top = el.dataset.prevY;
+    el.style.width = el.dataset.prevW;
+    el.style.height = el.dataset.prevH2 || '380px';
+    el.dataset.maximized = '0';
+  } else {
+    el.dataset.prevX = el.style.left;
+    el.dataset.prevY = el.style.top;
+    el.dataset.prevW = el.style.width;
+    el.dataset.prevH2 = el.style.height;
+    el.style.left = '0'; el.style.top = '0';
+    el.style.width = '100%'; el.style.height = '100%';
+    el.dataset.maximized = '1';
+  }
+}
+
+function closeAllMWin(){
+  _mwinMap.forEach((el) => el.remove());
+  _mwinMap.clear();
 }
 function watchCmd(op,sym){
   if(!op){
