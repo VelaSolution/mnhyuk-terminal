@@ -844,8 +844,6 @@
       <span>UTC <b id="clk-utc">--:--:--</b></span>
       <span id="session-chip" style="font-size:10px;padding:1px 6px;border:1px solid var(--border);letter-spacing:.5px"></span>
       <span id="user-badge"></span>
-      <button onclick="openProfilePanel()" style="background:transparent;border:1px solid var(--border);color:var(--ink2);padding:2px 8px;font-size:var(--fs-sm);" title="프로필">PROFILE</button>
-      <button onclick="openSettingsPanel()" style="background:transparent;border:1px solid var(--border);color:var(--ink2);padding:2px 8px;font-size:var(--fs-sm);" title="설정">SETTINGS</button>
       <button id="logout-btn" onclick="authLogout()">LOGOUT</button>
     </div>
   </div>
@@ -866,22 +864,10 @@
     </div>
   </div>
 
-  <div id="statusstrip">
-    <div class="ss-item"><span>BTC.D</span> <b id="ss-btcd">—</b></div>
-    <div class="ss-sep"></div>
-    <div class="ss-item"><span>MCAP</span> <b id="ss-mcap">—</b></div>
-    <div class="ss-sep"></div>
-    <div class="ss-item"><span>24H VOL</span> <b id="ss-vol">—</b></div>
-    <div class="ss-sep"></div>
-    <div class="ss-item"><span>ETH.D</span> <b id="ss-ethd">—</b></div>
-    <div class="ss-sep"></div>
-    <div class="ss-item"><span>F&amp;G</span> <b id="ss-fng">—</b></div>
-    <div class="ss-sep"></div>
-    <div class="ss-item"><span>GAS</span> <b id="ss-gas">—</b></div>
-    <div class="ss-sep"></div>
-    <div class="ss-item" id="ss-signal" style="display:none"></div>
-    <div class="ss-sep"></div>
-    <div class="ss-item"><span>POS</span> <b id="ss-pos" style="color:var(--amber)">--</b></div>
+  <!-- Status strip removed — data available in MARKET panel -->
+  <div style="display:none">
+    <b id="ss-btcd">—</b><b id="ss-mcap">—</b><b id="ss-vol">—</b><b id="ss-ethd">—</b>
+    <b id="ss-fng">—</b><b id="ss-gas">—</b><div id="ss-signal"></div><b id="ss-pos">--</b>
   </div>
 
   <!-- Mobile: horizontal quote ticker (hidden on desktop) -->
@@ -1453,7 +1439,7 @@
   </div>
 </div>
 
-<script src="https://s3.tradingview.com/tv.js"></script>
+<script src="https://s3.tradingview.com/tv.js" onerror="console.warn('TradingView widget library failed to load')"></script>
 <script>
 "use strict";
 
@@ -3825,32 +3811,64 @@ const ECO_STATIC=(()=>{
 })();
 const ecoAlerted=new Set();
 async function loadEco(){
-  let evs=null;
-  try{  // ForexFactory 주간 캘린더 (고임팩트 USD) — 실패 시 확정 일정만 사용
+  let evs=[];
+  try{
     const j=await fetchJson("https://nfs.faireconomy.media/ff_calendar_thisweek.json");
-    if(Array.isArray(j)&&j.length)
-      evs=j.filter(e=>e.impact==="High"&&e.country==="USD")
-           .map(e=>({n:e.title,t:Date.parse(e.date)})).filter(e=>!isNaN(e.t));
+    if(Array.isArray(j)&&j.length){
+      // High + Medium 임팩트, 주요 국가 (US, UK, EU, CH, JP, AU, CA)
+      evs=j.filter(e=>(e.impact==="High"||e.impact==="Medium") && ["USD","GBP","EUR","CNY","JPY","AUD","CAD","CHF","NZD"].includes(e.country))
+           .map(e=>({
+             n:e.title,
+             t:Date.parse(e.date),
+             country:e.country,
+             impact:e.impact,
+             forecast:e.forecast||'',
+             previous:e.previous||'',
+             actual:e.actual||'',
+           })).filter(e=>!isNaN(e.t));
+    }
   }catch(e){}
   const now=Date.now();
-  let list=[...(evs||[]),...ECO_STATIC].filter(e=>e.t>now-2*36e5).sort((a,b)=>a.t-b.t);
+  let list=[...evs,...ECO_STATIC.map(e=>({...e,country:'USD',impact:'High'}))].filter(e=>e.t>now-2*36e5).sort((a,b)=>a.t-b.t);
   const seen=new Set();
-  list=list.filter(e=>{ const k=Math.floor(e.t/36e5); if(seen.has(k))return false; seen.add(k); return true; }).slice(0,8);
+  list=list.filter(e=>{ const k=e.n+Math.floor(e.t/36e5); if(seen.has(k))return false; seen.add(k); return true; }).slice(0,20);
   S.ecoList=list; renderEco(); setAge("eco");
 }
+const _countryFlag = {USD:'🇺🇸',GBP:'🇬🇧',EUR:'🇪🇺',CNY:'🇨🇳',JPY:'🇯🇵',AUD:'🇦🇺',CAD:'🇨🇦',CHF:'🇨🇭',NZD:'🇳🇿'};
 function renderEco(){
   const el=$("eco"); if(!el||!S.ecoList) return;
   if(!S.ecoList.length){ el.innerHTML='<div class="rowline"><span style="color:var(--ink3)">예정 이벤트 없음</span></div>'; return; }
   const now=Date.now();
+  // 날짜별 그룹핑
+  let lastDate = '';
   el.innerHTML=S.ecoList.map(e=>{
     const d=e.t-now;
     const dd=Math.floor(d/864e5), hh=Math.floor(d%864e5/36e5), mm=Math.floor(d%36e5/6e4);
     const cd=d<0?'<span class="n">발표됨</span>'
-      :d<36e5?`<b class="d">-${mm}분</b>`
-      :d<864e5?`<b style="color:var(--amber)">-${hh}h${pad2(mm)}m</b>`
-      :`<span class="n">-${dd}일 ${hh}h</span>`;
+      :d<36e5?`<b class="d">${mm}분 후</b>`
+      :d<864e5?`<b style="color:var(--amber)">${hh}h ${pad2(mm)}m</b>`
+      :`<span class="n">${dd}일 후</span>`;
     const dt=new Date(e.t);
-    return `<div class="rowline"><span>${e.n}</span><span class="n">${pad2(dt.getMonth()+1)}-${pad2(dt.getDate())} ${pad2(dt.getHours())}:${pad2(dt.getMinutes())}</span><b>${cd}</b></div>`;
+    const dateKey = `${dt.getMonth()+1}/${dt.getDate()}`;
+    const dayNames = ['일','월','화','수','목','금','토'];
+    let dateHeader = '';
+    if(dateKey !== lastDate){
+      lastDate = dateKey;
+      dateHeader = `<div style="padding:3px 10px;background:#080808;color:var(--amber);font-size:var(--fs-xs);font-weight:600;letter-spacing:1px;border-bottom:1px solid var(--border2);">${pad2(dt.getMonth()+1)}.${pad2(dt.getDate())} ${dayNames[dt.getDay()]}</div>`;
+    }
+    const flag = _countryFlag[e.country] || '';
+    const impactDot = e.impact==='High' ? '<span style="color:var(--down-text);">●</span>' : '<span style="color:var(--amber);">●</span>';
+    const timeStr = `${pad2(dt.getHours())}:${pad2(dt.getMinutes())}`;
+    const dataStr = e.actual ? `<span style="color:var(--up-text);font-weight:600;">${e.actual}</span>` :
+      e.forecast ? `<span style="color:var(--ink2)">${e.forecast}</span>` : '';
+    return `${dateHeader}<div class="rowline" style="gap:4px;font-size:var(--fs-sm);">
+      <span style="min-width:14px;text-align:center">${impactDot}</span>
+      <span style="color:var(--ink3);min-width:36px">${timeStr}</span>
+      <span style="min-width:18px">${flag}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.n}</span>
+      <span style="min-width:40px;text-align:right">${dataStr}</span>
+      <b style="min-width:50px;text-align:right">${cd}</b>
+    </div>`;
   }).join("");
   /* 발표 10분 전 알림 */
   for(const e of S.ecoList){
@@ -4780,6 +4798,7 @@ function watchCmd(op,sym){
     SYMBOLS=SYMBOLS.filter(x=>x!==sym);
   }
   renderTabs(); renderQuotes(); loadQuotes(); loadKimchi();
+  if(typeof saveSettings === 'function') saveSettings(); // 계정별 워치리스트 저장
 }
 function helpHTML(){
   const groups=[
@@ -4879,9 +4898,11 @@ function helpHTML(){
       ["ALERT SOL 200","가격 도달 알림 등록"],
       ["ALERT CLEAR","가격 알림 전체 해제"],
       ["WATCH","관심종목 목록 보기"],
-      ["WATCH ADD PEPE","관심종목 추가 (김프 연동)"],
+      ["WATCH ADD PEPE","관심종목 추가 (계정별 저장)"],
       ["WATCH DEL XRP","관심종목 제거"],
       ["WATCHVIEW","관심종목 상세 뷰 (전체 지표 포함)"],
+      ["SETTINGS","차트·알림·뉴스·디스플레이 설정"],
+      ["PROFILE","프로필 · 세션 정보 · 거래 통계"],
       ["TG OFF","텔레그램 알림 릴레이 끄기/켜기(TG ON)"],
     ]},
     {cat:"MEMO & SYSTEM", color:"#9a9a9a", cmds:[
@@ -5965,6 +5986,8 @@ const CMD_LIST=[
   {c:"RATIO", d:"핵심 시장 비율 (ETH/BTC·SOL/ETH·금/BTC 등)"},
   {c:"SCREENER RSI<30", d:"조건식 스크리너 (RSI<30, VOL>2 등)"},
   {c:"HELP", d:"전체 명령 도움말"},
+  {c:"SETTINGS", d:"차트·알림·뉴스·디스플레이 설정"},
+  {c:"PROFILE", d:"프로필 · 세션 · 거래 통계"},
   {c:"NEWS BTC", d:"뉴스 키워드 검색"},
   {c:"DASH", d:"퀵 대시보드 — 핵심 정보 한 화면"},
   {c:"KEYS", d:"키보드 단축키 목록"},
@@ -6156,6 +6179,8 @@ $("cmd").addEventListener("keydown",e=>{
   }
   if(raw==="TV"){ S.tvMode=!S.tvMode; window.__applyTv&&window.__applyTv(); e.target.value=""; return; }
   if(raw==="HELP"||raw==="?"){ showOverlay("명령어 도움말", helpHTML()); e.target.value=""; return; }
+  if(raw==="SETTINGS"||raw==="SET"){ openSettingsPanel(); e.target.value=""; return; }
+  if(raw==="PROFILE"||raw==="ME"){ openProfilePanel(); e.target.value=""; return; }
   if(raw==="MOST"){ document.querySelector('[data-qtab="up"]').click(); e.target.value=""; return; }
   if(raw==="LIQ"){ S.show.liqmap=!S.show.liqmap; syncIndMenu(); drawChart(); e.target.value=""; return; }
   if(raw==="VP"){ S.show.vp=!S.show.vp; syncIndMenu(); drawChart(); e.target.value=""; return; }
@@ -13743,44 +13768,86 @@ setTimeout(() => { loadDrawings(); }, 1000);
 
 /* ═══ Settings & Profile Panel Functions ═══ */
 const _sessionStart = Date.now();
+let _settingsSaveTimer = null;
+
+function _getSettingsObj(){
+  return {
+    tvMode: S.tvMode,
+    showEma: S.show?.ema,
+    showBb: S.show?.bb,
+    showVol: S.show?.vol,
+    showRsi: S.show?.rsi,
+    translate: document.getElementById('set-translate')?.checked ?? true,
+    newsInterval: document.getElementById('set-news-interval')?.value || '180000',
+    fontSize: document.getElementById('set-fontsize')?.value || '11',
+    desktopNotif: document.getElementById('set-notif')?.checked ?? true,
+    soundAlert: document.getElementById('set-sound')?.checked ?? true,
+    watchlist: typeof SYMBOLS !== 'undefined' ? [...SYMBOLS] : [],
+  };
+}
 
 function saveSettings(){
   try {
-    const settings = {
-      tvMode: S.tvMode,
-      showEma: S.show?.ema,
-      showBb: S.show?.bb,
-      showVol: S.show?.vol,
-      showRsi: S.show?.rsi,
-      translate: document.getElementById('set-translate')?.checked ?? true,
-      newsInterval: document.getElementById('set-news-interval')?.value || '180000',
-      fontSize: document.getElementById('set-fontsize')?.value || '11',
-      desktopNotif: document.getElementById('set-notif')?.checked ?? true,
-      soundAlert: document.getElementById('set-sound')?.checked ?? true,
-    };
+    const settings = _getSettingsObj();
+    // localStorage 즉시 저장 (폴백)
     localStorage.setItem('billion_settings', JSON.stringify(settings));
+    // Supabase 계정별 저장 (디바운스 2초)
+    if(_settingsSaveTimer) clearTimeout(_settingsSaveTimer);
+    _settingsSaveTimer = setTimeout(()=>_saveToSupabase(settings), 2000);
   } catch(e){}
 }
 
-function loadSettings(){
+async function _saveToSupabase(settings){
+  if(!_supabase || !_authUser) return;
+  try {
+    await _supabase.from('user_settings').upsert({
+      user_id: _authUser.id,
+      settings: settings,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+  } catch(e){ console.warn('[settings] Supabase save failed:', e); }
+}
+
+async function loadSettings(){
+  // 1차: Supabase 계정별 로드
+  if(_supabase && _authUser){
+    try {
+      const { data } = await _supabase.from('user_settings')
+        .select('settings').eq('user_id', _authUser.id).single();
+      if(data && data.settings){
+        _applySettings(data.settings);
+        return;
+      }
+    } catch(e){ /* Supabase 테이블 없으면 무시, localStorage 폴백 */ }
+  }
+  // 2차: localStorage 폴백
   try {
     const raw = localStorage.getItem('billion_settings');
-    if(!raw) return;
-    const s = JSON.parse(raw);
-    if(s.fontSize) applyFontSize(s.fontSize);
-    if(s.newsInterval) {
-      const sel = document.getElementById('set-news-interval');
-      if(sel) sel.value = s.newsInterval;
-    }
-    const setTr = document.getElementById('set-translate');
-    if(setTr && s.translate !== undefined) setTr.checked = s.translate;
-    const setNotif = document.getElementById('set-notif');
-    if(setNotif) setNotif.checked = s.desktopNotif !== false;
-    const setSound = document.getElementById('set-sound');
-    if(setSound) setSound.checked = s.soundAlert !== false;
-    const setFs = document.getElementById('set-fontsize');
-    if(setFs && s.fontSize) setFs.value = s.fontSize;
+    if(raw) _applySettings(JSON.parse(raw));
   } catch(e){}
+}
+
+function _applySettings(s){
+  if(s.fontSize) applyFontSize(s.fontSize);
+  if(s.newsInterval) {
+    const sel = document.getElementById('set-news-interval');
+    if(sel) sel.value = s.newsInterval;
+  }
+  const setTr = document.getElementById('set-translate');
+  if(setTr && s.translate !== undefined) setTr.checked = s.translate;
+  const setNotif = document.getElementById('set-notif');
+  if(setNotif) setNotif.checked = s.desktopNotif !== false;
+  const setSound = document.getElementById('set-sound');
+  if(setSound) setSound.checked = s.soundAlert !== false;
+  const setFs = document.getElementById('set-fontsize');
+  if(setFs && s.fontSize) setFs.value = s.fontSize;
+  // 관심 종목 복원
+  if(s.watchlist && Array.isArray(s.watchlist) && s.watchlist.length > 0){
+    SYMBOLS.length = 0;
+    s.watchlist.forEach(sym => SYMBOLS.push(sym));
+    if(typeof renderTabs === 'function') renderTabs();
+    if(typeof renderQuotes === 'function') renderQuotes();
+  }
 }
 
 function applyFontSize(size){
