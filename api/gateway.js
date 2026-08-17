@@ -362,6 +362,54 @@ export default async function handler(req, res) {
         });
       }
 
+      // ═══ FUND OS: Trading Team Portfolio Engine 프록시 ═══
+
+      case 'fund_status':
+      case 'fund_dashboard':
+      case 'fund_health':
+      case 'fund_allocation':
+      case 'fund_rebalance':
+      case 'fund_sweep':
+      case 'fund_history':
+      case 'fund_strategies': {
+        const ttAction = action.replace('fund_', '');
+        const actionMap = {
+          'status': 'status', 'dashboard': 'dashboard', 'health': 'status',
+          'allocation': 'status', 'rebalance': 'status', 'sweep': 'scan',
+          'history': 'history', 'strategies': 'strategies',
+        };
+        try {
+          const ttRes = await fetchWithTimeout(`${TRADING_TEAM_URL}/api/trade`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: actionMap[ttAction] || ttAction, symbol: data?.symbol, strategy: data?.strategy }),
+          }, 15000);
+          const result = await ttRes.json();
+          return res.json({ ...result, source: 'trading-team-fund', relayed: true });
+        } catch (err) {
+          return res.status(502).json({ error: `Fund OS 조회 실패: ${err.message}` });
+        }
+      }
+
+      // ═══ 수동 트레이딩 프록시 ═══
+      case 'trade_long':
+      case 'trade_short':
+      case 'trade_close':
+      case 'trade_sl':
+      case 'trade_tp': {
+        try {
+          const ttRes = await fetchWithTimeout(`${TRADING_TEAM_URL}/api/trade`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...data, action: action.replace('trade_', '') }),
+          }, 10000);
+          const result = await ttRes.json();
+          return res.json({ ...result, source: 'trading-team', relayed: true });
+        } catch (err) {
+          return res.status(502).json({ error: `Trade 실패: ${err.message}` });
+        }
+      }
+
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }
