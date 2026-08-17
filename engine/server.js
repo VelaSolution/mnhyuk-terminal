@@ -36,6 +36,8 @@ const paperTrader = require('./paper-trader-v2');
 const priceFeed = require('./price-feed');
 const backtester = require('./backtester');
 const quantSignals = require('./quant-signals');
+const learner = require('./learner');
+const riskManager = require('./risk-manager');
 
 // ── 외부 서비스 URL ──
 const BILLION_URL = process.env.BILLION_URL || 'http://localhost:3847';
@@ -1428,6 +1430,117 @@ const server = http.createServer(async (req, res) => {
       } catch (err) {
         return sendJson(res, 400, { error: err.message });
       }
+    }
+
+    // ── /api/learn — 학습 엔진 ──
+    // GET /api/learn/rules — 학습된 규칙
+    if (req.method === 'GET' && pathname === '/api/learn/rules') {
+      return sendJson(res, 200, { rules: learner.loadRules(), timestamp: new Date().toISOString() });
+    }
+
+    // GET /api/learn/patterns — 최고/최악 패턴
+    if (req.method === 'GET' && pathname === '/api/learn/patterns') {
+      return sendJson(res, 200, {
+        best: learner.checkBestPatterns(),
+        worst: learner.checkWorstPatterns(),
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // GET /api/learn/strategies — AI 자동생성 전략
+    if (req.method === 'GET' && pathname === '/api/learn/strategies') {
+      return sendJson(res, 200, { strategies: learner.loadCustomStrategies(), timestamp: new Date().toISOString() });
+    }
+
+    // POST /api/learn/analyze — 학습 재분석 실행
+    if (req.method === 'POST' && pathname === '/api/learn/analyze') {
+      const result = learner.analyzeLessons();
+      return sendJson(res, 200, { result, timestamp: new Date().toISOString() });
+    }
+
+    // ── /api/quant — 퀀트 시그널 ──
+    // GET /api/quant/regime/:symbol — 시장 레짐 분류
+    if (req.method === 'GET' && pathname.startsWith('/api/quant/regime/')) {
+      const sym = pathname.split('/').pop();
+      try {
+        const candles = await backtester.fetchHistoricalCandles(sym + 'USDT', '1h', 100);
+        const regime = quantSignals.classifyRegime(candles);
+        return sendJson(res, 200, { symbol: sym, regime, timestamp: new Date().toISOString() });
+      } catch(e) { return sendJson(res, 500, { error: e.message }); }
+    }
+
+    // GET /api/quant/patterns/:symbol — 캔들 패턴 감지
+    if (req.method === 'GET' && pathname.startsWith('/api/quant/patterns/')) {
+      const sym = pathname.split('/').pop();
+      try {
+        const candles = await backtester.fetchHistoricalCandles(sym + 'USDT', '1h', 50);
+        const patterns = quantSignals.detectCandlePatterns(candles);
+        return sendJson(res, 200, { symbol: sym, patterns, timestamp: new Date().toISOString() });
+      } catch(e) { return sendJson(res, 500, { error: e.message }); }
+    }
+
+    // GET /api/quant/ensemble/:symbol — 앙상블 투표
+    if (req.method === 'GET' && pathname.startsWith('/api/quant/ensemble/')) {
+      const sym = pathname.split('/').pop();
+      try {
+        const candles = await backtester.fetchHistoricalCandles(sym + 'USDT', '1h', 200);
+        const result = quantSignals.ensembleVote(candles);
+        return sendJson(res, 200, { symbol: sym, ...result, timestamp: new Date().toISOString() });
+      } catch(e) { return sendJson(res, 500, { error: e.message }); }
+    }
+
+    // ── /api/risk — 리스크 관리 ──
+    // GET /api/risk/portfolio — 포트폴리오 분석
+    if (req.method === 'GET' && pathname === '/api/risk/portfolio') {
+      try {
+        const status = paperTrader.getStatus();
+        const correlation = riskManager.getPortfolioCorrelation ? riskManager.getPortfolioCorrelation() : null;
+        const attribution = riskManager.getPerformanceAttribution ? riskManager.getPerformanceAttribution() : null;
+        return sendJson(res, 200, { correlation, attribution, positions: (status.positions||[]).length, timestamp: new Date().toISOString() });
+      } catch(e) { return sendJson(res, 200, { correlation: null, attribution: null, error: e.message }); }
+    }
+
+    // GET /api/risk/check — 리스크 체크
+    if (req.method === 'GET' && pathname === '/api/risk/check') {
+      try {
+        const status = paperTrader.getStatus();
+        const drawdownOk = riskManager.checkDrawdownProtection ? riskManager.checkDrawdownProtection(status) : { ok: true };
+        return sendJson(res, 200, { drawdown: drawdownOk, capital: status.capital, maxDrawdown: status.maxDrawdown, timestamp: new Date().toISOString() });
+      } catch(e) { return sendJson(res, 200, { drawdown: { ok: true }, error: e.message }); }
+    }
+
+    // ── /api/paper — 페이퍼 트레이더 확장 ──
+    // POST /api/paper/close/:symbol — 특정 포지션 청산
+    if (req.method === 'POST' && pathname.startsWith('/api/paper/close/')) {
+      const sym = pathname.split('/').pop();
+      try {
+        // Find and close the position
+        const status = paperTrader.getStatus();
+        const allPos = [...(status.positions||[]), ...(status.swingPositions||[])];
+        const pos = allPos.find(p => p.symbol === sym || p.symbol === sym + 'USDT');
+        if (!pos) return sendJson(res, 404, { error: `${sym} 포지션 없음` });
+        // Use the paper trader's close mechanism
+        if (typeof paperTrader.closePosition === 'function') {
+          paperTrader.closePosition(pos, 'MANUAL_CLOSE');
+        }
+        return sendJson(res, 200, { success: true, symbol: sym, message: `${sym} 포지션 청산됨` });
+      } catch(e) { return sendJson(res, 500, { error: e.message }); }
+    }
+
+    // POST /api/paper/close-all — 전체 포지션 청산
+    if (req.method === 'POST' && pathname === '/api/paper/close-all') {
+      try {
+        const status = paperTrader.getStatus();
+        const allPos = [...(status.positions||[]), ...(status.swingPositions||[])];
+        let closed = 0;
+        for (const pos of allPos) {
+          if (typeof paperTrader.closePosition === 'function') {
+            paperTrader.closePosition(pos, 'MANUAL_CLOSE_ALL');
+            closed++;
+          }
+        }
+        return sendJson(res, 200, { success: true, closed, message: `${closed}개 포지션 청산 완료` });
+      } catch(e) { return sendJson(res, 500, { error: e.message }); }
     }
 
     // ── /api/calendar — 경제 캘린더 (캐시 6시간) ──
