@@ -1296,6 +1296,17 @@
 <script>
 "use strict";
 
+/* ═══════════════ ERROR HANDLER ═══════════════ */
+window.onerror = function(msg, src, line, col, err) {
+  console.error('[BILLION ERROR]', msg, 'at', src?.split('/')?.pop(), ':', line);
+  const ab = document.getElementById('activity-body');
+  if (ab && window._fundOS) window._fundOS.addActivity('⚠️', 'JS Error: ' + String(msg).slice(0, 60));
+  return false;
+};
+window.addEventListener('unhandledrejection', function(e) {
+  console.error('[BILLION PROMISE]', e.reason);
+});
+
 /* ═══════════════ AUTH — Supabase 인증 게이트 ═══════════════ */
 let _supabase = null;
 let _authUser = null;
@@ -7961,6 +7972,7 @@ function themeOverlay(){
 function boot(){
 if(_booted) return;
 _booted = true;
+try {
   window._bootTime = Date.now();
   leInit();
   const savedTheme = localStorage.getItem("chart_theme");
@@ -8078,6 +8090,7 @@ _booted = true;
   setInterval(()=>{tickClocks(); tickFundingCd(); checkSnipers();}, 1000);
   setInterval(tickAges, 5000);
   tickClocks();
+} catch(e) { console.error('[BOOT ERROR]', e.message, e.stack); }
 }
 document.addEventListener("visibilitychange",()=>{ if(!document.hidden){ loadQuotes(); loadChart(); } });
 authInit();
