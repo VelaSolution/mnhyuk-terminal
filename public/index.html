@@ -225,6 +225,15 @@
     content:''; position:absolute; right:2px; bottom:2px;
     width:8px; height:8px; border-right:2px solid var(--ink3); border-bottom:2px solid var(--ink3);
   }
+  /* ── Settings/Profile modal ──────────────────── */
+  .set-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border2);cursor:default;font-size:var(--fs-base);}
+  .set-row span:first-child{color:var(--ink);}
+  .set-row span:last-child{color:var(--ink2);}
+  .set-row input[type="checkbox"]{width:16px;height:16px;accent-color:var(--amber);cursor:pointer;}
+  .set-row select{background:#111;border:1px solid var(--border);color:var(--ink);padding:3px 6px;font-size:var(--fs-sm);border-radius:3px;}
+  .set-row input[type="number"]{background:#111;border:1px solid var(--border);color:var(--ink);padding:3px 6px;font-size:var(--fs-sm);border-radius:3px;}
+  label.set-row{cursor:pointer;}
+  .set-tab.on{color:var(--amber)!important;border-color:var(--amber)!important;background:rgba(232,89,12,.08);font-weight:700;}
 
   /* ── News ────────────────────────────────────── */
   #news .item, #news-feed .item{padding:5px 9px; border-bottom:1px solid #101010; line-height:1.45;}
@@ -1330,139 +1339,257 @@
   <!-- Keyboard hint flash -->
   <div id="kb-hint"></div>
 
-  <!-- ═══ SETTINGS PANEL ═══ -->
+  <!-- ═══ SETTINGS PANEL (강화) ═══ -->
   <div id="settings-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);" onclick="if(event.target===this)this.style.display='none'">
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:480px;max-width:90vw;max-height:85vh;overflow-y:auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.6);">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:560px;max-width:92vw;max-height:88vh;overflow-y:auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.6);">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--panel2);">
-        <span style="color:var(--amber);font-weight:700;letter-spacing:1px;font-size:var(--fs-base);">SETTINGS</span>
-        <span style="cursor:pointer;color:var(--ink3);font-size:var(--fs-md);" onclick="$('settings-modal').style.display='none'">x 닫기</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="color:var(--amber);font-weight:700;letter-spacing:1px;font-size:var(--fs-base);">SETTINGS</span>
+          <!-- 탭 -->
+          <span class="set-tab on" data-settab="chart" style="font-size:var(--fs-xs);padding:2px 8px;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ink2);">차트</span>
+          <span class="set-tab" data-settab="alert" style="font-size:var(--fs-xs);padding:2px 8px;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ink2);">알림</span>
+          <span class="set-tab" data-settab="news" style="font-size:var(--fs-xs);padding:2px 8px;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ink2);">뉴스</span>
+          <span class="set-tab" data-settab="display" style="font-size:var(--fs-xs);padding:2px 8px;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ink2);">화면</span>
+          <span class="set-tab" data-settab="trading" style="font-size:var(--fs-xs);padding:2px 8px;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ink2);">트레이딩</span>
+          <span class="set-tab" data-settab="data" style="font-size:var(--fs-xs);padding:2px 8px;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ink2);">데이터</span>
+        </div>
+        <span style="cursor:pointer;color:var(--ink3);font-size:var(--fs-md);" onclick="$('settings-modal').style.display='none'">✕</span>
       </div>
       <div style="padding:16px;" id="settings-body">
-        <!-- 차트 설정 -->
-        <div style="margin-bottom:16px;">
-          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">CHART</div>
-          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
-            <span style="color:var(--ink);">TradingView 기본 모드</span>
-            <input type="checkbox" id="set-tvmode" onchange="S.tvMode=this.checked;window.__applyTv&&window.__applyTv();saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
-          </label>
-          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
-            <span style="color:var(--ink);">EMA 리본 표시</span>
-            <input type="checkbox" id="set-ema" onchange="S.show.ema=this.checked;drawChart();saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
-          </label>
-          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
-            <span style="color:var(--ink);">볼린저 밴드</span>
-            <input type="checkbox" id="set-bb" onchange="S.show.bb=this.checked;drawChart();saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
-          </label>
-          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
-            <span style="color:var(--ink);">거래량</span>
-            <input type="checkbox" id="set-vol" onchange="S.show.vol=this.checked;drawChart();saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
-          </label>
-          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
-            <span style="color:var(--ink);">RSI</span>
-            <input type="checkbox" id="set-rsi" onchange="S.show.rsi=this.checked;drawChart();saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
-          </label>
-        </div>
-        <!-- 알림 설정 -->
-        <div style="margin-bottom:16px;">
-          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">ALERTS</div>
-          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
-            <span style="color:var(--ink);">데스크톱 알림</span>
-            <input type="checkbox" id="set-notif" onchange="saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
-          </label>
-          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
-            <span style="color:var(--ink);">사운드 알림</span>
-            <input type="checkbox" id="set-sound" onchange="saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
-          </label>
-        </div>
-        <!-- 뉴스 설정 -->
-        <div style="margin-bottom:16px;">
-          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">NEWS</div>
-          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
-            <span style="color:var(--ink);">뉴스 자동 번역 (한국어)</span>
-            <input type="checkbox" id="set-translate" checked onchange="saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
-          </label>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);">
-            <span style="color:var(--ink);">새로고침 주기</span>
-            <select id="set-news-interval" onchange="saveSettings();scheduleNewsRefresh();" style="background:#111;border:1px solid var(--border);color:var(--ink);padding:3px 6px;font-size:var(--fs-sm);border-radius:3px;">
-              <option value="60000">1분</option>
-              <option value="180000" selected>3분</option>
-              <option value="300000">5분</option>
-              <option value="600000">10분</option>
+        <!-- CHART -->
+        <div class="set-page" data-setpage="chart">
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:10px;">CHART SETTINGS</div>
+          <label class="set-row"><span>TradingView 기본 모드</span><input type="checkbox" id="set-tvmode" onchange="S.tvMode=this.checked;window.__applyTv&&window.__applyTv();saveSettings();"></label>
+          <label class="set-row"><span>EMA 리본 (20/50/200)</span><input type="checkbox" id="set-ema" onchange="S.show.ema=this.checked;drawChart();saveSettings();"></label>
+          <label class="set-row"><span>볼린저 밴드 (20,2)</span><input type="checkbox" id="set-bb" onchange="S.show.bb=this.checked;drawChart();saveSettings();"></label>
+          <label class="set-row"><span>거래량 바</span><input type="checkbox" id="set-vol" onchange="S.show.vol=this.checked;drawChart();saveSettings();"></label>
+          <label class="set-row"><span>RSI (14)</span><input type="checkbox" id="set-rsi" onchange="S.show.rsi=this.checked;drawChart();saveSettings();"></label>
+          <label class="set-row"><span>슈퍼트렌드</span><input type="checkbox" id="set-st" onchange="S.show.st=this.checked;syncIndMenu();drawChart();saveSettings();"></label>
+          <label class="set-row"><span>VWAP (일간)</span><input type="checkbox" id="set-vwap" onchange="S.show.vwap=this.checked;syncIndMenu();drawChart();saveSettings();"></label>
+          <label class="set-row"><span>볼륨 프로파일</span><input type="checkbox" id="set-vp" onchange="S.show.vp=this.checked;syncIndMenu();drawChart();saveSettings();"></label>
+          <label class="set-row"><span>청산맵 (추정)</span><input type="checkbox" id="set-liqmap" onchange="S.show.liqmap=this.checked;syncIndMenu();drawChart();saveSettings();"></label>
+          <div class="set-row"><span>기본 타임프레임</span>
+            <select id="set-default-tf" onchange="saveSettings();">
+              <option value="15M">15분</option><option value="1H" selected>1시간</option><option value="4H">4시간</option><option value="1D">일봉</option>
+            </select>
+          </div>
+          <div class="set-row"><span>차트 색상 테마</span>
+            <select id="set-chart-theme" onchange="saveSettings();">
+              <option value="classic">Classic</option><option value="neon">Neon</option><option value="mono">Mono</option>
+            </select>
+          </div>
+          <div class="set-row"><span>캔들 스타일</span>
+            <select id="set-candle-style" onchange="saveSettings();">
+              <option value="candle" selected>캔들스틱</option><option value="heikin">하이킨아시</option>
             </select>
           </div>
         </div>
-        <!-- 테마 -->
-        <div style="margin-bottom:16px;">
-          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">DISPLAY</div>
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);">
-            <span style="color:var(--ink);">폰트 크기</span>
-            <select id="set-fontsize" onchange="applyFontSize(this.value);saveSettings();" style="background:#111;border:1px solid var(--border);color:var(--ink);padding:3px 6px;font-size:var(--fs-sm);border-radius:3px;">
-              <option value="10">작게</option>
-              <option value="11" selected>보통</option>
-              <option value="12">크게</option>
-              <option value="13">매우 크게</option>
+        <!-- ALERT -->
+        <div class="set-page" data-setpage="alert" style="display:none">
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:10px;">ALERT SETTINGS</div>
+          <label class="set-row"><span>데스크톱 알림</span><input type="checkbox" id="set-notif" onchange="saveSettings();"></label>
+          <label class="set-row"><span>사운드 알림</span><input type="checkbox" id="set-sound" onchange="saveSettings();"></label>
+          <label class="set-row"><span>매크로 이벤트 알림 (10분 전)</span><input type="checkbox" id="set-eco-alert" checked onchange="saveSettings();"></label>
+          <label class="set-row"><span>AI 시그널 알림</span><input type="checkbox" id="set-signal-alert" checked onchange="saveSettings();"></label>
+          <label class="set-row"><span>고래 거래 알림 ($5M+)</span><input type="checkbox" id="set-whale-alert" onchange="saveSettings();"></label>
+          <label class="set-row"><span>포지션 청산 알림</span><input type="checkbox" id="set-liq-alert" checked onchange="saveSettings();"></label>
+          <div class="set-row"><span>가격 급변 감지 (%)</span>
+            <input type="number" id="set-price-spike" value="3" min="1" max="20" style="width:60px;text-align:right;" onchange="saveSettings();">
+          </div>
+          <div style="margin-top:12px;padding:8px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px;font-size:var(--fs-xs);color:var(--ink3);line-height:1.5;">
+            알림을 받으려면 브라우저 알림 권한이 필요합니다.
+            <button onclick="Notification.requestPermission().then(p=>{this.textContent=p==='granted'?'허용됨':'거부됨'})" style="margin-left:6px;padding:2px 8px;font-size:var(--fs-xs);">권한 요청</button>
+          </div>
+        </div>
+        <!-- NEWS -->
+        <div class="set-page" data-setpage="news" style="display:none">
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:10px;">NEWS SETTINGS</div>
+          <label class="set-row"><span>뉴스 자동 번역 (한국어)</span><input type="checkbox" id="set-translate" checked onchange="saveSettings();"></label>
+          <div class="set-row"><span>새로고침 주기</span>
+            <select id="set-news-interval" onchange="saveSettings();scheduleNewsRefresh();">
+              <option value="60000">1분</option><option value="180000" selected>3분</option><option value="300000">5분</option><option value="600000">10분</option>
             </select>
+          </div>
+          <label class="set-row"><span>CryptoCompare 뉴스</span><input type="checkbox" id="set-src-cc" checked onchange="saveSettings();"></label>
+          <label class="set-row"><span>CoinGecko 뉴스</span><input type="checkbox" id="set-src-cg" checked onchange="saveSettings();"></label>
+          <label class="set-row"><span>CryptoPanic 뉴스</span><input type="checkbox" id="set-src-cp" checked onchange="saveSettings();"></label>
+          <label class="set-row"><span>Whale Alert (고래 추적)</span><input type="checkbox" id="set-src-whale" checked onchange="saveSettings();"></label>
+          <label class="set-row"><span>매크로/규제 뉴스</span><input type="checkbox" id="set-src-macro" checked onchange="saveSettings();"></label>
+          <label class="set-row"><span>트렌딩 토픽</span><input type="checkbox" id="set-src-trend" checked onchange="saveSettings();"></label>
+          <div style="margin-top:8px;font-size:var(--fs-xs);color:var(--ink3);">체크 해제한 소스는 뉴스 피드에서 제외됩니다.</div>
+        </div>
+        <!-- DISPLAY -->
+        <div class="set-page" data-setpage="display" style="display:none">
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:10px;">DISPLAY SETTINGS</div>
+          <div class="set-row"><span>폰트 크기</span>
+            <select id="set-fontsize" onchange="applyFontSize(this.value);saveSettings();">
+              <option value="9">아주 작게</option><option value="10">작게</option><option value="11" selected>보통</option><option value="12">크게</option><option value="13">매우 크게</option>
+            </select>
+          </div>
+          <div class="set-row"><span>레이아웃</span>
+            <select id="set-layout" onchange="applyLayout(this.value);saveSettings();">
+              <option value="3col" selected>3컬럼 (기본)</option><option value="2col">2컬럼 (넓은 차트)</option><option value="chart-only">차트 전용</option>
+            </select>
+          </div>
+          <label class="set-row"><span>스캔라인 효과</span><input type="checkbox" id="set-scanlines" onchange="saveSettings();"></label>
+          <label class="set-row"><span>뉴스 티커 (하단)</span><input type="checkbox" id="set-tape" onchange="$('tape').style.display=this.checked?'block':'none';saveSettings();"></label>
+          <label class="set-row"><span>좌측 패널 표시</span><input type="checkbox" id="set-leftcol" checked onchange="$('leftcol').style.display=this.checked?'':'none';saveSettings();"></label>
+          <label class="set-row"><span>우측 패널 표시</span><input type="checkbox" id="set-rightcol" checked onchange="$('rightcol').style.display=this.checked?'':'none';saveSettings();"></label>
+          <label class="set-row"><span>단축키 힌트 표시</span><input type="checkbox" id="set-fkeys" checked onchange="$('fkeys').style.display=this.checked?'':'none';saveSettings();"></label>
+        </div>
+        <!-- TRADING -->
+        <div class="set-page" data-setpage="trading" style="display:none">
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:10px;">TRADING SETTINGS</div>
+          <div class="set-row"><span>기본 자본금 (USD)</span>
+            <input type="number" id="set-capital" value="10000" min="100" style="width:80px;text-align:right;" onchange="saveSettings();">
+          </div>
+          <div class="set-row"><span>기본 리스크 (%)</span>
+            <input type="number" id="set-risk-pct" value="1" min="0.1" max="10" step="0.1" style="width:60px;text-align:right;" onchange="saveSettings();">
+          </div>
+          <div class="set-row"><span>기본 레버리지</span>
+            <select id="set-leverage" onchange="saveSettings();">
+              <option value="1">1x</option><option value="3">3x</option><option value="5">5x</option>
+              <option value="10" selected>10x</option><option value="20">20x</option><option value="50">50x</option>
+            </select>
+          </div>
+          <div class="set-row"><span>기본 진입 방향</span>
+            <select id="set-default-side" onchange="saveSettings();">
+              <option value="auto" selected>자동 (시그널 따름)</option><option value="long">LONG 선호</option><option value="short">SHORT 선호</option>
+            </select>
+          </div>
+          <div class="set-row"><span>AI 자동매매</span>
+            <select id="set-auto-trade" onchange="saveSettings();">
+              <option value="off" selected>비활성</option><option value="signal">시그널만 표시</option><option value="paper">모의매매</option>
+            </select>
+          </div>
+          <div class="set-row"><span>최대 동시 포지션</span>
+            <input type="number" id="set-max-pos" value="5" min="1" max="20" style="width:60px;text-align:right;" onchange="saveSettings();">
+          </div>
+        </div>
+        <!-- DATA -->
+        <div class="set-page" data-setpage="data" style="display:none">
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:10px;">DATA & STORAGE</div>
+          <div class="set-row" style="border:none;"><span style="color:var(--ink);">계정 동기화</span>
+            <span style="font-size:var(--fs-xs);color:var(--up-text);" id="set-sync-status">확인 중...</span>
+          </div>
+          <div style="display:flex;gap:6px;margin:8px 0;">
+            <button onclick="saveSettings();this.textContent='저장됨!';setTimeout(()=>this.textContent='클라우드 저장',1500);" style="flex:1;padding:6px;background:rgba(34,197,94,.1);border-color:var(--up);color:var(--up-text);">클라우드 저장</button>
+            <button onclick="loadSettings().then(()=>{this.textContent='불러옴!';setTimeout(()=>this.textContent='클라우드 불러오기',1500)});" style="flex:1;padding:6px;background:rgba(59,130,246,.1);border-color:var(--cyan);color:var(--cyan-text);">클라우드 불러오기</button>
+          </div>
+          <div style="display:flex;gap:6px;margin:8px 0;">
+            <button onclick="exportSettings()" style="flex:1;padding:6px;">설정 내보내기 (JSON)</button>
+            <button onclick="$('import-file').click()" style="flex:1;padding:6px;">설정 가져오기</button>
+            <input type="file" id="import-file" accept=".json" style="display:none" onchange="importSettings(this)">
+          </div>
+          <button onclick="if(confirm('모든 설정을 초기화합니다. 계속하시겠습니까?')){localStorage.clear();location.reload();}" style="width:100%;padding:6px;margin-top:8px;background:rgba(239,68,68,.1);border-color:var(--down);color:var(--down-text);">설정 초기화</button>
+          <div style="margin-top:12px;padding:8px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px;">
+            <div style="font-size:var(--fs-xs);color:var(--ink3);margin-bottom:6px;">STORAGE</div>
+            <div class="set-row" style="border:none;padding:2px 0;"><span>localStorage</span><span id="set-ls-size" style="color:var(--ink);">--</span></div>
+            <div class="set-row" style="border:none;padding:2px 0;"><span>캐시 항목</span><span id="set-cache-count" style="color:var(--ink);">--</span></div>
+            <div class="set-row" style="border:none;padding:2px 0;"><span>번역 캐시</span><span id="set-trans-count" style="color:var(--ink);">--</span></div>
           </div>
         </div>
         <!-- 버전 정보 -->
-        <div style="padding:8px 0;font-size:var(--fs-xs);color:var(--ink3);text-align:center;border-top:1px solid var(--border);">
-          BILLION AI TERMINAL v3.1 · Pretendard · 2026
+        <div style="padding:10px 0 4px;font-size:var(--fs-xs);color:var(--ink3);text-align:center;border-top:1px solid var(--border);margin-top:12px;">
+          BILLION AI HEDGE FUND OS v3.2 · Pretendard · 2026<br>
+          <span style="color:var(--ink3);">터미널 빌드 <span id="set-build-id">--</span></span>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══ PROFILE PANEL ═══ -->
+  <!-- ═══ PROFILE PANEL (강화) ═══ -->
   <div id="profile-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);" onclick="if(event.target===this)this.style.display='none'">
-    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:440px;max-width:90vw;max-height:85vh;overflow-y:auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.6);">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:520px;max-width:92vw;max-height:88vh;overflow-y:auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.6);">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--panel2);">
         <span style="color:var(--amber);font-weight:700;letter-spacing:1px;font-size:var(--fs-base);">PROFILE</span>
-        <span style="cursor:pointer;color:var(--ink3);font-size:var(--fs-md);" onclick="$('profile-modal').style.display='none'">x 닫기</span>
+        <span style="cursor:pointer;color:var(--ink3);font-size:var(--fs-md);" onclick="$('profile-modal').style.display='none'">✕</span>
       </div>
       <div style="padding:20px 16px;" id="profile-body">
-        <!-- 사용자 정보 -->
-        <div style="text-align:center;margin-bottom:20px;">
-          <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--amber),var(--cyan));margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;" id="profile-avatar">M</div>
-          <div style="font-size:var(--fs-xl);font-weight:700;color:var(--ink);" id="profile-name">MINHYUK</div>
-          <div style="font-size:var(--fs-sm);color:var(--ink3);margin-top:2px;" id="profile-role">Fund Manager · BILLION AI</div>
+        <!-- 사용자 카드 -->
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:16px;background:#0a0a0a;border:1px solid var(--border);border-radius:8px;">
+          <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--amber),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;flex-shrink:0;" id="profile-avatar">M</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:var(--fs-xl);font-weight:700;color:var(--ink);" id="profile-name">MINHYUK</div>
+            <div style="font-size:var(--fs-sm);color:var(--ink3);margin-top:1px;" id="profile-role">Fund Manager · BILLION AI</div>
+            <div style="font-size:var(--fs-xs);color:var(--ink3);margin-top:3px;" id="profile-email">--</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:var(--fs-xs);color:var(--ink3);">MEMBER SINCE</div>
+            <div style="font-size:var(--fs-sm);color:var(--ink);font-weight:600;" id="profile-since">--</div>
+          </div>
+        </div>
+        <!-- 펀드 퍼포먼스 -->
+        <div style="margin-bottom:16px;">
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">FUND PERFORMANCE</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;">
+            <div style="text-align:center;padding:10px 4px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px;">
+              <div style="font-size:var(--fs-xs);color:var(--ink3);">자본금</div>
+              <div style="font-size:var(--fs-lg);font-weight:700;color:var(--ink);" id="prof-capital">$3,000</div>
+            </div>
+            <div style="text-align:center;padding:10px 4px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px;">
+              <div style="font-size:var(--fs-xs);color:var(--ink3);">수익률</div>
+              <div style="font-size:var(--fs-lg);font-weight:700;" id="prof-ret">+0%</div>
+            </div>
+            <div style="text-align:center;padding:10px 4px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px;">
+              <div style="font-size:var(--fs-xs);color:var(--ink3);">승률</div>
+              <div style="font-size:var(--fs-lg);font-weight:700;" id="prof-wr">--%</div>
+            </div>
+            <div style="text-align:center;padding:10px 4px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px;">
+              <div style="font-size:var(--fs-xs);color:var(--ink3);">거래수</div>
+              <div style="font-size:var(--fs-lg);font-weight:700;color:var(--ink);" id="prof-trades">0</div>
+            </div>
+          </div>
+          <!-- 에쿼티 미니차트 -->
+          <canvas id="prof-equity" style="width:100%;height:50px;display:block;margin-top:8px;border-radius:4px;background:#080808;border:1px solid var(--border);"></canvas>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;">
+            <div style="text-align:center;padding:6px;background:#0a0a0a;border:1px solid var(--border);border-radius:4px;">
+              <div style="font-size:8px;color:var(--ink3);">MDD</div>
+              <div style="font-size:var(--fs-sm);font-weight:600;color:var(--down-text);" id="prof-mdd">--%</div>
+            </div>
+            <div style="text-align:center;padding:6px;background:#0a0a0a;border:1px solid var(--border);border-radius:4px;">
+              <div style="font-size:8px;color:var(--ink3);">SHARPE</div>
+              <div style="font-size:var(--fs-sm);font-weight:600;" id="prof-sharpe">--</div>
+            </div>
+            <div style="text-align:center;padding:6px;background:#0a0a0a;border:1px solid var(--border);border-radius:4px;">
+              <div style="font-size:8px;color:var(--ink3);">PROFIT FACTOR</div>
+              <div style="font-size:var(--fs-sm);font-weight:600;" id="prof-pf">--</div>
+            </div>
+          </div>
         </div>
         <!-- 세션 정보 -->
         <div style="margin-bottom:16px;">
           <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">SESSION</div>
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2);">
-            <span style="color:var(--ink2);">로그인 시각</span>
-            <span style="color:var(--ink);" id="profile-login-time">--</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2);">
-            <span style="color:var(--ink2);">세션 경과</span>
-            <span style="color:var(--ink);" id="profile-session-dur">--</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2);">
-            <span style="color:var(--ink2);">접속 IP</span>
-            <span style="color:var(--ink);" id="profile-ip">--</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+            <div class="set-row"><span>로그인</span><span id="profile-login-time">--</span></div>
+            <div class="set-row"><span>경과</span><span id="profile-session-dur">--</span></div>
+            <div class="set-row"><span>접속 IP</span><span id="profile-ip">--</span></div>
+            <div class="set-row"><span>브라우저</span><span id="profile-browser">--</span></div>
+            <div class="set-row"><span>해상도</span><span id="profile-resolution">--</span></div>
+            <div class="set-row"><span>데이터 소스</span><span id="profile-sources">--</span></div>
           </div>
         </div>
-        <!-- 거래 통계 -->
+        <!-- 활동 요약 -->
         <div style="margin-bottom:16px;">
-          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">TRADING STATS</div>
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">ACTIVITY</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
             <div style="text-align:center;padding:8px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px;">
-              <div style="font-size:var(--fs-xs);color:var(--ink3);">총 거래</div>
-              <div style="font-size:var(--fs-lg);font-weight:700;color:var(--ink);" id="prof-trades">0</div>
+              <div style="font-size:8px;color:var(--ink3);">명령어 실행</div>
+              <div style="font-size:var(--fs-lg);font-weight:700;color:var(--ink);" id="prof-cmds">0</div>
             </div>
             <div style="text-align:center;padding:8px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px;">
-              <div style="font-size:var(--fs-xs);color:var(--ink3);">승률</div>
-              <div style="font-size:var(--fs-lg);font-weight:700;" id="prof-wr">--%</div>
+              <div style="font-size:8px;color:var(--ink3);">AI 분석</div>
+              <div style="font-size:var(--fs-lg);font-weight:700;color:var(--cyan-text);" id="prof-analyses">0</div>
             </div>
             <div style="text-align:center;padding:8px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px;">
-              <div style="font-size:var(--fs-xs);color:var(--ink3);">수익률</div>
-              <div style="font-size:var(--fs-lg);font-weight:700;" id="prof-ret">+0%</div>
+              <div style="font-size:8px;color:var(--ink3);">알림 수신</div>
+              <div style="font-size:var(--fs-lg);font-weight:700;color:var(--amber);" id="prof-alerts">0</div>
             </div>
           </div>
         </div>
         <!-- 관심 종목 -->
         <div>
-          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">WATCHLIST</div>
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">WATCHLIST (<span id="prof-wl-count">0</span>)</div>
           <div id="profile-watchlist" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
         </div>
       </div>
@@ -8485,30 +8612,37 @@ try {
       c.style.display="block";
       $("tvbtn").classList.remove("off"); $("tvbtn").style.color="var(--amber)";
       const tvOvl=$("ai-tv-overlay"); if(tvOvl && AI_OVL && AI_OVL.data) tvOvl.classList.add("on");
-      /* destroy previous widget — 완전 정리 후 재생성 */
+      /* 완전 정리 */
       if(tvWidget){ try{ tvWidget.remove(); }catch(e){} tvWidget=null; }
       c.innerHTML="";
-      /* 약간의 딜레이로 DOM 정리 후 위젯 생성 */
+      const tvSym = "BINANCE:"+pair(S.sym)+".P";
+      const tvInt = tvInterval();
+      /* TradingView widget (tv.js) 방식 시도 */
       setTimeout(()=>{
         if(!S.tvMode) return;
-        if(typeof TradingView!=="undefined"){
-          tvWidget=new TradingView.widget({
-            container_id:"tv-container",
-            symbol:"BINANCE:"+pair(S.sym)+".P",
-            interval:tvInterval(),
-            theme:"dark",
-            style:"1",
-            locale:"kr",
-            toolbar_bg:"#050505",
-            hide_side_toolbar:false,
-            allow_symbol_change:true,
-            save_image:false,
-            autosize:true,
-            backgroundColor:"#050505",
-            gridColor:"#161616",
-            withdateranges:true,
-          });
+        if(typeof TradingView!=="undefined" && TradingView.widget){
+          try {
+            tvWidget=new TradingView.widget({
+              container_id:"tv-container",
+              symbol:tvSym,
+              interval:tvInt,
+              theme:"dark",
+              style:"1",
+              locale:"kr",
+              toolbar_bg:"#050505",
+              hide_side_toolbar:false,
+              allow_symbol_change:true,
+              save_image:false,
+              autosize:true,
+              backgroundColor:"#050505",
+              gridColor:"#161616",
+              withdateranges:true,
+            });
+            return;
+          } catch(e){ console.warn('[TV] widget failed:', e); }
         }
+        /* 폴백: iframe embed */
+        c.innerHTML=`<iframe src="https://www.tradingview.com/widgetembed/?symbol=${encodeURIComponent(tvSym)}&interval=${tvInt}&theme=dark&style=1&locale=kr&hide_side_toolbar=0&allow_symbol_change=1&save_image=0&backgroundColor=%23050505&gridColor=%23161616" style="width:100%;height:100%;border:none;"></iframe>`;
       }, 100);
     } else {
       c.style.display="none";
@@ -14077,45 +14211,83 @@ function applyFontSize(size){
   document.documentElement.style.setProperty('--fs-2xl', (px+7)+'px');
 }
 
+// ── Settings 탭 전환 ──
+document.addEventListener('click', e => {
+  if(!e.target.classList.contains('set-tab')) return;
+  document.querySelectorAll('.set-tab').forEach(t => t.classList.toggle('on', t === e.target));
+  const page = e.target.dataset.settab;
+  document.querySelectorAll('.set-page').forEach(p => p.style.display = p.dataset.setpage === page ? '' : 'none');
+});
+
+let _cmdCount = 0, _analysisCount = 0, _alertCount = 0;
+
 function openSettingsPanel(){
   const m = document.getElementById('settings-modal');
   if(!m) return;
   // 현재 상태 반영
-  const setTv = document.getElementById('set-tvmode');
-  if(setTv) setTv.checked = S.tvMode;
-  const setEma = document.getElementById('set-ema');
-  if(setEma && S.show) setEma.checked = S.show.ema !== false;
-  const setBb = document.getElementById('set-bb');
-  if(setBb && S.show) setBb.checked = S.show.bb !== false;
-  const setVol = document.getElementById('set-vol');
-  if(setVol && S.show) setVol.checked = S.show.vol !== false;
-  const setRsi = document.getElementById('set-rsi');
-  if(setRsi && S.show) setRsi.checked = !!S.show.rsi;
+  const chk = (id, val) => { const el = document.getElementById(id); if(el) el.checked = !!val; };
+  chk('set-tvmode', S.tvMode);
+  if(S.show) { chk('set-ema', S.show.ema !== false); chk('set-bb', S.show.bb !== false); chk('set-vol', S.show.vol !== false); chk('set-rsi', S.show.rsi); chk('set-st', S.show.st); chk('set-vwap', S.show.vwap); chk('set-vp', S.show.vp); chk('set-liqmap', S.show.liqmap); }
+  // 스토리지 정보
+  try {
+    let lsSize = 0; for(let i=0;i<localStorage.length;i++) lsSize += (localStorage.key(i)+localStorage.getItem(localStorage.key(i))).length;
+    const lsEl = document.getElementById('set-ls-size'); if(lsEl) lsEl.textContent = (lsSize/1024).toFixed(1) + ' KB';
+    const ccEl = document.getElementById('set-cache-count'); if(ccEl) ccEl.textContent = localStorage.length + '개';
+    const tcEl = document.getElementById('set-trans-count'); if(tcEl) tcEl.textContent = Object.keys(_transCache).length + '개';
+  } catch(e){}
+  // Sync 상태
+  const syncEl = document.getElementById('set-sync-status');
+  if(syncEl) syncEl.textContent = (_supabase && _authUser) ? 'Supabase 연결됨' : 'localStorage만 사용';
+  if(syncEl) syncEl.style.color = (_supabase && _authUser) ? 'var(--up-text)' : 'var(--ink3)';
+  // 빌드 ID
+  const buildEl = document.getElementById('set-build-id');
+  if(buildEl) buildEl.textContent = document.querySelector('meta[name="build"]')?.content || new Date().toISOString().slice(0,10);
   m.style.display = 'block';
 }
 
 function openProfilePanel(){
   const m = document.getElementById('profile-modal');
   if(!m) return;
-  // 세션 정보 업데이트
+  // 유저 정보
+  if(_authUser) {
+    const emailEl = document.getElementById('profile-email');
+    if(emailEl) emailEl.textContent = _authUser.email || '';
+    const nameEl = document.getElementById('profile-name');
+    if(nameEl) nameEl.textContent = (_authUser.email?.split('@')[0] || 'USER').toUpperCase();
+    const avatarEl = document.getElementById('profile-avatar');
+    if(avatarEl) avatarEl.textContent = (_authUser.email?.[0] || 'U').toUpperCase();
+    const sinceEl = document.getElementById('profile-since');
+    if(sinceEl && _authUser.created_at) sinceEl.textContent = new Date(_authUser.created_at).toLocaleDateString('ko-KR');
+  }
+  // 세션 정보
   const loginEl = document.getElementById('profile-login-time');
-  if(loginEl) loginEl.textContent = new Date(_sessionStart).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  if(loginEl) loginEl.textContent = new Date(_sessionStart).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   const durEl = document.getElementById('profile-session-dur');
   if(durEl){
     const mins = Math.round((Date.now()-_sessionStart)/60000);
     durEl.textContent = mins < 60 ? `${mins}분` : `${Math.floor(mins/60)}시간 ${mins%60}분`;
   }
-  // IP 조회
+  // IP
   const ipEl = document.getElementById('profile-ip');
   if(ipEl && ipEl.textContent === '--'){
     fetch('https://api.ipify.org?format=json',{signal:AbortSignal.timeout(3000)})
       .then(r=>r.json()).then(d=>{ if(d.ip) ipEl.textContent = d.ip; }).catch(()=>{});
   }
-  // 거래 통계
+  // 브라우저/해상도
+  const brEl = document.getElementById('profile-browser');
+  if(brEl) { const ua = navigator.userAgent; brEl.textContent = /Chrome/.test(ua)?'Chrome':/Firefox/.test(ua)?'Firefox':/Safari/.test(ua)?'Safari':'기타'; }
+  const resEl = document.getElementById('profile-resolution');
+  if(resEl) resEl.textContent = `${window.innerWidth}×${window.innerHeight} @${(window.devicePixelRatio||1).toFixed(1)}x`;
+  // 데이터 소스
+  const srcEl = document.getElementById('profile-sources');
+  if(srcEl) { const c = S.srcHealth || {}; srcEl.textContent = `${c.ok||0} ok / ${c.fail||0} fail`; }
+  // 펀드 퍼포먼스
   try {
     const cap = document.getElementById('fund-capital');
     const capVal = cap ? parseFloat(cap.textContent.replace(/[$,]/g,'')) : 3000;
     const ret = capVal > 0 ? ((capVal-3000)/3000*100) : 0;
+    const profCap = document.getElementById('prof-capital');
+    if(profCap) profCap.textContent = cap ? cap.textContent : '$3,000';
     const profRet = document.getElementById('prof-ret');
     if(profRet){ profRet.textContent = `${ret>=0?'+':''}${ret.toFixed(1)}%`; profRet.style.color = ret>=0?'var(--up-text)':'var(--down-text)'; }
     const wrEl = document.getElementById('fund-winrate');
@@ -14124,13 +14296,82 @@ function openProfilePanel(){
     const trEl = document.getElementById('fund-trades');
     const profTr = document.getElementById('prof-trades');
     if(profTr && trEl) profTr.textContent = trEl.textContent;
+    const mddEl = document.getElementById('risk-mdd');
+    const profMdd = document.getElementById('prof-mdd');
+    if(profMdd && mddEl) profMdd.textContent = mddEl.textContent;
+    const sharpeEl = document.getElementById('health-sharpe');
+    const profSharpe = document.getElementById('prof-sharpe');
+    if(profSharpe && sharpeEl) profSharpe.textContent = sharpeEl.textContent;
+    const pfEl = document.getElementById('health-pf');
+    const profPf = document.getElementById('prof-pf');
+    if(profPf && pfEl) profPf.textContent = pfEl.textContent || '--';
   } catch(e){}
+  // 활동 통계
+  const cmdsEl = document.getElementById('prof-cmds'); if(cmdsEl) cmdsEl.textContent = _cmdCount;
+  const anlEl = document.getElementById('prof-analyses'); if(anlEl) anlEl.textContent = _analysisCount;
+  const alrtEl = document.getElementById('prof-alerts'); if(alrtEl) alrtEl.textContent = _alertCount;
   // 관심 종목
   const wl = document.getElementById('profile-watchlist');
+  const wlCount = document.getElementById('prof-wl-count');
+  if(wlCount) wlCount.textContent = SYMBOLS.length;
   if(wl && typeof SYMBOLS !== 'undefined'){
-    wl.innerHTML = SYMBOLS.map(s => `<span style="padding:3px 8px;background:#111;border:1px solid var(--border);border-radius:4px;font-size:var(--fs-sm);color:var(--ink);font-weight:600;cursor:pointer;" onclick="switchTo('${s}',S.tf);$('profile-modal').style.display='none';">${s}</span>`).join('');
+    wl.innerHTML = SYMBOLS.map(s => {
+      const q = S.quotes[s];
+      const pct = q ? (q.pct>=0?'+':'')+q.pct.toFixed(1)+'%' : '';
+      const cls = q ? (q.pct>=0?'color:var(--up-text)':'color:var(--down-text)') : 'color:var(--ink3)';
+      return `<span style="padding:4px 10px;background:#111;border:1px solid var(--border);border-radius:4px;font-size:var(--fs-sm);cursor:pointer;display:inline-flex;align-items:center;gap:6px;" onclick="switchTo('${s}',S.tf);$('profile-modal').style.display='none';">
+        <b style="color:var(--ink);font-weight:600;">${s}</b>
+        <span style="${cls};font-size:var(--fs-xs);">${pct}</span>
+      </span>`;
+    }).join('');
   }
+  // 에쿼티 차트 복사
+  try {
+    const srcCv = document.getElementById('equity-mini') || document.getElementById('equity-left');
+    const dstCv = document.getElementById('prof-equity');
+    if(srcCv && dstCv) {
+      const ctx = dstCv.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      dstCv.width = dstCv.clientWidth * dpr; dstCv.height = dstCv.clientHeight * dpr;
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      ctx.drawImage(srcCv, 0, 0, dstCv.clientWidth, dstCv.clientHeight);
+    }
+  } catch(e){}
   m.style.display = 'block';
+}
+
+// 설정 내보내기/가져오기
+function exportSettings(){
+  const s = _getSettingsObj();
+  const blob = new Blob([JSON.stringify(s, null, 2)], {type: 'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `billion-settings-${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function importSettings(input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const s = JSON.parse(e.target.result);
+      _applySettings(s);
+      saveSettings();
+      alert('설정을 가져왔습니다.');
+    } catch(err){ alert('잘못된 설정 파일입니다.'); }
+  };
+  reader.readAsText(file);
+}
+
+// 레이아웃 변경
+function applyLayout(mode){
+  const main = document.getElementById('main');
+  const left = document.getElementById('leftcol');
+  const right = document.getElementById('rightcol');
+  if(!main) return;
+  if(mode === '2col') { main.style.gridTemplateColumns = 'minmax(0,1fr) 290px'; if(left) left.style.display = 'none'; }
+  else if(mode === 'chart-only') { main.style.gridTemplateColumns = 'minmax(0,1fr)'; if(left) left.style.display = 'none'; if(right) right.style.display = 'none'; }
+  else { main.style.gridTemplateColumns = '220px minmax(0,1fr) 290px'; if(left) left.style.display = ''; if(right) right.style.display = ''; }
 }
 
 // 설정 로드 (앱 시작 시)
