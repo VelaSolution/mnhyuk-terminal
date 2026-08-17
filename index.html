@@ -15442,6 +15442,15 @@ async function equityOverlay(){
   }
 }
 </script>
+<script>
+// 안전장치: 3초 후에도 boot 안 됐으면 강제 실행
+setTimeout(function(){
+  if(typeof _booted !== 'undefined' && !_booted && typeof boot === 'function'){
+    console.warn('[FALLBACK] boot() 강제 실행');
+    try { boot(); } catch(e) { console.error('[FALLBACK] boot 실패:', e); }
+  }
+}, 3000);
+</script>
 <div id="notif-stack"></div>
 </body>
 </html>
