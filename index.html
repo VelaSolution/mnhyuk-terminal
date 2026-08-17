@@ -1625,31 +1625,16 @@ let _authMode = "login"; // "login" | "signup"
 let _booted = false;
 
 async function authInit(){
+  // 인증 스킵 — 바로 접속
   try {
-    // Load Supabase config from server
-    const res = await fetch("/api/auth-config");
-    if(!res.ok) throw new Error("Auth config unavailable");
-    const cfg = await res.json();
-
-    _supabase = supabase.createClient(cfg.url, cfg.key);
-
-    // Check existing session
-    const { data: { session } } = await _supabase.auth.getSession();
-    if(session && session.user){
-      authSuccess(session.user);
-      return;
-    }
-
-    // Listen for auth changes
-    _supabase.auth.onAuthStateChange((event, session) => {
-      if(event === "SIGNED_IN" && session) authSuccess(session.user);
-      if(event === "SIGNED_OUT") authShowGate();
-    });
-
-    // No session → show login
-    authShowGate();
+    document.getElementById("auth-loading").classList.add("hidden");
+    document.getElementById("auth-gate")?.classList.add("hidden");
+    document.getElementById("app").style.display = "";
+    _authUser = { id: 'local', email: 'admin@billion.ai', created_at: new Date().toISOString() };
+    const badge = document.getElementById("user-badge");
+    if(badge) badge.textContent = 'ADMIN';
+    boot();
   } catch(e) {
-    // If auth-config fails (local dev, no Supabase), skip auth
     console.warn("Auth disabled:", e.message);
     document.getElementById("auth-loading").classList.add("hidden");
     document.getElementById("app").style.display = "";
