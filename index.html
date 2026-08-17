@@ -12833,11 +12833,7 @@ setTimeout(() => { loadDrawings(); }, 1000);
   // ── Health Score 업데이트 ──
   async function updateHealthPanel() {
     try {
-      const res = await fetch(`${TT}/api/trade`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'status' })
-      });
+      const res = await fetch(`${TT}/api/paper/status`);
       if (!res.ok) return;
       const s = await res.json();
 
@@ -12886,18 +12882,32 @@ setTimeout(() => { loadDrawings(); }, 1000);
         reasonsEl.textContent = parts.join(' · ');
       }
 
-      // Sharpe & PF (from detailed stats if available)
+      // Sharpe & PF 계산 (히스토리에서)
       try {
-        const dsRes = await fetch(`${TT}/api/trade`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'dashboard' })
-        });
-        if (dsRes.ok) {
-          const ds = await dsRes.json();
-          const sharpeEl = document.getElementById('health-sharpe');
-          const pfEl = document.getElementById('health-pf');
-          if (sharpeEl) sharpeEl.textContent = ds.sharpeRatio || '--';
-          if (pfEl) pfEl.textContent = ds.profitFactor || '--';
+        const hRes = await fetch(`${TT}/api/paper/history`);
+        if (hRes.ok) {
+          const hist = await hRes.json();
+          if (Array.isArray(hist) && hist.length >= 3) {
+            const returns = hist.map(t => (t.pnlPct || 0) / 100);
+            const mean = returns.reduce((a,b) => a+b, 0) / returns.length;
+            const variance = returns.reduce((a,b) => a + (b-mean)**2, 0) / (returns.length - 1 || 1);
+            const std = Math.sqrt(variance);
+            const sharpe = std > 0 ? (mean / std * Math.sqrt(252)).toFixed(2) : '--';
+
+            const gross = hist.filter(t => (t.pnl||0) > 0).reduce((s,t) => s + t.pnl, 0);
+            const loss = Math.abs(hist.filter(t => (t.pnl||0) <= 0).reduce((s,t) => s + t.pnl, 0));
+            const pf = loss > 0 ? (gross / loss).toFixed(2) : gross > 0 ? '∞' : '--';
+
+            const sharpeEl = document.getElementById('health-sharpe');
+            const pfEl = document.getElementById('health-pf');
+            if (sharpeEl) { sharpeEl.textContent = sharpe; sharpeEl.style.color = parseFloat(sharpe) > 1 ? 'var(--up-text)' : parseFloat(sharpe) > 0 ? 'var(--ink)' : 'var(--down-text)'; }
+            if (pfEl) { pfEl.textContent = pf; pfEl.style.color = parseFloat(pf) > 1 ? 'var(--up-text)' : 'var(--ink)'; }
+
+            // 에쿼티 커브
+            let running = s.startCapital || 3000;
+            const curve = hist.map(t => { running += (t.pnl || 0); return { capital: running }; });
+            drawEquityMini(curve);
+          }
         }
       } catch {}
 
@@ -13035,10 +13045,7 @@ setTimeout(() => { loadDrawings(); }, 1000);
   // ── 최근 거래 업데이트 ──
   async function updateRecentTrades() {
     try {
-      const res = await fetch(`${TT}/api/trade`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'history' })
-      });
+      const res = await fetch(`${TT}/api/paper/history`);
       if (!res.ok) return;
       const history = await res.json();
       if (!Array.isArray(history)) return;
@@ -13107,10 +13114,7 @@ setTimeout(() => { loadDrawings(); }, 1000);
   // ── Bottom Bar Fund 메트릭스 업데이트 ──
   async function updateBottomFund() {
     try {
-      const res = await fetch(`${TT}/api/trade`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'status' })
-      });
+      const res = await fetch(`${TT}/api/paper/status`);
       if (!res.ok) return;
       const s = await res.json();
 
