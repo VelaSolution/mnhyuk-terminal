@@ -8561,7 +8561,7 @@ try {
   if(typeof aiConnect==='function') aiConnect(); // AI Engine 연동
   loadQuotes(); loadChart(); loadDeriv(); loadGlobals(); loadNews(); loadKimchi(); loadEco();
   scheduleNewsRefresh();
-  setInterval(loadEco, 30*60_000);
+  setInterval(loadEco, 6*3600_000); // 6시간마다 캘린더 갱신
   setInterval(renderEco, 30_000);                             // 카운트다운 갱신
   setInterval(loadKimchi, 60_000);
   setInterval(loadQuotes, 20_000);   // WS 백업 폴링
