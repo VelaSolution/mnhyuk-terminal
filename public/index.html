@@ -13,15 +13,17 @@
     --cyan:#3b82f6; --cyan-text:#60a5fa; --grid:#131313;
     --mono:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
     --sans:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    /* ── Font size scale ── */
+    --fs-xs:9px; --fs-sm:10px; --fs-base:11px; --fs-md:12px; --fs-lg:14px; --fs-xl:16px; --fs-2xl:18px;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   html,body{height:100%;}
   body{
     background:var(--bg); color:var(--ink); font-family:var(--mono);
-    font-size:12px; overflow:hidden; -webkit-font-smoothing:antialiased;
+    font-size:var(--fs-base); overflow:hidden; -webkit-font-smoothing:antialiased;
   }
   /* ── Global font/button unification ──────────── */
-  button,input,select,textarea{font-family:var(--mono); font-size:11px;}
+  button,input,select,textarea{font-family:var(--mono); font-size:var(--fs-base);}
   button{
     background:var(--panel); border:1px solid var(--border); color:var(--ink2);
     padding:4px 10px; cursor:pointer; letter-spacing:.5px; border-radius:4px;
@@ -78,7 +80,7 @@
   .tab{
     padding:4px 10px; border:1px solid var(--border); color:var(--ink2); cursor:pointer;
     background:var(--panel); user-select:none; letter-spacing:.5px; border-radius:4px;
-    transition:all .15s; font-size:11px;
+    transition:all .15s; font-size:var(--fs-base);
   }
   .tab:hover{color:var(--ink); border-color:#3a3a3a; background:#151515;}
   .tab.on{color:#fff; background:var(--amber); border-color:var(--amber); font-weight:700;}
@@ -100,18 +102,18 @@
   .ptitle{
     flex:0 0 auto; display:flex; align-items:center; gap:8px;
     padding:6px 10px; background:var(--panel2); border-bottom:1px solid var(--border2);
-    color:var(--amber); font-weight:700; letter-spacing:1px; font-size:11px;
+    color:var(--amber); font-weight:700; letter-spacing:1px; font-size:var(--fs-base);
     font-family:var(--sans); position:relative;
   }
   .ptitle::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--amber);border-radius:0 2px 2px 0;}
-  .ptitle small{color:var(--ink3); font-weight:400; letter-spacing:0; font-family:var(--mono);}
-  .ptitle .age{margin-left:auto; color:var(--ink3); font-weight:400; font-size:10px;}
+  .ptitle small{color:var(--ink3); font-weight:400; letter-spacing:0; font-family:var(--mono); font-size:var(--fs-sm);}
+  .ptitle .age{margin-left:auto; color:var(--ink3); font-weight:400; font-size:var(--fs-sm);}
   .pbody{flex:1 1 auto; overflow-y:auto; min-height:0;}
 
   /* ── Quote monitor ───────────────────────────── */
   #quotes table{width:100%; border-collapse:collapse;}
   #quotes th{
-    text-align:right; color:var(--ink3); font-weight:400; padding:3px 8px; font-size:10px;
+    text-align:right; color:var(--ink3); font-weight:400; padding:3px 8px; font-size:var(--fs-sm);
     border-bottom:1px solid var(--border2); position:sticky; top:0; background:var(--panel);
   }
   #quotes th:first-child{text-align:left;}
@@ -138,12 +140,12 @@
 
   /* ── Chart panel ─────────────────────────────── */
   #chartpanel{flex:1 1 auto;}
-  #chartinfo{display:flex; gap:10px; padding:4px 10px; color:var(--ink2); font-size:11px;
+  #chartinfo{display:flex; gap:10px; padding:4px 10px; color:var(--ink2); font-size:var(--fs-base);
     border-bottom:1px solid var(--border2); flex-wrap:wrap; min-height:26px; align-items:center;
     background:rgba(0,0,0,0.3);}
   #chartinfo b{color:var(--ink); font-weight:600;}
   .lgd{display:inline-flex; align-items:center; gap:5px; cursor:pointer; user-select:none; padding:2px 8px;
-    border:1px solid transparent; border-radius:4px; font-size:10px; transition:all .15s;}
+    border:1px solid transparent; border-radius:4px; font-size:var(--fs-sm); transition:all .15s;}
   .lgd:hover{border-color:var(--border); background:rgba(255,255,255,0.03);}
   .lgd .sw{width:14px; height:3px; display:inline-block; border-radius:1px;}
   .lgd.off{opacity:.35;}
@@ -155,8 +157,8 @@
   /* ── Derivatives strip ───────────────────────── */
   #deriv{flex:0 0 auto; display:grid; grid-template-columns:1fr 1.2fr 1.2fr 1fr 0.8fr; gap:4px; background:var(--bg); border-top:1px solid var(--border); padding:4px;}
   .dcell{background:var(--panel); padding:8px 10px; min-height:74px; border-radius:6px; border:1px solid var(--border);}
-  .dcell h4{color:var(--ink3); font-size:9px; font-weight:600; letter-spacing:1px; margin-bottom:4px; font-family:var(--sans);}
-  .dcell .big{font-size:16px; font-weight:700; font-variant-numeric:tabular-nums; font-family:var(--mono);}
+  .dcell h4{color:var(--ink3); font-size:var(--fs-xs); font-weight:600; letter-spacing:1px; margin-bottom:4px; font-family:var(--sans);}
+  .dcell .big{font-size:var(--fs-xl); font-weight:700; font-variant-numeric:tabular-nums; font-family:var(--mono);}
   .dcell .sub{color:var(--ink2); font-size:10px; margin-top:3px;}
   #lsbar{height:10px; display:flex; margin-top:5px; border:1px solid #222;}
   #lsbar .l{background:var(--up);} #lsbar .s{background:var(--down);}
@@ -215,13 +217,13 @@
 
   /* ── Misc tab/button ─────────────────────────── */
   .ntab{cursor:pointer; padding:1px 8px; border:1px solid var(--border); color:var(--ink2);
-    font-size:10px; letter-spacing:1px; user-select:none;}
+    font-size:var(--fs-sm); letter-spacing:1px; user-select:none; border-radius:3px;}
   .ntab:hover{color:var(--ink);}
   .ntab.on{color:#000; background:var(--amber); border-color:var(--amber); font-weight:700;}
 
   /* ── Scanner / price alerts / eco ────────────── */
   .scrow{display:grid; grid-template-columns:1fr 1.2fr auto; gap:6px; padding:3px 10px;
-    border-bottom:1px solid #101010; cursor:pointer; font-size:11px; white-space:nowrap;
+    border-bottom:1px solid #101010; cursor:pointer; font-size:var(--fs-base); white-space:nowrap;
     font-variant-numeric:tabular-nums; align-items:center;}
   .scrow:hover{background:#131313;}
   .scrow.hot{background:#181205;}
@@ -842,6 +844,8 @@
       <span>UTC <b id="clk-utc">--:--:--</b></span>
       <span id="session-chip" style="font-size:10px;padding:1px 6px;border:1px solid var(--border);letter-spacing:.5px"></span>
       <span id="user-badge"></span>
+      <button onclick="openProfilePanel()" style="background:transparent;border:1px solid var(--border);color:var(--ink2);padding:2px 8px;font-size:var(--fs-sm);" title="프로필">PROFILE</button>
+      <button onclick="openSettingsPanel()" style="background:transparent;border:1px solid var(--border);color:var(--ink2);padding:2px 8px;font-size:var(--fs-sm);" title="설정">SETTINGS</button>
       <button id="logout-btn" onclick="authLogout()">LOGOUT</button>
     </div>
   </div>
@@ -1308,6 +1312,145 @@
 
   <!-- Keyboard hint flash -->
   <div id="kb-hint"></div>
+
+  <!-- ═══ SETTINGS PANEL ═══ -->
+  <div id="settings-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);" onclick="if(event.target===this)this.style.display='none'">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:480px;max-width:90vw;max-height:85vh;overflow-y:auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.6);">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--panel2);">
+        <span style="color:var(--amber);font-weight:700;letter-spacing:1px;font-size:var(--fs-base);">SETTINGS</span>
+        <span style="cursor:pointer;color:var(--ink3);font-size:var(--fs-md);" onclick="$('settings-modal').style.display='none'">x 닫기</span>
+      </div>
+      <div style="padding:16px;" id="settings-body">
+        <!-- 차트 설정 -->
+        <div style="margin-bottom:16px;">
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">CHART</div>
+          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
+            <span style="color:var(--ink);">TradingView 기본 모드</span>
+            <input type="checkbox" id="set-tvmode" onchange="S.tvMode=this.checked;window.__applyTv&&window.__applyTv();saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
+            <span style="color:var(--ink);">EMA 리본 표시</span>
+            <input type="checkbox" id="set-ema" onchange="S.show.ema=this.checked;drawChart();saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
+            <span style="color:var(--ink);">볼린저 밴드</span>
+            <input type="checkbox" id="set-bb" onchange="S.show.bb=this.checked;drawChart();saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
+            <span style="color:var(--ink);">거래량</span>
+            <input type="checkbox" id="set-vol" onchange="S.show.vol=this.checked;drawChart();saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
+            <span style="color:var(--ink);">RSI</span>
+            <input type="checkbox" id="set-rsi" onchange="S.show.rsi=this.checked;drawChart();saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
+          </label>
+        </div>
+        <!-- 알림 설정 -->
+        <div style="margin-bottom:16px;">
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">ALERTS</div>
+          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
+            <span style="color:var(--ink);">데스크톱 알림</span>
+            <input type="checkbox" id="set-notif" onchange="saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
+          </label>
+          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
+            <span style="color:var(--ink);">사운드 알림</span>
+            <input type="checkbox" id="set-sound" onchange="saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
+          </label>
+        </div>
+        <!-- 뉴스 설정 -->
+        <div style="margin-bottom:16px;">
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">NEWS</div>
+          <label style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);cursor:pointer;">
+            <span style="color:var(--ink);">뉴스 자동 번역 (한국어)</span>
+            <input type="checkbox" id="set-translate" checked onchange="saveSettings();" style="width:16px;height:16px;accent-color:var(--amber);">
+          </label>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);">
+            <span style="color:var(--ink);">새로고침 주기</span>
+            <select id="set-news-interval" onchange="saveSettings();scheduleNewsRefresh();" style="background:#111;border:1px solid var(--border);color:var(--ink);padding:3px 6px;font-size:var(--fs-sm);border-radius:3px;">
+              <option value="60000">1분</option>
+              <option value="180000" selected>3분</option>
+              <option value="300000">5분</option>
+              <option value="600000">10분</option>
+            </select>
+          </div>
+        </div>
+        <!-- 테마 -->
+        <div style="margin-bottom:16px;">
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">DISPLAY</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border2);">
+            <span style="color:var(--ink);">폰트 크기</span>
+            <select id="set-fontsize" onchange="applyFontSize(this.value);saveSettings();" style="background:#111;border:1px solid var(--border);color:var(--ink);padding:3px 6px;font-size:var(--fs-sm);border-radius:3px;">
+              <option value="10">작게</option>
+              <option value="11" selected>보통</option>
+              <option value="12">크게</option>
+              <option value="13">매우 크게</option>
+            </select>
+          </div>
+        </div>
+        <!-- 버전 정보 -->
+        <div style="padding:8px 0;font-size:var(--fs-xs);color:var(--ink3);text-align:center;border-top:1px solid var(--border);">
+          BILLION AI TERMINAL v3.1 · Pretendard · 2026
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PROFILE PANEL ═══ -->
+  <div id="profile-modal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);" onclick="if(event.target===this)this.style.display='none'">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:440px;max-width:90vw;max-height:85vh;overflow-y:auto;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 24px 80px rgba(0,0,0,.6);">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--panel2);">
+        <span style="color:var(--amber);font-weight:700;letter-spacing:1px;font-size:var(--fs-base);">PROFILE</span>
+        <span style="cursor:pointer;color:var(--ink3);font-size:var(--fs-md);" onclick="$('profile-modal').style.display='none'">x 닫기</span>
+      </div>
+      <div style="padding:20px 16px;" id="profile-body">
+        <!-- 사용자 정보 -->
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,var(--amber),var(--cyan));margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;" id="profile-avatar">M</div>
+          <div style="font-size:var(--fs-xl);font-weight:700;color:var(--ink);" id="profile-name">MINHYUK</div>
+          <div style="font-size:var(--fs-sm);color:var(--ink3);margin-top:2px;" id="profile-role">Fund Manager · BILLION AI</div>
+        </div>
+        <!-- 세션 정보 -->
+        <div style="margin-bottom:16px;">
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">SESSION</div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2);">
+            <span style="color:var(--ink2);">로그인 시각</span>
+            <span style="color:var(--ink);" id="profile-login-time">--</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2);">
+            <span style="color:var(--ink2);">세션 경과</span>
+            <span style="color:var(--ink);" id="profile-session-dur">--</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2);">
+            <span style="color:var(--ink2);">접속 IP</span>
+            <span style="color:var(--ink);" id="profile-ip">--</span>
+          </div>
+        </div>
+        <!-- 거래 통계 -->
+        <div style="margin-bottom:16px;">
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">TRADING STATS</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">
+            <div style="text-align:center;padding:8px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px;">
+              <div style="font-size:var(--fs-xs);color:var(--ink3);">총 거래</div>
+              <div style="font-size:var(--fs-lg);font-weight:700;color:var(--ink);" id="prof-trades">0</div>
+            </div>
+            <div style="text-align:center;padding:8px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px;">
+              <div style="font-size:var(--fs-xs);color:var(--ink3);">승률</div>
+              <div style="font-size:var(--fs-lg);font-weight:700;" id="prof-wr">--%</div>
+            </div>
+            <div style="text-align:center;padding:8px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px;">
+              <div style="font-size:var(--fs-xs);color:var(--ink3);">수익률</div>
+              <div style="font-size:var(--fs-lg);font-weight:700;" id="prof-ret">+0%</div>
+            </div>
+          </div>
+        </div>
+        <!-- 관심 종목 -->
+        <div>
+          <div style="color:var(--amber);font-weight:600;font-size:var(--fs-sm);letter-spacing:1px;margin-bottom:8px;">WATCHLIST</div>
+          <div id="profile-watchlist" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="https://s3.tradingview.com/tv.js"></script>
@@ -5079,11 +5222,38 @@ async function loadGlobals(){
   if(typeof loadFngHistory==='function') loadFngHistory();
 }
 
+/* ── 뉴스 번역 (Google Translate 무료 API) ── */
+const _transCache = {};
+async function translateToKo(text){
+  if(!text || /[가-힣]/.test(text)) return text; // 이미 한국어면 스킵
+  const key = text.slice(0,80);
+  if(_transCache[key]) return _transCache[key];
+  try {
+    const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ko&dt=t&q=${encodeURIComponent(text.slice(0,500))}`, {signal:AbortSignal.timeout(4000)});
+    if(!res.ok) return text;
+    const j = await res.json();
+    const translated = (j[0]||[]).map(s=>s[0]).join('');
+    _transCache[key] = translated || text;
+    return _transCache[key];
+  } catch(e){ return text; }
+}
+async function translateNewsItems(items){
+  const batch = items.slice(0, 20); // 최대 20개만 번역
+  const results = await Promise.allSettled(batch.map(async n => {
+    const title = await translateToKo(n.title);
+    const body = n.body ? await translateToKo(n.body) : '';
+    return {...n, title, body, origTitle: n.title};
+  }));
+  return results.map((r, i) => r.status === 'fulfilled' ? r.value : items[i]);
+}
+
 /* news (탭: 전체 / 관련코인 / 한국) — 자동 새로고침 3분 */
 let _newsTimer = null;
 function scheduleNewsRefresh(){
   if(_newsTimer) clearInterval(_newsTimer);
-  _newsTimer = setInterval(loadNews, 180000);
+  const sel = document.getElementById('set-news-interval');
+  const interval = sel ? parseInt(sel.value) : 180000;
+  _newsTimer = setInterval(loadNews, interval);
 }
 async function loadNews(){
   const tab=S.newsTab;
@@ -5182,7 +5352,13 @@ async function loadNews(){
     }
     items=items.slice(0,30);
     if(!items.length) throw 0;
-    if(tab!=="kr") S.newsItems=items;
+    // 한국어 번역 적용 (설정에서 활성화된 경우)
+    if(tab!=="kr") {
+      if(typeof isTranslateEnabled === 'function' && isTranslateEnabled()) {
+        items = await translateNewsItems(items);
+      }
+      S.newsItems=items;
+    }
     const newsHtml = items.map(n=>{
       const urgent = /hack|exploit|crash|plunge|surge|soar|dump|pump|ban|sec |lawsuit|emergency|halt|delist|bankrupt/i.test(n.title);
       const bullish = /surge|soar|rally|bullish|ath|record|approve|adopt|etf.*approv|partnership|launch|milestone|inflow/i.test(n.title);
@@ -5193,10 +5369,11 @@ async function loadNews(){
       const ago = Date.now() - n.t;
       const freshness = ago < 1800000 ? ' style="border-left:2px solid var(--amber);padding-left:7px"' :
         ago < 3600000 ? ' style="border-left:2px solid var(--cyan);padding-left:7px"' : '';
-      const bodySnippet = n.body ? `<div style="color:var(--ink3);font-size:9px;margin-top:2px;line-height:1.3;overflow:hidden;max-height:26px;">${n.body}</div>` : '';
+      const bodySnippet = n.body ? `<div style="color:var(--ink3);font-size:var(--fs-xs);margin-top:2px;line-height:1.3;overflow:hidden;max-height:26px;">${n.body}</div>` : '';
+      const origTip = n.origTitle ? ` title="${n.origTitle.replace(/"/g,'&quot;')}"` : '';
       return `<div class="item"${freshness}>
         <div class="meta">${fmtT(n.t, ago>864e5)} · <b>${n.src}</b>${tag}</div>
-        <a href="${n.url}" target="_blank" rel="noopener">${n.title}</a>
+        <a href="${n.url}" target="_blank" rel="noopener"${origTip}>${n.title}</a>
         ${bodySnippet}
       </div>`;
     }).join("");
@@ -8066,33 +8243,36 @@ try {
     if(S.tvMode){
       c.style.display="block";
       $("tvbtn").classList.remove("off"); $("tvbtn").style.color="var(--amber)";
-      // Show TV AI overlay
       const tvOvl=$("ai-tv-overlay"); if(tvOvl && AI_OVL && AI_OVL.data) tvOvl.classList.add("on");
-      /* destroy previous widget if symbol/tf changed */
-      if(tvWidget){ try{ tvWidget.remove(); }catch(e){} tvWidget=null; c.innerHTML=""; }
-      if(typeof TradingView!=="undefined"){
-        tvWidget=new TradingView.widget({
-          container_id:"tv-container",
-          symbol:"BINANCE:"+pair(S.sym)+".P",
-          interval:tvInterval(),
-          theme:"dark",
-          style:"1",
-          locale:"kr",
-          toolbar_bg:"#050505",
-          hide_side_toolbar:false,
-          allow_symbol_change:true,
-          save_image:false,
-          autosize:true,
-          backgroundColor:"#050505",
-          gridColor:"#161616",
-          withdateranges:true,
-        });
-      }
+      /* destroy previous widget — 완전 정리 후 재생성 */
+      if(tvWidget){ try{ tvWidget.remove(); }catch(e){} tvWidget=null; }
+      c.innerHTML="";
+      /* 약간의 딜레이로 DOM 정리 후 위젯 생성 */
+      setTimeout(()=>{
+        if(!S.tvMode) return;
+        if(typeof TradingView!=="undefined"){
+          tvWidget=new TradingView.widget({
+            container_id:"tv-container",
+            symbol:"BINANCE:"+pair(S.sym)+".P",
+            interval:tvInterval(),
+            theme:"dark",
+            style:"1",
+            locale:"kr",
+            toolbar_bg:"#050505",
+            hide_side_toolbar:false,
+            allow_symbol_change:true,
+            save_image:false,
+            autosize:true,
+            backgroundColor:"#050505",
+            gridColor:"#161616",
+            withdateranges:true,
+          });
+        }
+      }, 100);
     } else {
       c.style.display="none";
       if(tvWidget){ try{ tvWidget.remove(); }catch(e){} tvWidget=null; c.innerHTML=""; }
       $("tvbtn").style.color="";
-      // Hide TV AI overlay
       const tvOvl=$("ai-tv-overlay"); if(tvOvl) tvOvl.classList.remove("on");
     }
   };
@@ -13560,6 +13740,124 @@ setTimeout(() => { loadDrawings(); }, 1000);
 
   window._fundOS = { updateHealthPanel, addActivity, updateBottomFund, updateRecentTrades, drawEquityMini, updateQuantQuick };
 })();
+
+/* ═══ Settings & Profile Panel Functions ═══ */
+const _sessionStart = Date.now();
+
+function saveSettings(){
+  try {
+    const settings = {
+      tvMode: S.tvMode,
+      showEma: S.show?.ema,
+      showBb: S.show?.bb,
+      showVol: S.show?.vol,
+      showRsi: S.show?.rsi,
+      translate: document.getElementById('set-translate')?.checked ?? true,
+      newsInterval: document.getElementById('set-news-interval')?.value || '180000',
+      fontSize: document.getElementById('set-fontsize')?.value || '11',
+      desktopNotif: document.getElementById('set-notif')?.checked ?? true,
+      soundAlert: document.getElementById('set-sound')?.checked ?? true,
+    };
+    localStorage.setItem('billion_settings', JSON.stringify(settings));
+  } catch(e){}
+}
+
+function loadSettings(){
+  try {
+    const raw = localStorage.getItem('billion_settings');
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    if(s.fontSize) applyFontSize(s.fontSize);
+    if(s.newsInterval) {
+      const sel = document.getElementById('set-news-interval');
+      if(sel) sel.value = s.newsInterval;
+    }
+    const setTr = document.getElementById('set-translate');
+    if(setTr && s.translate !== undefined) setTr.checked = s.translate;
+    const setNotif = document.getElementById('set-notif');
+    if(setNotif) setNotif.checked = s.desktopNotif !== false;
+    const setSound = document.getElementById('set-sound');
+    if(setSound) setSound.checked = s.soundAlert !== false;
+    const setFs = document.getElementById('set-fontsize');
+    if(setFs && s.fontSize) setFs.value = s.fontSize;
+  } catch(e){}
+}
+
+function applyFontSize(size){
+  const px = parseInt(size);
+  document.documentElement.style.setProperty('--fs-xs', (px-2)+'px');
+  document.documentElement.style.setProperty('--fs-sm', (px-1)+'px');
+  document.documentElement.style.setProperty('--fs-base', px+'px');
+  document.documentElement.style.setProperty('--fs-md', (px+1)+'px');
+  document.documentElement.style.setProperty('--fs-lg', (px+3)+'px');
+  document.documentElement.style.setProperty('--fs-xl', (px+5)+'px');
+  document.documentElement.style.setProperty('--fs-2xl', (px+7)+'px');
+}
+
+function openSettingsPanel(){
+  const m = document.getElementById('settings-modal');
+  if(!m) return;
+  // 현재 상태 반영
+  const setTv = document.getElementById('set-tvmode');
+  if(setTv) setTv.checked = S.tvMode;
+  const setEma = document.getElementById('set-ema');
+  if(setEma && S.show) setEma.checked = S.show.ema !== false;
+  const setBb = document.getElementById('set-bb');
+  if(setBb && S.show) setBb.checked = S.show.bb !== false;
+  const setVol = document.getElementById('set-vol');
+  if(setVol && S.show) setVol.checked = S.show.vol !== false;
+  const setRsi = document.getElementById('set-rsi');
+  if(setRsi && S.show) setRsi.checked = !!S.show.rsi;
+  m.style.display = 'block';
+}
+
+function openProfilePanel(){
+  const m = document.getElementById('profile-modal');
+  if(!m) return;
+  // 세션 정보 업데이트
+  const loginEl = document.getElementById('profile-login-time');
+  if(loginEl) loginEl.textContent = new Date(_sessionStart).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  const durEl = document.getElementById('profile-session-dur');
+  if(durEl){
+    const mins = Math.round((Date.now()-_sessionStart)/60000);
+    durEl.textContent = mins < 60 ? `${mins}분` : `${Math.floor(mins/60)}시간 ${mins%60}분`;
+  }
+  // IP 조회
+  const ipEl = document.getElementById('profile-ip');
+  if(ipEl && ipEl.textContent === '--'){
+    fetch('https://api.ipify.org?format=json',{signal:AbortSignal.timeout(3000)})
+      .then(r=>r.json()).then(d=>{ if(d.ip) ipEl.textContent = d.ip; }).catch(()=>{});
+  }
+  // 거래 통계
+  try {
+    const cap = document.getElementById('fund-capital');
+    const capVal = cap ? parseFloat(cap.textContent.replace(/[$,]/g,'')) : 3000;
+    const ret = capVal > 0 ? ((capVal-3000)/3000*100) : 0;
+    const profRet = document.getElementById('prof-ret');
+    if(profRet){ profRet.textContent = `${ret>=0?'+':''}${ret.toFixed(1)}%`; profRet.style.color = ret>=0?'var(--up-text)':'var(--down-text)'; }
+    const wrEl = document.getElementById('fund-winrate');
+    const profWr = document.getElementById('prof-wr');
+    if(profWr && wrEl){ profWr.textContent = wrEl.textContent; profWr.style.color = parseFloat(wrEl.textContent)>=50?'var(--up-text)':'var(--down-text)'; }
+    const trEl = document.getElementById('fund-trades');
+    const profTr = document.getElementById('prof-trades');
+    if(profTr && trEl) profTr.textContent = trEl.textContent;
+  } catch(e){}
+  // 관심 종목
+  const wl = document.getElementById('profile-watchlist');
+  if(wl && typeof SYMBOLS !== 'undefined'){
+    wl.innerHTML = SYMBOLS.map(s => `<span style="padding:3px 8px;background:#111;border:1px solid var(--border);border-radius:4px;font-size:var(--fs-sm);color:var(--ink);font-weight:600;cursor:pointer;" onclick="switchTo('${s}',S.tf);$('profile-modal').style.display='none';">${s}</span>`).join('');
+  }
+  m.style.display = 'block';
+}
+
+// 설정 로드 (앱 시작 시)
+setTimeout(loadSettings, 500);
+
+// 뉴스 번역 설정 체크
+function isTranslateEnabled(){
+  const el = document.getElementById('set-translate');
+  return el ? el.checked : true;
+}
 </script>
 <div id="notif-stack"></div>
 </body>
