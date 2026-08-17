@@ -11752,10 +11752,14 @@ async function refreshScreener() {
     else if (pct < -0.3) { trend = "DOWN"; trendColor = "var(--down-text)"; }
     else { trend = "RANGE"; trendColor = "var(--amber)"; }
 
-    // AI signal from Learn Engine if current sym
+    // AI signal — 퀀트 시그널 우선, 없으면 Learn Engine
     let signal = "—";
     let sigColor = "var(--ink3)";
-    if (sym === S.sym && typeof LE !== 'undefined' && LE.signal) {
+    const qSig = S._quantSignals && S._quantSignals[sym];
+    if (qSig && qSig.action && qSig.action !== 'HOLD') {
+      signal = qSig.action === 'BUY' ? 'LONG' : 'SHORT';
+      sigColor = qSig.action === 'BUY' ? 'var(--up-text)' : 'var(--down-text)';
+    } else if (sym === S.sym && typeof LE !== 'undefined' && LE.signal) {
       if (LE.signal.dir > 0) { signal = "LONG"; sigColor = "var(--up-text)"; }
       else if (LE.signal.dir < 0) { signal = "SHORT"; sigColor = "var(--down-text)"; }
       else { signal = "HOLD"; }
