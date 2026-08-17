@@ -249,6 +249,33 @@
   }
   .mwin-task:hover{color:var(--ink);border-color:var(--amber);}
   .mwin-task.focused{color:var(--amber);border-color:var(--amber);}
+  /* ── Command Palette ──────────────────────── */
+  #cmd-palette{
+    display:none; position:fixed; top:20%; left:50%; transform:translateX(-50%);
+    width:500px; max-width:90vw; z-index:300;
+    background:rgba(8,8,8,.98); border:1px solid var(--amber);
+    border-radius:12px; box-shadow:0 24px 80px rgba(0,0,0,.8);
+    overflow:hidden; backdrop-filter:blur(12px);
+  }
+  #cmd-palette.on{display:block;}
+  #cmd-palette input{
+    width:100%; padding:14px 16px; background:transparent; border:none;
+    border-bottom:1px solid var(--border); color:var(--ink); font-size:var(--fs-lg);
+    outline:none; font-family:var(--mono);
+  }
+  #cmd-palette .results{max-height:300px; overflow-y:auto;}
+  #cmd-palette .result{
+    display:flex; justify-content:space-between; padding:8px 16px;
+    cursor:pointer; border-bottom:1px solid #0a0a0a; transition:background .1s;
+  }
+  #cmd-palette .result:hover, #cmd-palette .result.sel{background:#1a1205;}
+  #cmd-palette .result .cmd{color:var(--amber); font-weight:700; font-size:var(--fs-base);}
+  #cmd-palette .result .desc{color:var(--ink2); font-size:var(--fs-sm);}
+  /* ── PnL Flash ────────────────────────────── */
+  @keyframes pnlFlash{0%{text-shadow:0 0 8px var(--up)}100%{text-shadow:none}}
+  @keyframes pnlFlashDown{0%{text-shadow:0 0 8px var(--down)}100%{text-shadow:none}}
+  .pnl-flash-up{animation:pnlFlash .5s ease-out;}
+  .pnl-flash-down{animation:pnlFlashDown .5s ease-out;}
   /* ── Settings/Profile modal ──────────────────── */
   .set-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border2);cursor:default;font-size:var(--fs-base);}
   .set-row span:first-child{color:var(--ink);}
@@ -1387,6 +1414,11 @@
       <th>SYMBOL</th><th>PRICE</th><th>24H%</th><th>RSI14</th><th>TREND</th><th>SIGNAL</th>
     </tr></thead><tbody id="screener-tbody"></tbody></table></div>
     <div class="sp-foot"><span id="screener-time">--</span><span>1-9: 코인전환 · S: 토글 · T: 타임프레임</span></div>
+  </div>
+
+  <div id="cmd-palette">
+    <input id="palette-input" placeholder="명령어 검색..." autocomplete="off" spellcheck="false">
+    <div class="results" id="palette-results"></div>
   </div>
 
   <div id="mwin-taskbar"></div>
@@ -5284,6 +5316,7 @@ function helpHTML(){
       ["FUNDING","펀딩비 전체 순위 (연환산 포함)"],
       ["FMAP","전 종목 펀딩레이트 히트맵"],
       ["HMAP","전 종목 24h 변동률 히트맵 (시총 기반)"],
+      ["HEATMAP","코인 히트맵 — 전체 시장 한눈에"],
       ["PREMIUM","전 종목 김치 프리미엄 순위"],
       ["SPREAD","거래소간 가격 비교 (재정거래 기회)"],
       ["FEAR","공포/탐욕 지수 상세 분석"],
@@ -6468,6 +6501,7 @@ const CMD_LIST=[
   {c:"WATCH DEL XRP", d:"관심종목 제거"},
   {c:"FMAP", d:"전 종목 펀딩레이트 히트맵"},
   {c:"HMAP", d:"전 종목 24h 변동률 히트맵 (시총 기반)"},
+  {c:"HEATMAP", d:"코인 히트맵 — 전체 시장 한눈에"},
   {c:"CORR", d:"BTC 대비 알트코인 상관관계 분석"},
   {c:"MTF", d:"멀티타임프레임 지표 정렬 대시보드"},
   {c:"ONCHAIN", d:"온체인 데이터 (거래소 잔고·해시레이트·활성주소)"},
@@ -6692,6 +6726,7 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="WHALE"){ whaleOverlay(); e.target.value=""; return; }
   if(raw==="FMAP"){ fundingHeatmap(); e.target.value=""; return; }
   if(raw==="HMAP"){ marketHeatmap(); e.target.value=""; return; }
+  if(raw==="HEATMAP"||raw==="HEAT"){ heatmapOverlay(); e.target.value=""; return; }
   if(raw==="CORR"){ corrOverlay(); e.target.value=""; return; }
   if(raw==="MTF"){ mtfDashboard(); e.target.value=""; return; }
   if(raw==="SAVE"){ saveCfg(); e.target.value=""; return; }
@@ -6938,6 +6973,12 @@ $("cmd").addEventListener("keydown",e=>{
   else { e.target.value=""; e.target.placeholder="예: SOL 4H · PEPE 1H · ALERT SOL 200 · ALERT CLEAR"; }
 });
 document.addEventListener("keydown",e=>{
+  // Ctrl+K / Cmd+K — command palette (works globally)
+  if((e.ctrlKey || e.metaKey) && e.key === 'k'){
+    e.preventDefault();
+    togglePalette();
+    return;
+  }
   const t=e.target;
   if(t===$("cmd") || t.tagName==="INPUT" || t.tagName==="TEXTAREA" || t.isContentEditable) return;
   if(e._proHandled) return;
@@ -10649,10 +10690,28 @@ async function loadPaperTrading(){
     el.innerHTML='<div style="padding:8px;color:var(--ink3)">Paper Trader 미연결<br><span style="font-size:9px">Trading Team 확인</span></div>';
   }
 }
+var _prevPaperPnl = null;
 function renderPaperTrading(data){
   const el=$("papertrading"); if(!el) return;
   const cap=data.capital||10000, pnl=data.totalPnl||0, ret=data.returnPct||0, wr=data.winRate||0;
   const pnlCol=pnl>=0?'var(--up-text)':'var(--down-text)';
+  // PnL flash detection
+  if(_prevPaperPnl !== null && pnl !== _prevPaperPnl){
+    var flashCls = pnl > _prevPaperPnl ? 'pnl-flash-up' : 'pnl-flash-down';
+    var capEl = document.getElementById('fund-capital');
+    if(capEl){
+      capEl.classList.remove('pnl-flash-up','pnl-flash-down');
+      void capEl.offsetWidth; // reflow to restart animation
+      capEl.classList.add(flashCls);
+    }
+    var retEl = document.getElementById('fund-return');
+    if(retEl){
+      retEl.classList.remove('pnl-flash-up','pnl-flash-down');
+      void retEl.offsetWidth;
+      retEl.classList.add(flashCls);
+    }
+  }
+  _prevPaperPnl = pnl;
   let html=`<div class="pt-stat">
     <div class="pt-cell"><small>CAPITAL</small><b>$${fmtBig(cap)}</b></div>
     <div class="pt-cell"><small>P&L</small><b style="color:${pnlCol}">${pnl>=0?'+':''}$${Math.abs(pnl).toFixed(1)}</b></div>
@@ -16093,6 +16152,100 @@ async function billionChat(query){
   } catch(e) {
     showOverlay("BILLION AI","<div class='rowline'><span style='color:var(--down-text)'>AI 응답 실패: " + e.message + "</span></div>");
   }
+}
+
+/* ── Command Palette (Ctrl+K / Cmd+K) ── */
+function togglePalette(){
+  var p = document.getElementById('cmd-palette');
+  if(!p) return;
+  if(p.classList.contains('on')){
+    p.classList.remove('on');
+  } else {
+    p.classList.add('on');
+    var inp = document.getElementById('palette-input');
+    if(inp){ inp.value = ''; inp.focus(); filterPalette(''); }
+  }
+}
+
+function filterPalette(query){
+  var results = document.getElementById('palette-results');
+  if(!results) return;
+  var q = query.toUpperCase();
+  var list = typeof CMD_LIST !== 'undefined' ? CMD_LIST : [];
+  var filtered = q ? list.filter(function(item){ return item.c.toUpperCase().indexOf(q) !== -1 || item.d.toUpperCase().indexOf(q) !== -1; }) : list.slice(0, 15);
+
+  var html = '';
+  filtered.slice(0, 12).forEach(function(item, i){
+    html += '<div class="result' + (i===0?' sel':'') + '" onclick="executePaletteCmd(\'' + item.c.replace(/'/g,"\\'") + '\')">';
+    html += '<span class="cmd">' + item.c + '</span>';
+    html += '<span class="desc">' + item.d + '</span>';
+    html += '</div>';
+  });
+  if(!filtered.length) html = '<div style="padding:12px 16px;color:var(--ink3)">일치하는 명령어 없음</div>';
+  results.innerHTML = html;
+}
+
+function executePaletteCmd(cmd){
+  togglePalette();
+  var cmdInput = document.getElementById('cmd');
+  if(cmdInput){
+    cmdInput.value = cmd;
+    cmdInput.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true}));
+  }
+}
+
+// Palette input handlers
+document.addEventListener('DOMContentLoaded', function(){
+  var palInput = document.getElementById('palette-input');
+  if(palInput){
+    palInput.addEventListener('input', function(){ filterPalette(this.value); });
+    palInput.addEventListener('keydown', function(e){
+      if(e.key === 'Escape') togglePalette();
+      if(e.key === 'Enter'){
+        var sel = document.querySelector('#palette-results .result.sel');
+        if(sel) sel.click();
+      }
+      if(e.key === 'ArrowDown' || e.key === 'ArrowUp'){
+        e.preventDefault();
+        var items = document.querySelectorAll('#palette-results .result');
+        var cur = -1;
+        items.forEach(function(el, i){ if(el.classList.contains('sel')) cur = i; });
+        items.forEach(function(el){ el.classList.remove('sel'); });
+        var next = e.key === 'ArrowDown' ? Math.min(cur+1, items.length-1) : Math.max(cur-1, 0);
+        if(items[next]) items[next].classList.add('sel');
+      }
+    });
+  }
+});
+
+// Click outside to close palette
+document.addEventListener('click', function(e){
+  var p = document.getElementById('cmd-palette');
+  if(p && p.classList.contains('on') && !p.contains(e.target)) togglePalette();
+});
+
+/* ── HEATMAP command — 코인 히트맵 ── */
+function heatmapOverlay(){
+  var allTickers = typeof S !== 'undefined' && S.allTickers ? S.allTickers : [];
+  if(!allTickers.length){ showOverlay("HEATMAP",'<div class="rowline"><span style="color:var(--ink3)">데이터 대기 중</span></div>'); return; }
+
+  // Top 30 by volume as proxy for market cap
+  var coins = allTickers.slice().sort(function(a,b){ return b.vol - a.vol; }).slice(0, 30);
+  var maxVol = coins[0].vol;
+
+  var html = '<div style="padding:8px;">';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:3px">';
+  coins.forEach(function(c){
+    var size = Math.max(50, Math.min(100, 50 + (c.vol/maxVol)*50));
+    var bg = c.pct >= 3 ? 'rgba(34,197,94,0.4)' : c.pct >= 1 ? 'rgba(34,197,94,0.2)' : c.pct >= 0 ? 'rgba(34,197,94,0.08)' : c.pct >= -1 ? 'rgba(239,68,68,0.08)' : c.pct >= -3 ? 'rgba(239,68,68,0.2)' : 'rgba(239,68,68,0.4)';
+    var color = c.pct >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+    html += '<div style="width:' + size + 'px;height:' + size + 'px;background:' + bg + ';border:1px solid var(--border);border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer" onclick="switchTo(\'' + c.sym + '\',S.tf);document.querySelectorAll(\'.mwin\').forEach(function(el){el.remove()});_mwinMap.clear()">';
+    html += '<div style="font-weight:700;font-size:' + (size > 70 ? 'var(--fs-base)' : 'var(--fs-xs)') + ';color:var(--ink)">' + c.sym + '</div>';
+    html += '<div style="font-size:' + (size > 70 ? 'var(--fs-sm)' : '8px') + ';color:' + color + ';font-weight:600">' + (c.pct>=0?'+':'') + c.pct.toFixed(1) + '%</div>';
+    html += '</div>';
+  });
+  html += '</div></div>';
+  showOverlay("HEATMAP · 시장 히트맵 (30)", html);
 }
 </script>
 <script>
