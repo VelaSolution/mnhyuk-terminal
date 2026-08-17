@@ -534,14 +534,8 @@
   #rightcol .ptitle{padding:3px 6px; font-size:10px;}
   #rightcol .pbody{font-size:10px;}
 
-/* ── Auth Gate ─────────────────────────────── */
-#auth-gate{
-  position:fixed; inset:0; z-index:9999;
-  background:var(--bg);
-  display:flex; align-items:center; justify-content:center;
-  flex-direction:column;
-}
-#auth-gate.hidden{display:none;}
+/* ── Auth Gate (removed) ── */
+#auth-gate{display:none !important;}
 #auth-box{
   width:360px; background:var(--panel);
   border:1px solid var(--border); padding:0;
@@ -593,21 +587,7 @@
   color:var(--ink3); font-size:9px; text-align:center;
   line-height:1.5;
 }
-#auth-loading{
-  position:fixed; inset:0; z-index:10000;
-  background:var(--bg);
-  display:flex; align-items:center; justify-content:center;
-  flex-direction:column; gap:12px;
-}
-#auth-loading.hidden{display:none;}
-#auth-loading .spinner{
-  width:24px; height:24px;
-  border:2px solid var(--border);
-  border-top-color:var(--amber);
-  border-radius:50%;
-  animation:authspin 0.8s linear infinite;
-}
-@keyframes authspin{to{transform:rotate(360deg)}}
+#auth-loading{display:none !important;}
 #logout-btn{
   cursor:pointer; color:var(--ink3); font-size:10px;
   padding:2px 8px; border:1px solid var(--border);
