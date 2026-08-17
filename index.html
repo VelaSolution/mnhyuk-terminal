@@ -12354,12 +12354,19 @@ setTimeout(() => { loadDrawings(); }, 1000);
     if(src) el.innerHTML=src.innerHTML;
   }
 
-  // Hook into pushLog to also feed Analysis Log + Console
+  // Hook into pushLog to also feed Analysis Log + Console + Activity Feed
   const _origPushLog = pushLog;
   pushLog = function(msg){
     _origPushLog(msg);
     _renderALog();
     _pushConsole(msg);
+    // Activity Feed에도 중요 이벤트 전달
+    if (window._fundOS && window._fundOS.addActivity) {
+      const clean = msg.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+      if (clean.includes('BUY') || clean.includes('SELL') || clean.includes('진입') || clean.includes('청산') || clean.includes('SL') || clean.includes('TP')) {
+        window._fundOS.addActivity('📡', clean.slice(0, 80));
+      }
+    }
   };
 
   // Periodic sync for right-column panels
