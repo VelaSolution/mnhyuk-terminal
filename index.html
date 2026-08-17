@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MNHYUK CRYPTO TERMINAL</title>
+<title>BILLION AI TERMINAL</title>
 <style>
   :root{
     --bg:#050505; --panel:#0a0a0a; --panel2:#0e0e0e; --border:#262626; --border2:#1a1a1a;
@@ -775,8 +775,8 @@
 <div id="auth-gate" class="hidden">
   <div id="auth-box">
     <div class="ah">
-      <span class="logo">MOTERA</span>
-      <small>TERMINAL ACCESS</small>
+      <span class="logo">BILLION</span>
+      <small>AI HEDGE FUND OS</small>
     </div>
     <div class="abody">
       <label>EMAIL</label>
@@ -788,7 +788,7 @@
       <div id="auth-switch" onclick="authToggleMode()">계정이 없으신가요? 회원가입</div>
     </div>
     <div id="auth-footer">
-      MOTERA TERMINAL — Authorized Personnel Only<br>
+      BILLION AI — Authorized Personnel Only<br>
       Unauthorized access is prohibited
     </div>
   </div>
@@ -797,7 +797,7 @@
 <div id="app" style="display:none">
 
   <div id="topbar">
-    <div id="brand">MNHYUK<span style="color:var(--ink2)">-T1</span> <small>CRYPTO TERMINAL v10</small></div>
+    <div id="brand">BILLION<span style="color:var(--ink2)"> AI</span> <small>HEDGE FUND OS v3</small></div>
     <div id="cmdwrap"><span>&gt;</span><input id="cmd" placeholder="입력 시 자동완성 · HELP = 전체 명령" autocomplete="off" spellcheck="false">
     <div id="cmdsug"></div></div>
     <div id="clocks">
@@ -1049,30 +1049,79 @@
       </div>
     </div>
 
-    <!-- RIGHT (280px): Positions → AI Signals → Calendar → Console -->
+    <!-- RIGHT (280px): Fund OS Panels -->
     <div class="col" id="rightcol">
-      <!-- 1. POSITIONS (최상단, 가장 중요) -->
-      <div class="panel" style="flex:0 0 auto; max-height:35%;" id="pos-panel">
-        <div class="ptitle" style="background:#120e05;color:var(--amber);">POSITIONS <small>보유 포지션</small>
+      <!-- 1. HEALTH SCORE -->
+      <div class="panel" style="flex:0 0 auto;" id="health-panel">
+        <div class="ptitle" style="background:#0a1a0a;color:var(--up-text);">PORTFOLIO HEALTH
+          <span class="age" id="age-health"></span>
+        </div>
+        <div class="pbody" id="health-body" style="padding:8px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="position:relative;width:64px;height:64px;flex-shrink:0;">
+              <svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#1a1a1a" stroke-width="5"/><circle cx="32" cy="32" r="26" fill="none" stroke="var(--up)" stroke-width="5" stroke-dasharray="163" stroke-dashoffset="163" stroke-linecap="round" id="health-ring" style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .8s;"/></svg>
+              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;" id="health-score">--</div>
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:11px;font-weight:700;letter-spacing:1px;" id="health-status">LOADING</div>
+              <div style="font-size:10px;color:var(--ink3);margin-top:4px;" id="health-reasons">분석 중...</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;font-size:9px;">
+                <div style="padding:3px 4px;background:#111;text-align:center;"><span style="color:var(--ink3)">SHARPE</span><br><b id="health-sharpe">--</b></div>
+                <div style="padding:3px 4px;background:#111;text-align:center;"><span style="color:var(--ink3)">PF</span><br><b id="health-pf">--</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 2. POSITIONS (보유 포지션) -->
+      <div class="panel" style="flex:0 0 auto; max-height:30%;" id="pos-panel">
+        <div class="ptitle" style="background:#120e05;color:var(--amber);">POSITIONS <small>보유</small>
           <span style="margin-left:auto;font-size:9px;color:var(--ink3);font-weight:400" id="pos-count">0</span>
           <span class="age" id="age-pos"></span>
         </div>
         <div class="pbody" id="pos-body"><div class="pos-empty">포지션 로드 중…</div></div>
       </div>
-      <!-- 2. AI SIGNALS (최근 분석 3건) -->
+      <!-- 3. RISK STATUS -->
+      <div class="panel" style="flex:0 0 auto;" id="risk-panel">
+        <div class="ptitle">RISK <small>리스크</small></div>
+        <div class="pbody" id="risk-body" style="padding:4px 6px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;">
+            <div style="padding:4px;background:#111;text-align:center;"><span style="color:var(--ink3)">MDD</span><br><b id="risk-mdd" style="color:var(--down-text);">--%</b></div>
+            <div style="padding:4px;background:#111;text-align:center;"><span style="color:var(--ink3)">WIN RATE</span><br><b id="risk-wr">--%</b></div>
+            <div style="padding:4px;background:#111;text-align:center;"><span style="color:var(--ink3)">EXPOSURE</span><br><b id="risk-exp">$--</b></div>
+            <div style="padding:4px;background:#111;text-align:center;"><span style="color:var(--ink3)">BIAS</span><br><b id="risk-bias">--</b></div>
+          </div>
+          <div style="margin-top:4px;padding:4px 6px;font-size:9px;display:flex;justify-content:space-between;align-items:center;background:#0a0a0a;border:1px solid var(--border);">
+            <span style="color:var(--ink3)">RISK STATUS</span>
+            <span id="risk-status-badge" style="color:var(--up-text);font-weight:700;font-size:10px;">HEALTHY</span>
+          </div>
+        </div>
+      </div>
+      <!-- 4. AI SIGNALS (최근 분석) -->
       <div class="panel" style="flex:0 0 auto;" id="r-aisig">
-        <div class="ptitle">AI SIGNALS <small>최근 분석</small><span class="age" id="age-raisig"></span></div>
+        <div class="ptitle">AI SIGNALS <small>13-Agent</small><span class="age" id="age-raisig"></span></div>
         <div class="pbody" id="r-aisig-body"><div style="padding:6px 8px;color:var(--ink3);font-size:10px">시그널 로드 중…</div></div>
       </div>
-      <!-- 3. CALENDAR (매크로 경제 캘린더 — 1개만) -->
-      <div class="panel" style="flex:0 0 auto;" id="eco-panel">
-        <div class="ptitle">CALENDAR <small>매크로 일정</small><span class="age" id="age-eco"></span></div>
-        <div class="pbody" id="eco"><div class="rowline"><span style="color:var(--ink3)">이벤트 로드 중…</span></div></div>
+      <!-- 5. ALLOCATION -->
+      <div class="panel" style="flex:0 0 auto;" id="alloc-panel">
+        <div class="ptitle">ALLOCATION <small>배분</small></div>
+        <div class="pbody" id="alloc-body" style="padding:4px 6px;">
+          <div id="alloc-bar" style="display:flex;height:8px;border:1px solid #222;overflow:hidden;margin-bottom:4px;"></div>
+          <div id="alloc-legend" style="font-size:9px;color:var(--ink2);line-height:1.6;">배분 로드 중...</div>
+        </div>
       </div>
-      <!-- 4. CONSOLE (시스템 로그 + 알림) -->
-      <div class="panel" style="flex:1;">
-        <div class="ptitle">CONSOLE <small>시스템</small></div>
-        <div class="pbody" id="console-body">터미널 준비 중…</div>
+      <!-- 6. ACTIVITY FEED -->
+      <div class="panel" style="flex:1;" id="activity-panel">
+        <div class="ptitle">ACTIVITY <small>실시간</small></div>
+        <div class="pbody" id="activity-body" style="font-size:10px;color:var(--ink2);padding:4px;">
+          <div style="padding:4px 6px;color:var(--ink3);font-size:9px">대기 중...</div>
+        </div>
+      </div>
+      <!-- Hidden: Calendar + Console (기존 호환) -->
+      <div style="display:none;">
+        <div id="eco-panel-hidden"><div id="eco"><div class="rowline"><span style="color:var(--ink3)">이벤트 로드 중…</span></div></div></div>
+        <span id="age-eco"></span>
+        <div id="console-body">터미널 준비 중…</div>
       </div>
     </div>
 
@@ -2207,7 +2256,7 @@ function sigCompute(){
     pushLog(`\uD83C\uDFAF LEARN ${dir>0?"LONG":"SHORT"} ${S.sym} @ ${fmtPrice(levels.entry)} | Score ${score} | SL ${fmtPrice(levels.sl)} TP ${fmtPrice(levels.tp)}`);
     try{
       if("Notification" in window && Notification.permission === "granted"){
-        new Notification(`MOTERA \xB7 ${dir>0?"LONG":"SHORT"} ${S.sym}`, {
+        new Notification(`BILLION \xB7 ${dir>0?"LONG":"SHORT"} ${S.sym}`, {
           body: `Score ${score} | Entry ${fmtPrice(levels.entry)} | SL ${fmtPrice(levels.sl)}`,
           icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>\uD83D\uDCCA</text></svg>"
         });
@@ -5677,7 +5726,7 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="QUAD"){ quadToggle(); e.target.value=""; return; }
   if(raw==="OPEN"){ try{ window.open(`https://www.bybit.com/trade/usdt/${pair(S.sym)}`,"_blank"); }catch(e2){} e.target.value=""; return; }
   if(raw==="ABOUT"||raw==="VER"){
-    showOverlay("MNHYUK-T1 · v9",
+    showOverlay("BILLION AI · v3",
       `<div class="rowline"><span>버전</span><b>v10 (2026-08-09 빌드)</b></div>
        <div class="rowline"><span>주문 실행</span><b>${S.orderApi?(S.orderLive?'<span class="d">LIVE 실서버 연결</span>':'<span class="u">테스트넷 연결</span>'):"미연결 (Vercel 환경변수 필요)"}</b></div>
        <div class="rowline"><span>실시간</span><b>Bybit WebSocket (시세·호가·체결·청산)</b></div>
@@ -6855,7 +6904,7 @@ function reportOverlay(){
     html += `<div class="rowline"><span>학습 에폭</span><b>${LE.epoch}회</b></div>`;
   }
 
-  html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:9px;color:var(--ink3);text-align:center">MOTERA TERMINAL · ${dateStr} · 투자 조언이 아님</div>`;
+  html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:9px;color:var(--ink3);text-align:center">BILLION AI · ${dateStr} · 투자 조언이 아님</div>`;
   showOverlay(`REPORT · ${sym} 종합 리포트`, html);
 }
 function gridCalcOverlay(low, high, grids){
@@ -7713,7 +7762,7 @@ function statsOverlay(){
   html += `</div>`;
 
   html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:9px;color:var(--ink3);text-align:center">
-    MOTERA TERMINAL v10 · ${S.sym} ${S.tf} · WebSocket ${S.wsAlive?'ON':'OFF'} · 프록시 ${S.proxy?'ON':'OFF'}
+    BILLION AI v10 · ${S.sym} ${S.tf} · WebSocket ${S.wsAlive?'ON':'OFF'} · 프록시 ${S.proxy?'ON':'OFF'}
   </div>`;
 
   showOverlay("STATS · 터미널 통계", html);
@@ -12690,6 +12739,169 @@ setTimeout(() => { loadDrawings(); }, 1000);
       return result;
     };
   }
+})();
+
+/* ═══════════════════════════════════════════════════════════
+   AI HEDGE FUND OS — Portfolio Engine Integration
+   Trading Team 데이터를 터미널 Right Column에 실시간 표시
+   ═══════════════════════════════════════════════════════════ */
+(function() {
+  const TT = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'http://localhost:8000' : 'https://trading-team.mot-era.com';
+
+  // ── Health Score 업데이트 ──
+  async function updateHealthPanel() {
+    try {
+      const res = await fetch(`${TT}/api/trade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'status' })
+      });
+      if (!res.ok) return;
+      const s = await res.json();
+
+      // Health Score 계산 (클라이언트측 간이 버전)
+      let score = 100;
+      const returnPct = s.startCapital > 0 ? ((s.capital - s.startCapital) / s.startCapital * 100) : 0;
+      const winRate = s.totalTrades > 0 ? (s.wins / s.totalTrades * 100) : 0;
+      const mdd = s.maxDrawdown || 0;
+
+      if (returnPct < -5) score -= 30; else if (returnPct < 0) score -= 15; else if (returnPct < 5) score -= 5;
+      if (s.totalTrades >= 10 && winRate < 40) score -= 15; else if (winRate < 30) score -= 10;
+      if (mdd > 15) score -= 20; else if (mdd > 10) score -= 10; else if (mdd > 5) score -= 5;
+      if ((s.consecutiveLosses || 0) >= 3) score -= 10;
+      if (s.circuitBreakerActive) score -= 5;
+      score = Math.max(0, Math.min(100, score));
+
+      // Ring animation
+      const ring = document.getElementById('health-ring');
+      if (ring) {
+        const circumference = 163; // 2 * PI * 26
+        ring.style.strokeDashoffset = circumference - (circumference * score / 100);
+        ring.style.stroke = score >= 70 ? 'var(--up)' : score >= 40 ? 'var(--amber)' : 'var(--down)';
+      }
+
+      const scoreEl = document.getElementById('health-score');
+      if (scoreEl) {
+        scoreEl.textContent = score;
+        scoreEl.style.color = score >= 70 ? 'var(--up-text)' : score >= 40 ? 'var(--amber)' : 'var(--down-text)';
+      }
+
+      const statusEl = document.getElementById('health-status');
+      if (statusEl) {
+        const status = score >= 80 ? 'HEALTHY' : score >= 60 ? 'CAUTION' : score >= 40 ? 'WARNING' : 'CRITICAL';
+        statusEl.textContent = status;
+        statusEl.style.color = score >= 70 ? 'var(--up-text)' : score >= 40 ? 'var(--amber)' : 'var(--down-text)';
+      }
+
+      const reasonsEl = document.getElementById('health-reasons');
+      if (reasonsEl) {
+        const parts = [];
+        parts.push(`$${s.capital?.toFixed(0) || '?'} (${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(1)}%)`);
+        if (s.totalTrades > 0) parts.push(`${s.totalTrades}건 ${winRate.toFixed(0)}%`);
+        reasonsEl.textContent = parts.join(' · ');
+      }
+
+      // Sharpe & PF (from detailed stats if available)
+      try {
+        const dsRes = await fetch(`${TT}/api/trade`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'dashboard' })
+        });
+        if (dsRes.ok) {
+          const ds = await dsRes.json();
+          const sharpeEl = document.getElementById('health-sharpe');
+          const pfEl = document.getElementById('health-pf');
+          if (sharpeEl) sharpeEl.textContent = ds.sharpeRatio || '--';
+          if (pfEl) pfEl.textContent = ds.profitFactor || '--';
+        }
+      } catch {}
+
+      // Risk panel
+      const mddEl = document.getElementById('risk-mdd');
+      if (mddEl) mddEl.textContent = `-${mdd.toFixed(1)}%`;
+
+      const wrEl = document.getElementById('risk-wr');
+      if (wrEl) {
+        wrEl.textContent = `${winRate.toFixed(0)}%`;
+        wrEl.style.color = winRate >= 50 ? 'var(--up-text)' : winRate >= 35 ? 'var(--amber)' : 'var(--down-text)';
+      }
+
+      // Positions count
+      const allPos = [...(s.positions || []), ...(s.swingPositions || [])];
+      const totalExp = allPos.reduce((sum, p) => sum + (p.costBasis || 0), 0);
+      const longExp = allPos.filter(p => p.direction === 'BUY').reduce((sum, p) => sum + (p.costBasis || 0), 0);
+
+      const expEl = document.getElementById('risk-exp');
+      if (expEl) expEl.textContent = `$${totalExp.toFixed(0)}`;
+
+      const biasEl = document.getElementById('risk-bias');
+      if (biasEl) {
+        if (allPos.length === 0) { biasEl.textContent = 'N/A'; biasEl.style.color = 'var(--ink3)'; }
+        else {
+          const longPct = (longExp / totalExp * 100).toFixed(0);
+          biasEl.textContent = `L${longPct}%`;
+          biasEl.style.color = longPct > 70 ? 'var(--up-text)' : longPct < 30 ? 'var(--down-text)' : 'var(--ink)';
+        }
+      }
+
+      const riskBadge = document.getElementById('risk-status-badge');
+      if (riskBadge) {
+        const riskStatus = s.circuitBreakerActive ? 'CIRCUIT' : s.drawdownHaltActive ? 'HALTED' : score >= 60 ? 'HEALTHY' : 'WARNING';
+        riskBadge.textContent = riskStatus;
+        riskBadge.style.color = riskStatus === 'HEALTHY' ? 'var(--up-text)' : riskStatus === 'WARNING' ? 'var(--amber)' : 'var(--down-text)';
+      }
+
+      // Allocation bar
+      if (allPos.length > 0) {
+        const allocBar = document.getElementById('alloc-bar');
+        const allocLegend = document.getElementById('alloc-legend');
+        if (allocBar && allocLegend) {
+          const colors = { BTC:'#ffa028', ETH:'#5fc3ec', SOL:'#1fd3b4', AVAX:'#e5484d', DOGE:'#eab308', LINK:'#3b82f6', SUI:'#8b5cf6', PEPE:'#22c55e', WIF:'#f59e0b', TON:'#06b6d4' };
+          const cashPct = Math.max(0, 100 - (totalExp / (s.capital || 3000) * 100 / (s.leverage || 20)));
+
+          let barHTML = '';
+          let legendHTML = '';
+          for (const pos of allPos) {
+            const pct = (pos.costBasis / totalExp * 100).toFixed(0);
+            const col = colors[pos.symbol] || '#666';
+            barHTML += `<div style="width:${pct}%;background:${col};" title="${pos.symbol} ${pct}%"></div>`;
+            legendHTML += `<span style="display:inline-flex;align-items:center;gap:3px;margin-right:8px;"><span style="width:6px;height:6px;background:${col};display:inline-block;"></span>${pos.symbol} ${pct}%</span>`;
+          }
+          barHTML += `<div style="flex:1;background:#222;" title="CASH"></div>`;
+          legendHTML += `<span style="color:var(--ink3);">CASH ${cashPct.toFixed(0)}%</span>`;
+
+          allocBar.innerHTML = barHTML;
+          allocLegend.innerHTML = legendHTML;
+        }
+      }
+
+    } catch (e) {
+      console.log('[fund-os] health update error:', e.message);
+    }
+  }
+
+  // ── Activity Feed 업데이트 ──
+  function addActivity(icon, msg) {
+    const body = document.getElementById('activity-body');
+    if (!body) return;
+    const time = new Date().toTimeString().slice(0, 5);
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex;gap:6px;padding:3px 6px;border-bottom:1px solid #101010;font-size:10px;';
+    item.innerHTML = `<span style="color:var(--ink3);font-size:9px;min-width:36px;">${time}</span><span>${icon}</span><span style="color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${msg}</span>`;
+    if (body.firstChild && body.firstChild.style && body.firstChild.style.color) body.innerHTML = ''; // 초기 "대기 중" 제거
+    body.insertBefore(item, body.firstChild);
+    // 최대 20개
+    while (body.children.length > 20) body.removeChild(body.lastChild);
+  }
+
+  // ── 주기적 업데이트 ──
+  updateHealthPanel();
+  addActivity('🟢', 'Billion AI Hedge Fund OS v3 initialized');
+  setInterval(updateHealthPanel, 30000); // 30초마다
+
+  // 글로벌 노출
+  window._fundOS = { updateHealthPanel, addActivity };
 })();
 </script>
 <div id="notif-stack"></div>
