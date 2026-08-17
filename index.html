@@ -5,12 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BILLION AI TERMINAL</title>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
   :root{
-    --bg:#050505; --panel:#0a0a0a; --panel2:#0e0e0e; --border:#262626; --border2:#1a1a1a;
-    --amber:#ffa028; --amber-dim:#b06a10; --ink:#e6e6e6; --ink2:#9a9a9a; --ink3:#5c5c5c;
-    --up:#00a08c; --up-text:#1fd3b4; --down:#e5484d; --down-text:#ff6b66;
-    --cyan:#2f9fd0; --cyan-text:#5fc3ec; --grid:#161616;
-    --mono:"IBM Plex Mono","SF Mono","Cascadia Mono",Consolas,"Courier New",monospace;
+    --bg:#050505; --panel:#0c0c0c; --panel2:#111; --border:#1e1e1e; --border2:#161616;
+    --amber:#e8590c; --amber-dim:#a63d08; --ink:#e0e0e0; --ink2:#8a8a8a; --ink3:#4a4a4a;
+    --up:#22c55e; --up-text:#4ade80; --down:#ef4444; --down-text:#f87171;
+    --cyan:#3b82f6; --cyan-text:#60a5fa; --grid:#131313;
+    --mono:"JetBrains Mono","IBM Plex Mono","SF Mono","Cascadia Mono",Consolas,monospace;
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   html,body{height:100%;}
@@ -25,12 +27,12 @@
 
   /* ── Top command bar ─────────────────────────── */
   #topbar{
-    display:flex; align-items:center; gap:12px; padding:6px 10px;
-    background:#000; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:12px; padding:8px 14px;
+    background:linear-gradient(180deg,#0a0a0a 0%,#050505 100%); border-bottom:1px solid var(--border);
     flex:0 0 auto;
   }
-  #brand{color:var(--amber); font-weight:700; letter-spacing:1px; white-space:nowrap;}
-  #brand small{color:var(--ink3); font-weight:400; letter-spacing:0;}
+  #brand{color:var(--amber); font-weight:800; letter-spacing:2px; white-space:nowrap; font-family:var(--sans); font-size:13px;}
+  #brand small{color:var(--ink3); font-weight:400; letter-spacing:0; font-size:10px; font-family:var(--mono);}
   #cmdwrap{flex:1; display:flex; align-items:center; gap:6px; background:#111; border:1px solid var(--border);
     padding:3px 8px; max-width:420px;}
   #cmdwrap span{color:var(--amber);}
@@ -72,18 +74,22 @@
   /* ── Main grid ───────────────────────────────── */
   #main{
     flex:1 1 auto; display:grid; min-height:0;
-    grid-template-columns:220px minmax(0,1fr) 280px; gap:1px; background:var(--border2); padding:1px;
+    grid-template-columns:220px minmax(0,1fr) 290px; gap:4px; background:var(--bg); padding:4px;
   }
-  .col{display:flex; flex-direction:column; gap:1px; min-width:0; min-height:0;}
+  .col{display:flex; flex-direction:column; gap:4px; min-width:0; min-height:0;}
   .panel{
     background:var(--panel); display:flex; flex-direction:column; min-height:0; overflow:hidden;
+    border-radius:6px; border:1px solid var(--border); transition:border-color .2s;
   }
+  .panel:hover{border-color:#2a2a2a;}
   .ptitle{
     flex:0 0 auto; display:flex; align-items:center; gap:8px;
-    padding:4px 8px; background:var(--panel2); border-bottom:1px solid var(--border2);
+    padding:6px 10px; background:var(--panel2); border-bottom:1px solid var(--border2);
     color:var(--amber); font-weight:700; letter-spacing:1px; font-size:11px;
+    font-family:var(--sans); position:relative;
   }
-  .ptitle small{color:var(--ink3); font-weight:400; letter-spacing:0;}
+  .ptitle::before{content:'';position:absolute;left:0;top:4px;bottom:4px;width:3px;background:var(--amber);border-radius:0 2px 2px 0;}
+  .ptitle small{color:var(--ink3); font-weight:400; letter-spacing:0; font-family:var(--mono);}
   .ptitle .age{margin-left:auto; color:var(--ink3); font-weight:400; font-size:10px;}
   .pbody{flex:1 1 auto; overflow-y:auto; min-height:0;}
 
@@ -812,6 +818,24 @@
     </div>
   </div>
 
+  <div id="pipeline" style="display:flex;background:#060606;border-bottom:1px solid var(--border);padding:0;flex:0 0 auto;font-family:var(--sans);">
+    <div style="flex:1;text-align:center;padding:5px 4px;font-size:8px;letter-spacing:1.5px;color:var(--amber);font-weight:600;border-right:1px solid var(--border);background:rgba(232,89,12,0.04);">
+      <span style="font-size:11px;display:block;">🔍</span>RESEARCH
+    </div>
+    <div style="flex:1;text-align:center;padding:5px 4px;font-size:8px;letter-spacing:1.5px;color:var(--amber);font-weight:600;border-right:1px solid var(--border);background:rgba(232,89,12,0.04);">
+      <span style="font-size:11px;display:block;">📊</span>ANALYZE
+    </div>
+    <div style="flex:1;text-align:center;padding:5px 4px;font-size:8px;letter-spacing:1.5px;color:var(--amber);font-weight:600;border-right:1px solid var(--border);background:rgba(232,89,12,0.04);">
+      <span style="font-size:11px;display:block;">⚖️</span>ALLOCATE
+    </div>
+    <div style="flex:1;text-align:center;padding:5px 4px;font-size:8px;letter-spacing:1.5px;color:var(--amber);font-weight:600;border-right:1px solid var(--border);background:rgba(232,89,12,0.04);">
+      <span style="font-size:11px;display:block;">🛡️</span>MANAGE
+    </div>
+    <div style="flex:1;text-align:center;padding:5px 4px;font-size:8px;letter-spacing:1.5px;color:var(--amber);font-weight:600;background:rgba(232,89,12,0.04);">
+      <span style="font-size:11px;display:block;">💎</span>COMPOUND
+    </div>
+  </div>
+
   <div id="tabrow">
     <div id="symtabs" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
     <div class="tabsep"></div>
@@ -862,9 +886,9 @@
           <tbody id="qbody"></tbody>
         </table><div id="palerts"></div><div id="positions"></div></div>
       </div>
-      <!-- PAPER TRADER (compact) -->
+      <!-- FUND OVERVIEW -->
       <div class="panel" style="flex:0 0 auto;" id="pt-compact">
-        <div class="ptitle">PAPER TRADER <small>가상매매</small><span class="age" id="age-paper"></span></div>
+        <div class="ptitle">FUND <small>AI Hedge Fund</small><span class="age" id="age-paper"></span></div>
         <div class="pbody" id="papertrading"><div style="padding:6px;color:var(--ink3)">데이터 로딩 중…</div></div>
       </div>
       <!-- MARKET OVERVIEW (MCAP, Volume, BTC.D, FNG) -->
@@ -1171,17 +1195,19 @@
 
   <!-- Bottom status bar: derivatives + paper trader status -->
   <div id="bottombar">
+    <div class="bb-item"><span>HEALTH</span> <b id="bb-health" style="color:var(--up-text)">--</b></div>
+    <div class="bb-sep"></div>
+    <div class="bb-item"><span>FUND</span> <span class="bb-pt-status running" id="bb-pt-status">LIVE</span></div>
+    <div class="bb-sep"></div>
+    <div class="bb-item"><span>CAPITAL</span> <b id="bb-capital">$--</b></div>
+    <div class="bb-sep"></div>
+    <div class="bb-item"><span>SHARPE</span> <b id="bb-sharpe">--</b></div>
+    <div class="bb-sep"></div>
+    <div class="bb-item"><span>WIN%</span> <b id="bb-winrate">--</b></div>
+    <div class="bb-sep"></div>
     <div class="bb-item"><span>FUNDING</span> <b id="bb-fund">—</b></div>
     <div class="bb-sep"></div>
-    <div class="bb-item"><span>OI</span> <b id="bb-oi">—</b></div>
-    <div class="bb-sep"></div>
-    <div class="bb-item"><span>L/S</span> <b id="bb-ls">—</b></div>
-    <div class="bb-sep"></div>
     <div class="bb-item"><span>REGIME</span> <b id="bb-regime">—</b></div>
-    <div class="bb-sep"></div>
-    <div class="bb-item"><span>PAPER</span> <span class="bb-pt-status stopped" id="bb-pt-status">OFFLINE</span></div>
-    <div class="bb-sep"></div>
-    <div class="bb-item"><span>다음 분석</span> <b id="bb-pt-cd">--:--</b></div>
     <div class="bb-sep"></div>
     <div class="bb-item"><span>F&G</span> <b id="bb-fng">—</b></div>
     <div style="margin-left:auto;"></div>
@@ -12900,8 +12926,44 @@ setTimeout(() => { loadDrawings(); }, 1000);
   addActivity('🟢', 'Billion AI Hedge Fund OS v3 initialized');
   setInterval(updateHealthPanel, 30000); // 30초마다
 
+  // ── Bottom Bar Fund 메트릭스 업데이트 ──
+  async function updateBottomFund() {
+    try {
+      const res = await fetch(`${TT}/api/trade`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'status' })
+      });
+      if (!res.ok) return;
+      const s = await res.json();
+
+      const capEl = document.getElementById('bb-capital');
+      if (capEl) capEl.textContent = `$${(s.capital || 0).toFixed(0)}`;
+
+      const wrEl = document.getElementById('bb-winrate');
+      if (wrEl) {
+        const wr = s.totalTrades > 0 ? (s.wins / s.totalTrades * 100).toFixed(0) : '--';
+        wrEl.textContent = wr + '%';
+      }
+
+      const healthEl = document.getElementById('bb-health');
+      if (healthEl) {
+        const score = document.getElementById('health-score');
+        healthEl.textContent = score ? score.textContent : '--';
+      }
+
+      const ptStatus = document.getElementById('bb-pt-status');
+      if (ptStatus) {
+        ptStatus.textContent = s.running ? 'LIVE' : 'OFFLINE';
+        ptStatus.className = 'bb-pt-status ' + (s.running ? 'running' : 'stopped');
+      }
+    } catch {}
+  }
+
+  setInterval(updateBottomFund, 30000);
+  setTimeout(updateBottomFund, 3000);
+
   // 글로벌 노출
-  window._fundOS = { updateHealthPanel, addActivity };
+  window._fundOS = { updateHealthPanel, addActivity, updateBottomFund };
 })();
 </script>
 <div id="notif-stack"></div>
