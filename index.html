@@ -908,10 +908,11 @@
           <tbody id="qbody"></tbody>
         </table><div id="palerts"></div><div id="positions"></div></div>
       </div>
-      <!-- FUND OVERVIEW -->
+      <!-- FUND OVERVIEW + EQUITY CURVE -->
       <div class="panel" style="flex:0 0 auto;" id="pt-compact">
         <div class="ptitle">FUND <small>AI Hedge Fund</small><span class="age" id="age-paper"></span></div>
         <div class="pbody" id="papertrading"><div style="padding:6px;color:var(--ink3)">데이터 로딩 중…</div></div>
+        <canvas id="equity-left" style="width:100%;height:50px;display:block;background:#080808;border-top:1px solid var(--border);"></canvas>
       </div>
       <!-- MARKET OVERVIEW -->
       <div class="panel" style="flex:0 0 auto;" id="market-overview">
@@ -13035,6 +13036,8 @@ setTimeout(() => { loadDrawings(); }, 1000);
             let running = s.startCapital || 3000;
             const curve = hist.map(t => { running += (t.pnl || 0); return { capital: running }; });
             drawEquityMini(curve);
+            // Left Column 에쿼티도 그리기
+            drawEquityMini(curve, 'equity-left');
           }
         }
       } catch {}
@@ -13167,8 +13170,8 @@ setTimeout(() => { loadDrawings(); }, 1000);
   setInterval(detectPositionChanges, 45000); // 45초마다 포지션 변동 감지
 
   // ── 에쿼티 미니차트 ──
-  function drawEquityMini(equityCurve) {
-    const cv = document.getElementById('equity-mini');
+  function drawEquityMini(equityCurve, canvasId) {
+    const cv = document.getElementById(canvasId || 'equity-mini');
     if (!cv || !equityCurve || equityCurve.length < 2) return;
     const ctx = cv.getContext('2d');
     const w = cv.offsetWidth; const h = cv.offsetHeight;
