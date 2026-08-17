@@ -14707,7 +14707,7 @@ function teamDashboard(){
         ${positions.slice(0,5).map(p=>{
           const pnl=p.unrealizedPnl||p.pnl||0;
           return `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--fs-sm)">
-            <span style="font-weight:700">${p.symbol||p.sym} <span style="color:${(p.direction||p.side)==="LONG"||p.direction===1?"var(--up-text)":"var(--down-text)";font-size:var(--fs-xs)">${p.direction||p.side}</span></span>
+            <span style="font-weight:700">${p.symbol||p.sym} <span style="color:${(p.direction||p.side)==='BUY'||(p.direction||p.side)==='LONG'?'var(--up-text)':'var(--down-text)'};font-size:var(--fs-xs)">${p.direction||p.side}</span></span>
             <span style="color:${pnl>=0?"var(--up-text)":"var(--down-text)"}">${pnl>=0?"+":""}${pnl.toFixed(2)}%</span>
           </div>`;
         }).join("")}
@@ -14821,7 +14821,7 @@ function teamDashboard(){
           <td style="color:${dirColor};font-weight:600">${typeof dir==="number"?(dir===1?"LONG":"SHORT"):dir}</td>
           <td>${parseFloat(entry).toFixed(2)}</td>
           <td>${parseFloat(current).toFixed(2)}</td>
-          <td style="color:${pnl>=0?"var(--up-text)":"var(--down-text)";font-weight:700}">${pnl>=0?"+":""}${pnl.toFixed(2)}%</td>
+          <td style="color:${pnl>=0?"var(--up-text)":'var(--down-text)'}; font-weight:700">${pnl>=0?"+":""}${pnl.toFixed(2)}%</td>
           <td style="color:var(--down-text)">${typeof sl==="number"?sl.toFixed(2):sl}</td>
           <td style="color:var(--up-text)">${typeof tp==="number"?tp.toFixed(2):tp}</td>
           <td style="color:var(--ink3)">${duration}</td>
@@ -15010,7 +15010,7 @@ function teamDashboard(){
               <td style="color:var(--ink3)">${timeStr}</td>
               <td style="font-weight:700">${t.symbol||t.sym||"?"}</td>
               <td style="color:${(t.direction||t.side)==="LONG"?"var(--up-text)":"var(--down-text)"}">${t.direction||t.side||"?"}</td>
-              <td style="color:${pnl>=0?"var(--up-text)":"var(--down-text)";font-weight:700}">${pnl>=0?"+":""}${pnl.toFixed(2)}%</td>
+              <td style="color:${pnl>=0?"var(--up-text)":'var(--down-text)'}; font-weight:700">${pnl>=0?"+":""}${pnl.toFixed(2)}%</td>
               <td>${win?'<span style="color:var(--up-text)">✓</span>':'<span style="color:var(--down-text)">✗</span>'}</td>
             </tr>`;
           }).join("")}
@@ -15072,7 +15072,7 @@ function teamDashboard(){
       <table class="tt-tbl"><thead><tr><th>코인</th><th>거래수</th><th>승률</th><th>총 PnL</th></tr></thead><tbody>
       ${entries.map(([sym,d])=>{
         const wr=d.count?d.wins/d.count*100:0;
-        return `<tr><td style="font-weight:700">${sym}</td><td>${d.count}</td><td style="color:${wr>=50?"var(--up-text)":"var(--down-text)"}">${wr.toFixed(0)}%</td><td style="color:${d.totalPnl>=0?"var(--up-text)":"var(--down-text)";font-weight:700}">${d.totalPnl>=0?"+":""}${d.totalPnl.toFixed(2)}%</td></tr>`;
+        return `<tr><td style="font-weight:700">${sym}</td><td>${d.count}</td><td style="color:${wr>=50?"var(--up-text)":"var(--down-text)"}">${wr.toFixed(0)}%</td><td style="color:${d.totalPnl>=0?"var(--up-text)":'var(--down-text)'}; font-weight:700">${d.totalPnl>=0?"+":""}${d.totalPnl.toFixed(2)}%</td></tr>`;
       }).join("")}
       </tbody></table>
     </div>`;
@@ -15160,7 +15160,7 @@ function teamDashboard(){
             <thead><tr><th>심볼</th><th>방향</th><th>PnL%</th></tr></thead><tbody>
             ${trades.slice(-15).reverse().map(t=>{
               const tpnl=t.pnl||0;
-              return `<tr><td>${t.symbol||sym}</td><td style="color:${(t.direction||t.side)==="LONG"?"var(--up-text)":"var(--down-text)"}">${t.direction||t.side||"?"}</td><td style="color:${tpnl>=0?"var(--up-text)":"var(--down-text)";font-weight:700}">${tpnl>=0?"+":""}${tpnl.toFixed(2)}%</td></tr>`;
+              return `<tr><td>${t.symbol||sym}</td><td style="color:${(t.direction||t.side)==="LONG"?"var(--up-text)":"var(--down-text)"}">${t.direction||t.side||"?"}</td><td style="color:${tpnl>=0?"var(--up-text)":'var(--down-text)'}; font-weight:700">${tpnl>=0?"+":""}${tpnl.toFixed(2)}%</td></tr>`;
             }).join("")}
             </tbody></table></div></div>`;
         }
