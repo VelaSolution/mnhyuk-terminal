@@ -1297,6 +1297,10 @@
 <script>
 "use strict";
 
+/* ═══════════════ GLOBAL CONFIG ═══════════════ */
+window.__TT_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+  ? 'http://localhost:8000' : 'https://trading-team.mot-era.com';
+
 /* ═══════════════ ERROR HANDLER ═══════════════ */
 window.onerror = function(msg, src, line, col, err) {
   console.error('[BILLION ERROR]', msg, 'at', src?.split('/')?.pop(), ':', line);
