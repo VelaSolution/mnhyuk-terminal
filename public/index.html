@@ -4589,37 +4589,152 @@ async function orderStatus(){
 }
 
 
-/* ═══════════════ BRIEF — 자동 시황 브리핑 (터미널 데이터 기반) ═══════════════ */
-function briefOverlay(){
-  const P=[], q=S.quotes, b=q.BTC, sym=S.sym, a=q[sym];
-  const pct=v=>v==null?"—":`${v>=0?"+":""}${v.toFixed(2)}%`;
-  /* 1) 시장 개요 */
-  let s1=`현재 BTC ${b&&b.last?fmtPrice(b.last)+" ("+pct(b.pct)+")":"—"}`;
-  if(q.ETH&&q.ETH.last) s1+=`, ETH ${fmtPrice(q.ETH.last)} (${pct(q.ETH.pct)})`;
-  if(S.fng) s1+=`. 공포·탐욕 ${S.fng.v} (${S.fng.cls})`;
-  const ups=(S.allTickers||[]).filter(x=>x.pct>0).length, dns=(S.allTickers||[]).filter(x=>x.pct<0).length;
-  if(ups+dns>0) s1+=`. 전 종목 중 상승 ${ups} / 하락 ${dns}${ups>dns?" — 위험선호 우위":dns>ups?" — 위험회피 우위":""}`;
-  P.push(["시장",s1+"."]);
-  /* 2) 활성 심볼 */
-  if(a&&a.last){
-    let s2=`${sym} ${fmtPrice(a.last)} (${pct(a.pct)})`;
-    if(a.fundingRate!=null) s2+=`, 펀딩 ${a.fundingRate>=0?"+":""}${a.fundingRate.toFixed(4)}%${Math.abs(a.fundingRate)>=0.05?" ⚠ 과열":""}`;
-    P.push([sym,s2+"."]);
+/* ═══════════════ BRIEF — AI 자동 종합 시장 브리핑 ═══════════════ */
+async function briefOverlay(){
+  showOverlay("BRIEFING","<div style='padding:10px;color:var(--ink3)'>브리핑 생성 중...</div>");
+
+  var quotes = typeof S !== 'undefined' ? S.quotes || {} : {};
+  var fng = typeof S !== 'undefined' && S.fng ? S.fng : null;
+  var allTickers = typeof S !== 'undefined' && S.allTickers ? S.allTickers : [];
+  var ecoList = typeof S !== 'undefined' && S.ecoList ? S.ecoList : [];
+
+  var btc = quotes.BTC;
+  var eth = quotes.ETH;
+  var sol = quotes.SOL;
+
+  var gainers = allTickers.filter(function(t){ return t.pct > 0; }).length;
+  var losers = allTickers.filter(function(t){ return t.pct < 0; }).length;
+  var totalVol = allTickers.reduce(function(s,t){ return s + t.vol; }, 0);
+  var avgChange = allTickers.length > 0 ? allTickers.reduce(function(s,t){ return s + t.pct; }, 0) / allTickers.length : 0;
+  var top3 = allTickers.slice().sort(function(a,b){ return b.pct - a.pct; }).slice(0,3);
+  var bottom3 = allTickers.slice().sort(function(a,b){ return a.pct - b.pct; }).slice(0,3);
+
+  // Try to get fund status
+  var fundData = null;
+  try {
+    var TT = window.__TT_BASE || '';
+    var res = await fetch(TT+'/api/fund/metrics');
+    fundData = await res.json();
+  } catch(ex){}
+
+  var now = new Date();
+  var timeStr = now.toLocaleString('ko-KR', {month:'long', day:'numeric', hour:'2-digit', minute:'2-digit'});
+
+  var html = '<div style="padding:10px;line-height:1.8;font-size:var(--fs-base)">';
+
+  // Header
+  html += '<div style="text-align:center;padding:12px;background:#0a0a0a;border:1px solid var(--border);border-radius:8px;margin-bottom:12px">';
+  html += '<div style="font-size:8px;color:var(--ink3);letter-spacing:3px">BILLION AI</div>';
+  html += '<div style="font-size:var(--fs-xl);font-weight:800;color:var(--amber)">MARKET BRIEFING</div>';
+  html += '<div style="font-size:var(--fs-sm);color:var(--ink3)">' + timeStr + '</div>';
+  html += '</div>';
+
+  // Market overview
+  html += '<div style="color:var(--amber);font-weight:700;margin-bottom:6px;letter-spacing:1px">MARKET OVERVIEW</div>';
+  var mood = avgChange > 1.5 ? '강세' : avgChange > 0.3 ? '약세' : avgChange > -0.3 ? '보합' : avgChange > -1.5 ? '약약세' : '강약세';
+  var moodColor = avgChange > 0 ? 'var(--up-text)' : 'var(--down-text)';
+  html += '<div style="padding:6px 0;border-bottom:1px solid #101010">시장 분위기: <b style="color:' + moodColor + '">' + mood + '</b> (평균 ' + (avgChange>=0?'+':'') + avgChange.toFixed(2) + '%)</div>';
+
+  if(btc) html += '<div style="padding:6px 0;border-bottom:1px solid #101010">BTC $' + Math.round(btc.last).toLocaleString() + ' <span style="color:' + (btc.pct>=0?'var(--up-text)':'var(--down-text)') + '">' + (btc.pct>=0?'+':'') + btc.pct.toFixed(2) + '%</span></div>';
+  if(eth) html += '<div style="padding:6px 0;border-bottom:1px solid #101010">ETH $' + Math.round(eth.last).toLocaleString() + ' <span style="color:' + (eth.pct>=0?'var(--up-text)':'var(--down-text)') + '">' + (eth.pct>=0?'+':'') + eth.pct.toFixed(2) + '%</span></div>';
+  if(fng) html += '<div style="padding:6px 0;border-bottom:1px solid #101010">공포/탐욕 지수: <b>' + fng.v + '</b> (' + fng.cls + ')</div>';
+  html += '<div style="padding:6px 0;border-bottom:1px solid #101010">상승/하락: <span style="color:var(--up-text)">' + gainers + '</span> / <span style="color:var(--down-text)">' + losers + '</span> · 총 거래량 $' + (totalVol/1e9).toFixed(1) + 'B</div>';
+
+  // Top movers
+  html += '<div style="color:var(--amber);font-weight:700;margin:12px 0 6px;letter-spacing:1px">TOP MOVERS</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  html += '<div>';
+  top3.forEach(function(t){ html += '<div class="rowline"><span style="color:var(--ink)">' + t.sym + '</span><b style="color:var(--up-text)">+' + t.pct.toFixed(1) + '%</b></div>'; });
+  html += '</div><div>';
+  bottom3.forEach(function(t){ html += '<div class="rowline"><span style="color:var(--ink)">' + t.sym + '</span><b style="color:var(--down-text)">' + t.pct.toFixed(1) + '%</b></div>'; });
+  html += '</div></div>';
+
+  // Fund status
+  if(fundData && fundData.capital){
+    html += '<div style="color:var(--amber);font-weight:700;margin:12px 0 6px;letter-spacing:1px">FUND STATUS</div>';
+    html += '<div style="padding:6px 0;border-bottom:1px solid #101010">자본: $' + fundData.capital.toFixed(0) + ' (' + (fundData.returnPct>=0?'+':'') + fundData.returnPct.toFixed(1) + '%)</div>';
+    html += '<div style="padding:6px 0;border-bottom:1px solid #101010">오늘 PnL: $' + (fundData.todayPnl||0).toFixed(2) + ' · 거래 ' + (fundData.totalTrades||0) + '건 · 승률 ' + (fundData.winRate||0).toFixed(0) + '%</div>';
+    html += '<div style="padding:6px 0;border-bottom:1px solid #101010">포지션: ' + ((fundData.positions||0)+(fundData.swingPositions||0)) + '개 · 레짐: ' + (fundData.regime||'?') + '</div>';
   }
-  /* 3) 매크로 */
-  const eco=(S.ecoList||[]).filter(x=>x.t>Date.now()).slice(0,2);
-  let s3=eco.length?`예정 이벤트: `+eco.map(x=>{
-    const d=x.t-Date.now(), dd=Math.floor(d/864e5), hh=Math.floor(d%864e5/36e5);
-    return `${x.n}(${dd>0?dd+"일 ":""}${hh}h 후)`;
-  }).join(", "):"예정 이벤트 없음";
-  P.push(["매크로",s3+"."]);
-  /* 4) 알림 */
-  const recent=ALOG.slice(0,2);
-  let s4=recent.length?`최근 알림: `+recent.map(l=>l.msg.slice(0,40)).join(" / "):"최근 알림 없음";
-  P.push(["알림",s4+"."]);
-  const html=P.map(([k,v])=>`<div class="rowline"><span style="flex:0 0 52px;color:var(--amber)">${k}</span><b style="font-weight:400;text-align:left;white-space:normal;line-height:1.65">${v}</b></div>`).join("")
-    +`<div class="rowline"><span class="n" style="font-size:10px">터미널 수신 데이터 기반 자동 생성 (${fmtT(Date.now(),true)})</span></div>`;
-  showOverlay("BRIEF · 시황 브리핑", html);
+
+  // Upcoming events
+  if(ecoList.length > 0){
+    html += '<div style="color:var(--amber);font-weight:700;margin:12px 0 6px;letter-spacing:1px">UPCOMING EVENTS</div>';
+    var upcoming = ecoList.filter(function(e){ return e.t > Date.now(); }).slice(0,5);
+    upcoming.forEach(function(e){
+      var dt = new Date(e.t);
+      var timeLeft = e.t - Date.now();
+      var leftStr = timeLeft < 3600000 ? Math.round(timeLeft/60000)+'분' : Math.round(timeLeft/3600000)+'시간';
+      html += '<div class="rowline"><span>' + (e.n||e.title||'?') + '</span><b style="color:var(--ink2)">' + leftStr + ' 후</b></div>';
+    });
+  }
+
+  html += '</div>';
+  showOverlay("BRIEFING · " + timeStr, html);
+}
+
+/* ═══════════════ MONITOR — 실시간 모니터링 모드 ═══════════════ */
+function monitorOverlay(){
+  var winId = createMWin("MONITOR · LIVE", "<div style='padding:10px;color:var(--ink3)'>초기화 중...</div>", {width:500, height:400});
+
+  function updateMonitor(){
+    var el = document.getElementById(winId);
+    if(!el || !el.parentElement) { clearInterval(monInt); return; }
+
+    var quotes = typeof S !== 'undefined' ? S.quotes || {} : {};
+    var fng = typeof S !== 'undefined' && S.fng ? S.fng : null;
+    var btc = quotes.BTC;
+    var eth = quotes.ETH;
+    var sol = quotes.SOL;
+
+    var body = el.querySelector('.mwin-body');
+    if(!body) return;
+
+    var now = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+
+    var html = '<div style="padding:8px;">';
+    html += '<div style="text-align:right;font-size:var(--fs-xs);color:var(--ink3);margin-bottom:6px">갱신: ' + now + '</div>';
+
+    // Big 3 prices
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">';
+    var coins = [{sym:'BTC',q:btc},{sym:'ETH',q:eth},{sym:'SOL',q:sol}];
+    coins.forEach(function(c){
+      if(!c.q) return;
+      html += '<div style="text-align:center;padding:10px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px">';
+      html += '<div style="font-size:8px;color:var(--ink3)">' + c.sym + '</div>';
+      html += '<div style="font-size:var(--fs-xl);font-weight:800;color:var(--ink)">$' + (c.sym==='SOL'?c.q.last.toFixed(1):Math.round(c.q.last).toLocaleString()) + '</div>';
+      html += '<div style="font-size:var(--fs-sm);color:' + (c.q.pct>=0?'var(--up-text)':'var(--down-text)') + ';font-weight:700">' + (c.q.pct>=0?'+':'') + c.q.pct.toFixed(2) + '%</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+
+    // Indicators
+    if(fng) html += '<div class="rowline"><span>Fear & Greed</span><b>' + fng.v + ' · ' + fng.cls + '</b></div>';
+
+    // Fund
+    var fundCap = document.getElementById('fund-capital');
+    var fundRet = document.getElementById('fund-return');
+    if(fundCap) html += '<div class="rowline"><span>펀드 자본</span><b>' + fundCap.textContent + '</b></div>';
+    if(fundRet) html += '<div class="rowline"><span>수익률</span><b>' + fundRet.textContent + '</b></div>';
+
+    // Open positions
+    var posCount = document.getElementById('pos-count');
+    if(posCount) html += '<div class="rowline"><span>열린 포지션</span><b style="color:var(--amber)">' + posCount.textContent + '</b></div>';
+
+    // Regime
+    var regimeLabel = document.getElementById('regime-label');
+    if(regimeLabel) html += '<div class="rowline"><span>시장 레짐</span><b>' + regimeLabel.textContent + '</b></div>';
+
+    // WebSocket status
+    var wsOk = typeof S !== 'undefined' && S.wsAlive;
+    html += '<div class="rowline"><span>WebSocket</span><b style="color:' + (wsOk?'var(--up-text)':'var(--down-text)') + '">' + (wsOk?'CONNECTED':'DISCONNECTED') + '</b></div>';
+
+    html += '</div>';
+    body.innerHTML = html;
+  }
+
+  updateMonitor();
+  var monInt = setInterval(updateMonitor, 2000);
 }
 
 /* MTF 컨플루언스 (활성 심볼 · 15M/1H/4H/1D 추세·RSI) */
@@ -5376,7 +5491,8 @@ function helpHTML(){
       ["MATRIX","시장 조건 매트릭스 (전체 조건 한눈에)"],
       ["SUMMARY","일일 시장 요약 — 전체 현황 브리핑"],
       ["ONCHAIN","온체인 데이터 (거래소 잔고·해시레이트·활성주소)"],
-      ["BRIEF","현재 데이터로 시황 브리핑 자동 생성"],
+      ["BRIEF","시장 브리핑 — AI 자동 종합 분석 리포트"],
+      ["MONITOR","실시간 모니터링 — 핵심 지표 자동 갱신"],
       ["REPORT","오늘의 종합 리포트 (전 지표 한눈에)"],
       ["DASH","퀵 대시보드 — 핵심 정보 한 화면"],
     ]},
@@ -5656,6 +5772,22 @@ async function loadQuotes(){
     }
     S.quotes={...S.quotes, ...q};
     renderQuotes(); renderTape(); setAge("quotes"); tickAges(); checkPriceAlerts();
+    // Auto spike detection
+    if(typeof _prevQuotes === 'undefined') window._prevQuotes = {};
+    for(var sym in S.quotes){
+      var _q = S.quotes[sym];
+      var prev = _prevQuotes[sym];
+      if(prev && _q.last && prev.last){
+        var changePct = ((_q.last - prev.last) / prev.last) * 100;
+        if(Math.abs(changePct) > 2){
+          if(typeof showToast === 'function'){
+            showToast(sym + ' ' + (changePct>0?'급등':'급락') + ' ' + changePct.toFixed(1) + '% ($' + _q.last.toLocaleString() + ')', changePct>0?'warn':'error');
+          }
+          pushLog('[SPIKE] ' + sym + ' ' + (changePct>0?'+':'') + changePct.toFixed(1) + '% → $' + _q.last.toLocaleString());
+        }
+      }
+      _prevQuotes[sym] = {last: _q.last};
+    }
     const aq=S.quotes[S.sym];   // keep funding cell fresh from ticker data
     if(aq && aq.fundingRate!=null) applyFunding({rate:aq.fundingRate, next:aq.nextFundingTime});
     // kimchi panel removed
@@ -6489,7 +6621,8 @@ const CMD_LIST=[
   {c:"QUAD", d:"2×2 멀티차트"},
   {c:"OPEN", d:"현재 심볼 Bybit 주문 페이지 열기"},
   {c:"ABOUT", d:"버전·데이터 소스 정보"},
-  {c:"BRIEF", d:"자동 시황 브리핑 생성"},
+  {c:"BRIEF", d:"시장 브리핑 — AI 자동 종합 분석 리포트"},
+  {c:"MONITOR", d:"실시간 모니터링 — 핵심 지표 자동 갱신"},
   {c:"ORDER LONG SOL 162 158", d:"⚡ 실주문 (Vercel+API키 필요, 테스트넷 기본)"},
   {c:"ORDER STATUS", d:"거래소 포지션·미체결 조회"},
   {c:"ORDER CANCEL", d:"현재 심볼 미체결 전체 취소"},
@@ -6797,7 +6930,8 @@ $("cmd").addEventListener("keydown",e=>{
     e.target.value="";
     return;
   }
-  if(raw==="BRIEF"){ briefOverlay(); e.target.value=""; return; }
+  if(raw==="BRIEF"||raw==="BRIEFING"){ briefOverlay(); e.target.value=""; return; }
+  if(raw==="MONITOR"||raw==="MON"){ monitorOverlay(); e.target.value=""; return; }
   if(raw==="BILLION"||raw==="B"){ billionOverlay(); e.target.value=""; return; }
   if(raw==="BILLION RUN"||raw==="B RUN"){ billionRunAnalysis(); e.target.value=""; return; }
   if(raw==="BILLION SCAN"||raw==="B SCAN"){ billionScan(); e.target.value=""; return; }
