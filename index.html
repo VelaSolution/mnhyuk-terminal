@@ -1075,25 +1075,48 @@
 
     <!-- RIGHT (280px): Fund OS Panels -->
     <div class="col" id="rightcol">
-      <!-- 1. HEALTH SCORE -->
+      <!-- 1. FUND OVERVIEW (헬스+에쿼티+핵심지표) -->
       <div class="panel" style="flex:0 0 auto;" id="health-panel">
-        <div class="ptitle" style="background:#0a1a0a;color:var(--up-text);">PORTFOLIO HEALTH
-          <span class="age" id="age-health"></span>
+        <div class="ptitle" style="background:#0a1a0a;color:var(--up-text);">FUND OVERVIEW
+          <span style="margin-left:auto;font-size:9px;font-weight:400;color:var(--ink3)" id="age-health"></span>
         </div>
-        <div class="pbody" id="health-body" style="padding:8px;">
-          <div style="display:flex;align-items:center;gap:12px;">
-            <div style="position:relative;width:64px;height:64px;flex-shrink:0;">
-              <svg width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="#1a1a1a" stroke-width="5"/><circle cx="32" cy="32" r="26" fill="none" stroke="var(--up)" stroke-width="5" stroke-dasharray="163" stroke-dashoffset="163" stroke-linecap="round" id="health-ring" style="transform:rotate(-90deg);transform-origin:50% 50%;transition:stroke-dashoffset .8s;"/></svg>
-              <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;" id="health-score">--</div>
+        <div class="pbody" id="health-body" style="padding:6px 8px;">
+          <!-- 상단: 자본 + 수익률 -->
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+            <div>
+              <div style="font-size:8px;color:var(--ink3);letter-spacing:1px;">TOTAL VALUE</div>
+              <div style="font-size:20px;font-weight:800;font-family:var(--mono);" id="fund-capital">$3,000</div>
             </div>
-            <div style="flex:1;">
-              <div style="font-size:11px;font-weight:700;letter-spacing:1px;" id="health-status">LOADING</div>
-              <div style="font-size:10px;color:var(--ink3);margin-top:4px;" id="health-reasons">분석 중...</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;font-size:9px;">
-                <div style="padding:3px 4px;background:#111;text-align:center;"><span style="color:var(--ink3)">SHARPE</span><br><b id="health-sharpe">--</b></div>
-                <div style="padding:3px 4px;background:#111;text-align:center;"><span style="color:var(--ink3)">PF</span><br><b id="health-pf">--</b></div>
-              </div>
+            <div style="text-align:right;">
+              <div style="font-size:8px;color:var(--ink3);letter-spacing:1px;">RETURN</div>
+              <div style="font-size:16px;font-weight:700;font-family:var(--mono);" id="fund-return">+0.0%</div>
             </div>
+          </div>
+          <!-- 에쿼티 미니차트 -->
+          <canvas id="equity-mini" style="width:100%;height:40px;display:block;margin-bottom:6px;border-radius:4px;background:#080808;"></canvas>
+          <!-- 핵심 지표 4개 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px;font-size:8px;">
+            <div style="padding:4px 2px;background:#0c0c0c;text-align:center;border:1px solid var(--border);border-radius:4px;">
+              <div style="color:var(--ink3);letter-spacing:.5px;">HEALTH</div>
+              <div style="font-size:13px;font-weight:700;" id="health-score">--</div>
+            </div>
+            <div style="padding:4px 2px;background:#0c0c0c;text-align:center;border:1px solid var(--border);border-radius:4px;">
+              <div style="color:var(--ink3);letter-spacing:.5px;">SHARPE</div>
+              <div style="font-size:13px;font-weight:700;" id="health-sharpe">--</div>
+            </div>
+            <div style="padding:4px 2px;background:#0c0c0c;text-align:center;border:1px solid var(--border);border-radius:4px;">
+              <div style="color:var(--ink3);letter-spacing:.5px;">WIN%</div>
+              <div style="font-size:13px;font-weight:700;" id="fund-winrate">--</div>
+            </div>
+            <div style="padding:4px 2px;background:#0c0c0c;text-align:center;border:1px solid var(--border);border-radius:4px;">
+              <div style="color:var(--ink3);letter-spacing:.5px;">TRADES</div>
+              <div style="font-size:13px;font-weight:700;" id="fund-trades">0</div>
+            </div>
+          </div>
+          <!-- Health Status 한 줄 -->
+          <div style="margin-top:4px;padding:3px 6px;font-size:9px;display:flex;justify-content:space-between;align-items:center;background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.1);border-radius:4px;">
+            <span style="color:var(--ink3);" id="health-reasons">분석 중...</span>
+            <span id="health-status" style="color:var(--up-text);font-weight:700;font-size:10px;letter-spacing:1px;">--</span>
           </div>
         </div>
       </div>
@@ -1105,17 +1128,37 @@
         </div>
         <div class="pbody" id="pos-body"><div class="pos-empty">포지션 로드 중…</div></div>
       </div>
-      <!-- 3. RISK STATUS -->
+      <!-- 3. RISK + ALLOCATION (합침) -->
       <div class="panel" style="flex:0 0 auto;" id="risk-panel">
-        <div class="ptitle">RISK <small>리스크</small></div>
+        <div class="ptitle">RISK &amp; ALLOCATION</div>
         <div class="pbody" id="risk-body" style="padding:4px 6px;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px;">
-            <div style="padding:4px;background:#111;text-align:center;"><span style="color:var(--ink3)">MDD</span><br><b id="risk-mdd" style="color:var(--down-text);">--%</b></div>
-            <div style="padding:4px;background:#111;text-align:center;"><span style="color:var(--ink3)">WIN RATE</span><br><b id="risk-wr">--%</b></div>
-            <div style="padding:4px;background:#111;text-align:center;"><span style="color:var(--ink3)">EXPOSURE</span><br><b id="risk-exp">$--</b></div>
-            <div style="padding:4px;background:#111;text-align:center;"><span style="color:var(--ink3)">BIAS</span><br><b id="risk-bias">--</b></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px;font-size:8px;">
+            <div style="padding:3px 2px;background:#0c0c0c;text-align:center;border:1px solid var(--border);border-radius:4px;">
+              <div style="color:var(--ink3)">MDD</div>
+              <div style="font-size:12px;font-weight:700;color:var(--down-text);" id="risk-mdd">--%</div>
+              <div style="color:var(--ink3);font-size:7px;">LIMIT -20%</div>
+            </div>
+            <div style="padding:3px 2px;background:#0c0c0c;text-align:center;border:1px solid var(--border);border-radius:4px;">
+              <div style="color:var(--ink3)">EXPOSURE</div>
+              <div style="font-size:12px;font-weight:700;" id="risk-exp">$--</div>
+              <div style="color:var(--ink3);font-size:7px;">MARGIN</div>
+            </div>
+            <div style="padding:3px 2px;background:#0c0c0c;text-align:center;border:1px solid var(--border);border-radius:4px;">
+              <div style="color:var(--ink3)">BIAS</div>
+              <div style="font-size:12px;font-weight:700;" id="risk-bias">--</div>
+              <div style="color:var(--ink3);font-size:7px;">L/S RATIO</div>
+            </div>
+            <div style="padding:3px 2px;background:#0c0c0c;text-align:center;border:1px solid var(--border);border-radius:4px;">
+              <div style="color:var(--ink3)">STOP LOSS</div>
+              <div style="font-size:12px;font-weight:700;color:var(--up-text);">100%</div>
+              <div style="color:var(--ink3);font-size:7px;">ALL POS</div>
+            </div>
           </div>
-          <div style="margin-top:4px;padding:4px 6px;font-size:9px;display:flex;justify-content:space-between;align-items:center;background:#0a0a0a;border:1px solid var(--border);">
+          <!-- Allocation Bar -->
+          <div id="alloc-bar" style="display:flex;height:6px;border-radius:3px;overflow:hidden;margin-top:5px;"></div>
+          <div id="alloc-legend" style="font-size:8px;color:var(--ink2);margin-top:3px;line-height:1.5;display:flex;flex-wrap:wrap;gap:2px 8px;">배분 로드 중...</div>
+          <!-- Status -->
+          <div style="margin-top:4px;padding:3px 6px;font-size:9px;display:flex;justify-content:space-between;align-items:center;background:rgba(34,197,94,0.04);border:1px solid rgba(34,197,94,0.1);border-radius:4px;">
             <span style="color:var(--ink3)">RISK STATUS</span>
             <span id="risk-status-badge" style="color:var(--up-text);font-weight:700;font-size:10px;">HEALTHY</span>
           </div>
@@ -1126,12 +1169,11 @@
         <div class="ptitle">AI SIGNALS <small>13-Agent</small><span class="age" id="age-raisig"></span></div>
         <div class="pbody" id="r-aisig-body"><div style="padding:6px 8px;color:var(--ink3);font-size:10px">시그널 로드 중…</div></div>
       </div>
-      <!-- 5. ALLOCATION -->
-      <div class="panel" style="flex:0 0 auto;" id="alloc-panel">
-        <div class="ptitle">ALLOCATION <small>배분</small></div>
-        <div class="pbody" id="alloc-body" style="padding:4px 6px;">
-          <div id="alloc-bar" style="display:flex;height:8px;border:1px solid #222;overflow:hidden;margin-bottom:4px;"></div>
-          <div id="alloc-legend" style="font-size:9px;color:var(--ink2);line-height:1.6;">배분 로드 중...</div>
+      <!-- 5. RECENT TRADES (최근 거래) -->
+      <div class="panel" style="flex:0 0 auto;" id="recent-panel">
+        <div class="ptitle">RECENT TRADES <small>최근</small></div>
+        <div class="pbody" id="recent-body" style="font-size:10px;">
+          <div style="padding:4px 8px;color:var(--ink3);font-size:9px;">거래 내역 로드 중...</div>
         </div>
       </div>
       <!-- 6. ACTIVITY FEED -->
@@ -1215,8 +1257,8 @@
     <div class="bb-sep"></div>
     <div class="bb-item"><span>MCAP</span> <b id="bb-mcap">—</b></div>
   </div>
-  <!-- Hidden stubs for JS compat (removed bottom bar items) -->
-  <div style="display:none"><b id="bb-oi"></b><b id="bb-ls"></b></div>
+  <!-- Hidden stubs for JS compat -->
+  <div style="display:none"><b id="bb-oi"></b><b id="bb-ls"></b><b id="risk-wr"></b><b id="health-pf"></b><svg id="health-ring"></svg></div>
   <div id="tape" style="display:none"><div id="tapetrack">시세 로드 중…</div></div>
   <div id="notif-area"></div>
   <div id="alert-center"></div>
@@ -12788,6 +12830,9 @@ setTimeout(() => { loadDrawings(); }, 1000);
       if (!res.ok) return;
       const s = await res.json();
 
+      // Fund Overview 업데이트
+      updateFundOverview(s);
+
       // Health Score 계산 (클라이언트측 간이 버전)
       let score = 100;
       const returnPct = s.startCapital > 0 ? ((s.capital - s.startCapital) / s.startCapital * 100) : 0;
@@ -12925,8 +12970,128 @@ setTimeout(() => { loadDrawings(); }, 1000);
 
   // ── 주기적 업데이트 ──
   updateHealthPanel();
+  updateRecentTrades();
   addActivity('🟢', 'Billion AI Hedge Fund OS v3 initialized');
-  setInterval(updateHealthPanel, 30000); // 30초마다
+  setInterval(updateHealthPanel, 30000);
+  setInterval(updateRecentTrades, 60000); // 1분마다
+
+  // ── 에쿼티 미니차트 ──
+  function drawEquityMini(equityCurve) {
+    const cv = document.getElementById('equity-mini');
+    if (!cv || !equityCurve || equityCurve.length < 2) return;
+    const ctx = cv.getContext('2d');
+    const w = cv.offsetWidth; const h = cv.offsetHeight;
+    cv.width = w * 2; cv.height = h * 2;
+    ctx.scale(2, 2);
+
+    const vals = equityCurve.map(e => e.capital);
+    const min = Math.min(...vals) * 0.998;
+    const max = Math.max(...vals) * 1.002;
+    const range = max - min || 1;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // 그라데이션 fill
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    const isProfit = vals[vals.length - 1] >= vals[0];
+    if (isProfit) { grad.addColorStop(0, 'rgba(34,197,94,0.15)'); grad.addColorStop(1, 'rgba(34,197,94,0)'); }
+    else { grad.addColorStop(0, 'rgba(239,68,68,0.15)'); grad.addColorStop(1, 'rgba(239,68,68,0)'); }
+
+    ctx.beginPath();
+    ctx.moveTo(0, h);
+    for (let i = 0; i < vals.length; i++) {
+      const x = (i / (vals.length - 1)) * w;
+      const y = h - ((vals[i] - min) / range) * h;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(w, h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // 라인
+    ctx.beginPath();
+    for (let i = 0; i < vals.length; i++) {
+      const x = (i / (vals.length - 1)) * w;
+      const y = h - ((vals[i] - min) / range) * h;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = isProfit ? '#22c55e' : '#ef4444';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  }
+
+  // ── 최근 거래 업데이트 ──
+  async function updateRecentTrades() {
+    try {
+      const res = await fetch(`${TT}/api/trade`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'history' })
+      });
+      if (!res.ok) return;
+      const history = await res.json();
+      if (!Array.isArray(history)) return;
+
+      const recent = history.slice(-5).reverse();
+      const body = document.getElementById('recent-body');
+      if (!body) return;
+
+      if (recent.length === 0) {
+        body.innerHTML = '<div style="padding:6px 8px;color:var(--ink3);font-size:9px;text-align:center;">거래 내역 없음</div>';
+        return;
+      }
+
+      body.innerHTML = recent.map(t => {
+        const isWin = (t.pnl || 0) > 0;
+        const emoji = isWin ? '✅' : '❌';
+        const pnlColor = isWin ? 'var(--up-text)' : 'var(--down-text)';
+        const dirColor = t.direction === 'BUY' ? 'var(--up-text)' : 'var(--down-text)';
+        const time = (t.exitTime || '').slice(11, 16);
+        return `<div style="display:flex;justify-content:space-between;padding:3px 8px;border-bottom:1px solid #101010;font-size:10px;font-family:var(--mono);align-items:center;">
+          <span style="display:flex;gap:4px;align-items:center;">
+            <span style="font-size:8px;">${emoji}</span>
+            <span style="font-weight:600;">${t.symbol}</span>
+            <span style="font-size:8px;color:${dirColor};font-weight:700;">${t.direction === 'BUY' ? 'L' : 'S'}</span>
+          </span>
+          <span style="color:${pnlColor};font-weight:600;">$${(t.pnl || 0).toFixed(2)}</span>
+          <span style="color:var(--ink3);font-size:8px;">${t.closeReason || ''}</span>
+          <span style="color:var(--ink3);font-size:8px;">${time}</span>
+        </div>`;
+      }).join('');
+
+      // 에쿼티 커브 데이터
+      if (history.length >= 2) {
+        const startCap = 3000;
+        let running = startCap;
+        const curve = history.map(t => { running += (t.pnl || 0); return { capital: running }; });
+        drawEquityMini(curve);
+      }
+    } catch {}
+  }
+
+  // ── Fund Overview 상단 업데이트 ──
+  function updateFundOverview(s) {
+    const capEl = document.getElementById('fund-capital');
+    const retEl = document.getElementById('fund-return');
+    const wrEl = document.getElementById('fund-winrate');
+    const trEl = document.getElementById('fund-trades');
+
+    if (capEl) capEl.textContent = `$${(s.capital || 0).toFixed(0)}`;
+
+    const returnPct = s.startCapital > 0 ? ((s.capital - s.startCapital) / s.startCapital * 100) : 0;
+    if (retEl) {
+      retEl.textContent = `${returnPct >= 0 ? '+' : ''}${returnPct.toFixed(1)}%`;
+      retEl.style.color = returnPct >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+    }
+
+    const winRate = s.totalTrades > 0 ? (s.wins / s.totalTrades * 100) : 0;
+    if (wrEl) {
+      wrEl.textContent = `${winRate.toFixed(0)}%`;
+      wrEl.style.color = winRate >= 50 ? 'var(--up-text)' : winRate >= 35 ? 'var(--ink)' : 'var(--down-text)';
+    }
+
+    if (trEl) trEl.textContent = s.totalTrades || 0;
+  }
 
   // ── Bottom Bar Fund 메트릭스 업데이트 ──
   async function updateBottomFund() {
