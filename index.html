@@ -886,11 +886,11 @@
     <div class="col" id="leftcol">
       <!-- WATCHLIST -->
       <div class="panel" style="flex:1.2;">
-        <div class="ptitle">WATCHLIST
-          <span class="ntab on" data-qtab="watch">관심</span>
-          <span class="ntab" data-qtab="up">급등</span>
-          <span class="ntab" data-qtab="dn">급락</span>
-          <span class="ntab" data-qtab="fund">펀딩</span>
+        <div class="ptitle">WATCH
+          <span class="ntab on" data-qtab="watch" style="font-size:8px;padding:1px 6px;border-radius:3px;">관심</span>
+          <span class="ntab" data-qtab="up" style="font-size:8px;padding:1px 6px;border-radius:3px;">급등</span>
+          <span class="ntab" data-qtab="dn" style="font-size:8px;padding:1px 6px;border-radius:3px;">급락</span>
+          <span class="ntab" data-qtab="fund" style="font-size:8px;padding:1px 6px;border-radius:3px;">펀딩</span>
           <span class="age" id="age-quotes"></span></div>
         <div class="pbody" id="quotes"><table>
           <thead><tr><th>SYM</th><th>LAST</th><th>24H%</th><th id="qcol4">FUND%</th></tr></thead>
@@ -902,9 +902,9 @@
         <div class="ptitle">FUND <small>AI Hedge Fund</small><span class="age" id="age-paper"></span></div>
         <div class="pbody" id="papertrading"><div style="padding:6px;color:var(--ink3)">데이터 로딩 중…</div></div>
       </div>
-      <!-- MARKET OVERVIEW (MCAP, Volume, BTC.D, FNG) -->
+      <!-- MARKET OVERVIEW -->
       <div class="panel" style="flex:0 0 auto;" id="market-overview">
-        <div class="ptitle">MARKET OVERVIEW <small>시장 요약</small><span class="age" id="age-glob"></span></div>
+        <div class="ptitle">MARKET <small>글로벌</small><span class="age" id="age-glob"></span></div>
         <div class="pbody" id="globals">
           <div class="rowline"><span>TOTAL MCAP</span><b id="g-mcap">—</b></div>
           <div class="rowline"><span>24H VOLUME</span><b id="g-vol">—</b></div>
@@ -13141,7 +13141,16 @@ setTimeout(() => { loadDrawings(); }, 1000);
   setTimeout(updateBottomFund, 3000);
 
   // 글로벌 노출
-  window._fundOS = { updateHealthPanel, addActivity, updateBottomFund };
+  // ── Pipeline 바 상태 업데이트 ──
+  function updatePipelineStatus() {
+    const steps = document.querySelectorAll('#pipeline > div:not([style*="flex:0"])');
+    if (!steps || steps.length < 5) return;
+    // 모든 단계 활성 표시 (시스템 가동 중)
+    steps.forEach(s => { s.style.opacity = '1'; });
+  }
+  updatePipelineStatus();
+
+  window._fundOS = { updateHealthPanel, addActivity, updateBottomFund, updateRecentTrades, drawEquityMini };
 })();
 </script>
 <div id="notif-stack"></div>
