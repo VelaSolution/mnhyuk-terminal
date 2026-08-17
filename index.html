@@ -5715,6 +5715,15 @@ const CMD_LIST=[
   {c:"ICAL", d:"트레이딩 캘린더 (일별 손익)"},
   {c:"BACKTEST", d:"백테스트 결과 오버레이 (B키)"},
   {c:"BT", d:"백테스트 결과 (BACKTEST 단축)"},
+  {c:"FUNDOS", d:"AI Hedge Fund OS 대시보드 (전체 펀드 현황)"},
+  {c:"HEDGE", d:"헷지 권고 (방향 편향 분석)"},
+  {c:"ALLOCATION", d:"포트폴리오 배분 규칙 체크"},
+  {c:"REBALANCE", d:"리밸런스 권고 (약한→강한 이동)"},
+  {c:"SWEEP BTC", d:"전략 대량 스위프 (N코인 × 19전략)"},
+  {c:"CRASH BTC", d:"급락 반등 P1-P4 분석"},
+  {c:"TUNE BTC", d:"파라미터 자동 튜닝 (SL×TP×레버)"},
+  {c:"FSCAN", d:"급변동 실시간 감지 (5분 패스트스캔)"},
+  {c:"FGRID BTC", d:"그리드 트레이딩 레벨 계산"},
 ];
 let sugSel=-1, sugItems=[];
 function renderSug(){
@@ -5934,6 +5943,15 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="SUPPLY"){ supplyOverlay(); e.target.value=""; return; }
   if(raw==="PIVOT"){ pivotOverlay(); e.target.value=""; return; }
   if(raw==="PAPER"){ paperTradingOverlay(); e.target.value=""; return; }
+  if(raw==="FUNDOS"||raw==="FOS"){ fundOSOverlay(); e.target.value=""; return; }
+  if(raw.startsWith("CRASH")){ const csym=raw.split(/\s+/)[1]||S.sym; crashOverlay(csym); e.target.value=""; return; }
+  if(raw.startsWith("HEDGE")){ hedgeOverlay(); e.target.value=""; return; }
+  if(raw==="ALLOCATION"||raw==="ALLOC"){ allocationOverlay(); e.target.value=""; return; }
+  if(raw==="REBALANCE"||raw==="REBAL"){ rebalanceOverlay(); e.target.value=""; return; }
+  if(raw.startsWith("SWEEP")){ const ssym=raw.split(/\s+/)[1]||'BTC'; sweepOverlay(ssym); e.target.value=""; return; }
+  if(raw.startsWith("TUNE")){ const tsym=raw.split(/\s+/)[1]||S.sym; tuneOverlay(tsym); e.target.value=""; return; }
+  if(raw==="FSCAN"){ fscanOverlay(); e.target.value=""; return; }
+  if(raw.startsWith("FGRID")){ const gsym=raw.split(/\s+/)[1]||S.sym; fgridOverlay(gsym); e.target.value=""; return; }
   if(raw==="CALENDAR"||raw==="CAL"){ economicCalendarOverlay(); e.target.value=""; return; }
   if(raw==="REALPORT"||raw==="RPORT"){ realPortfolioOverlay(); e.target.value=""; return; }
   if(raw==="FUNDMAP"||raw==="FHEAT"){ fundingHeatOverlay(); e.target.value=""; return; }
@@ -13197,6 +13215,100 @@ setTimeout(() => { loadDrawings(); }, 1000);
     steps.forEach(s => { s.style.opacity = '1'; });
   }
   updatePipelineStatus();
+
+  // ═══ Fund OS 커맨드바 오버레이 함수들 ═══
+
+  window.fundOSOverlay = async function() {
+    try {
+      const res = await fetch(`${TT}/api/paper/status`);
+      const s = await res.json();
+      const hRes = await fetch(`${TT}/api/paper/history`);
+      const hist = await hRes.json();
+      const allPos = [...(s.positions||[]),...(s.swingPositions||[])];
+      const ret = s.startCapital>0 ? ((s.capital-s.startCapital)/s.startCapital*100) : 0;
+      const wr = s.totalTrades>0 ? (s.wins/s.totalTrades*100) : 0;
+      let html = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px;background:var(--border)">
+        <div style="background:var(--panel);padding:10px;text-align:center"><div style="color:var(--ink3);font-size:9px">CAPITAL</div><div style="font-size:18px;font-weight:800;color:${ret>=0?'var(--up-text)':'var(--down-text)'}">$${(s.capital||0).toFixed(0)}</div></div>
+        <div style="background:var(--panel);padding:10px;text-align:center"><div style="color:var(--ink3);font-size:9px">RETURN</div><div style="font-size:18px;font-weight:800;color:${ret>=0?'var(--up-text)':'var(--down-text)'}">${ret>=0?'+':''}${ret.toFixed(1)}%</div></div>
+        <div style="background:var(--panel);padding:10px;text-align:center"><div style="color:var(--ink3);font-size:9px">TRADES</div><div style="font-size:18px;font-weight:800">${s.totalTrades||0}</div><div style="font-size:9px;color:var(--ink3)">${s.wins||0}W / ${s.losses||0}L</div></div>
+        <div style="background:var(--panel);padding:10px;text-align:center"><div style="color:var(--ink3);font-size:9px">WIN RATE</div><div style="font-size:18px;font-weight:800;color:${wr>=50?'var(--up-text)':'var(--down-text)'}">${wr.toFixed(0)}%</div></div>
+      </div>`;
+      html += `<div style="padding:6px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">OPEN POSITIONS (${allPos.length})</div>`;
+      allPos.forEach(p => {
+        const dirCol = p.direction==='BUY' ? 'var(--up-text)' : 'var(--down-text)';
+        html += `<div class="rowline"><span style="color:${dirCol};font-weight:700">${p.direction} ${p.symbol}</span><span>$${p.entryPrice} → SL $${p.slPrice} TP $${p.tpPrice}</span></div>`;
+      });
+      html += `<div style="padding:6px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">SYSTEM</div>`;
+      html += `<div class="rowline"><span>Version</span><b>${s.version}</b></div>`;
+      html += `<div class="rowline"><span>Strategy</span><b>${s.activeStrategy||'bb_bounce'}</b></div>`;
+      html += `<div class="rowline"><span>Analysis</span><b>${s.analysisInterval}</b></div>`;
+      html += `<div class="rowline"><span>MDD</span><b style="color:var(--down-text)">-${(s.maxDrawdown||0).toFixed(1)}%</b></div>`;
+      html += `<div class="rowline"><span>Circuit Breaker</span><b>${s.circuitBreakerActive?'ACTIVE':'OFF'}</b></div>`;
+      showOverlay("BILLION AI HEDGE FUND OS", html);
+    } catch(e) { showOverlay("FUND OS", '<div class="rowline"><span style="color:var(--down-text)">Trading Team 연결 실패: '+e.message+'</span></div>'); }
+  };
+
+  window.crashOverlay = async function(sym) {
+    try {
+      const res = await fetch(`${TT}/api/signal?symbol=${sym}&type=crash`);
+      if (!res.ok) throw new Error('API 실패');
+      const data = await res.json();
+      // Fallback: 직접 24h 데이터로 간이 분석
+      let html = `<div class="rowline"><span>Symbol</span><b>${sym}</b></div>`;
+      html += `<div class="rowline"><span style="color:var(--ink3)">급락 반등 분석은 텔레그램 /crash ${sym} 사용</span></div>`;
+      showOverlay(`CRASH BOUNCE · ${sym}`, html);
+    } catch(e) {
+      showOverlay(`CRASH BOUNCE · ${sym}`, `<div class="rowline"><span style="color:var(--ink3)">텔레그램에서 /crash ${sym} 명령 사용</span></div>`);
+    }
+  };
+
+  window.hedgeOverlay = async function() {
+    try {
+      const res = await fetch(`${TT}/api/paper/status`);
+      const s = await res.json();
+      const allPos = [...(s.positions||[]),...(s.swingPositions||[])];
+      const totalExp = allPos.reduce((sum,p) => sum + (p.costBasis||0), 0);
+      const longExp = allPos.filter(p => p.direction==='BUY').reduce((sum,p) => sum + (p.costBasis||0), 0);
+      const shortExp = totalExp - longExp;
+      const bias = totalExp > 0 ? (longExp/totalExp*100) : 50;
+      let html = `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--border)">
+        <div style="background:var(--panel);padding:8px;text-align:center"><div style="color:var(--ink3);font-size:9px">LONG</div><div style="font-size:14px;font-weight:700;color:var(--up-text)">$${longExp.toFixed(0)}</div></div>
+        <div style="background:var(--panel);padding:8px;text-align:center"><div style="color:var(--ink3);font-size:9px">SHORT</div><div style="font-size:14px;font-weight:700;color:var(--down-text)">$${shortExp.toFixed(0)}</div></div>
+        <div style="background:var(--panel);padding:8px;text-align:center"><div style="color:var(--ink3);font-size:9px">BIAS</div><div style="font-size:14px;font-weight:700">${bias.toFixed(0)}% L</div></div>
+      </div>`;
+      if (bias > 70) html += `<div class="rowline"><span style="color:var(--amber)">⚠️ LONG 편향 ${bias.toFixed(0)}% — 헷지 권장</span></div>`;
+      else if (bias < 30) html += `<div class="rowline"><span style="color:var(--amber)">⚠️ SHORT 편향 ${(100-bias).toFixed(0)}% — 헷지 권장</span></div>`;
+      else html += `<div class="rowline"><span style="color:var(--up-text)">✅ 포트폴리오 균형</span></div>`;
+      showOverlay("HEDGE ANALYSIS", html);
+    } catch(e) { showOverlay("HEDGE", '<div class="rowline"><span style="color:var(--down-text)">'+e.message+'</span></div>'); }
+  };
+
+  window.allocationOverlay = async function() {
+    try {
+      const res = await fetch(`${TT}/api/paper/status`);
+      const s = await res.json();
+      const allPos = [...(s.positions||[]),...(s.swingPositions||[])];
+      const totalExp = allPos.reduce((sum,p) => sum + (p.costBasis||0), 0);
+      let html = `<div style="padding:6px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">ALLOCATION RULES</div>`;
+      html += `<div class="rowline"><span>Max Position</span><b>25%</b></div>`;
+      html += `<div class="rowline"><span>Max Sector</span><b>40%</b></div>`;
+      html += `<div class="rowline"><span>Max Bias</span><b>70%</b></div>`;
+      html += `<div class="rowline"><span>Cash Reserve</span><b>20%+</b></div>`;
+      html += `<div style="padding:6px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border)">CURRENT</div>`;
+      allPos.forEach(p => {
+        const pct = totalExp>0 ? (p.costBasis/totalExp*100).toFixed(0) : 0;
+        const over = pct > 25;
+        html += `<div class="rowline"><span>${p.symbol} ${p.direction}</span><b style="color:${over?'var(--down-text)':'var(--ink)'}">${pct}%</b></div>`;
+      });
+      showOverlay("PORTFOLIO ALLOCATION", html);
+    } catch(e) { showOverlay("ALLOCATION", '<div class="rowline"><span style="color:var(--down-text)">'+e.message+'</span></div>'); }
+  };
+
+  window.rebalanceOverlay = function() { showOverlay("REBALANCE", '<div class="rowline"><span style="color:var(--ink3)">텔레그램 /rebalance 명령 사용</span></div>'); };
+  window.sweepOverlay = function(sym) { showOverlay("STRATEGY SWEEP · "+sym, '<div class="rowline"><span style="color:var(--ink3)">텔레그램 /sweep '+sym+' 명령 사용 (2-3분 소요)</span></div>'); };
+  window.tuneOverlay = function(sym) { showOverlay("PARAMETER TUNE · "+sym, '<div class="rowline"><span style="color:var(--ink3)">텔레그램 /tune '+sym+' 명령 사용 (1-2분 소요)</span></div>'); };
+  window.fscanOverlay = function() { showOverlay("FAST SCAN", '<div class="rowline"><span style="color:var(--ink3)">텔레그램 /scan 명령 사용</span></div>'); };
+  window.fgridOverlay = function(sym) { showOverlay("GRID LEVELS · "+sym, '<div class="rowline"><span style="color:var(--ink3)">텔레그램 /grid '+sym+' 명령 사용</span></div>'); };
 
   window._fundOS = { updateHealthPanel, addActivity, updateBottomFund, updateRecentTrades, drawEquityMini };
 })();
