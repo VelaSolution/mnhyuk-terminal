@@ -85,7 +85,7 @@
     transition:all .15s; font-size:var(--fs-base);
   }
   .tab:hover{color:var(--ink); border-color:#3a3a3a; background:#151515;}
-  .tab.on{color:#fff; background:var(--amber); border-color:var(--amber); font-weight:700;}
+  .tab.on{color:#fff; background:var(--amber); border-color:var(--amber); font-weight:700; box-shadow:0 0 8px rgba(232,89,12,0.3);}
   .tabsep{width:1px; height:16px; background:var(--border); margin:0 6px;}
   #fkeys{margin-left:auto; color:var(--ink3); display:flex; gap:10px; white-space:nowrap;}
   #fkeys b{color:var(--amber-dim);}
@@ -103,7 +103,7 @@
     border-radius:6px; border:1px solid var(--border); transition:all .25s ease;
     background-image:linear-gradient(180deg,rgba(255,255,255,.008) 0%,transparent 100%);
   }
-  .panel:hover{border-color:#2a2a2a;box-shadow:0 0 12px rgba(232,89,12,.03);}
+  .panel:hover{border-color:#2a2a2a; box-shadow:inset 3px 0 0 var(--amber-dim);}
   .ptitle{
     flex:0 0 auto; display:flex; align-items:center; gap:8px;
     padding:6px 10px; background:linear-gradient(90deg,var(--panel2) 0%,rgba(17,17,17,.6) 100%); border-bottom:1px solid var(--border2);
@@ -151,6 +151,7 @@
 
   /* ── Chart panel ─────────────────────────────── */
   #chartpanel{flex:1 1 auto;}
+  #chartpanel:focus-within{border-color:var(--amber-dim);}
   #chartinfo{display:flex; gap:10px; padding:4px 10px; color:var(--ink2); font-size:var(--fs-base);
     border-bottom:1px solid var(--border2); flex-wrap:wrap; min-height:28px; align-items:center;
     background:linear-gradient(90deg,rgba(0,0,0,.4) 0%,rgba(0,0,0,.2) 100%);}
@@ -169,7 +170,8 @@
 
   /* ── Derivatives strip ───────────────────────── */
   #deriv{flex:0 0 auto; display:grid; grid-template-columns:1fr 1.2fr 1.2fr 1fr 0.8fr; gap:4px; background:var(--bg); border-top:1px solid var(--border); padding:4px;}
-  .dcell{background:var(--panel); padding:8px 10px; min-height:74px; border-radius:6px; border:1px solid var(--border);}
+  .dcell{background:var(--panel); padding:8px 10px; min-height:74px; border-radius:6px; border:1px solid var(--border); transition:background .2s;}
+  .dcell:hover{background:rgba(232,89,12,0.03);}
   .dcell h4{color:var(--ink3); font-size:var(--fs-xs); font-weight:600; letter-spacing:1px; margin-bottom:4px; font-family:var(--sans);}
   .dcell .big{font-size:var(--fs-xl); font-weight:700; font-variant-numeric:tabular-nums; font-family:var(--mono);}
   .dcell .sub{color:var(--ink2); font-size:var(--fs-sm); margin-top:3px;}
@@ -622,7 +624,9 @@
 
   /* ── Col3 (RIGHT) panel density ──────────────── */
   #rightcol>.panel{flex:0 0 auto !important; max-height:none;}
-  #rightcol{overflow-y:auto;}
+  #rightcol{overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--amber-dim) transparent;}
+  #rightcol::-webkit-scrollbar{width:4px;}
+  #rightcol::-webkit-scrollbar-thumb{background:var(--amber-dim); border-radius:2px;}
   #rightcol .ptitle{padding:3px 6px; font-size:var(--fs-sm);}
   #rightcol .pbody{font-size:var(--fs-sm);}
 
@@ -926,6 +930,20 @@
   #news-feed .item:hover{background:rgba(255,255,255,.02);padding-left:12px;}
   .lgd{transition:all .15s ease;}
   #equity-left{border-top:1px solid var(--border) !important;background:linear-gradient(180deg,#080808,#060606) !important;}
+
+  /* ── Value transition animations ─────────────── */
+  .value-transition{transition:color .3s ease;}
+  .flash-green{animation:valFlashG .6s ease-out;}
+  .flash-red{animation:valFlashR .6s ease-out;}
+  @keyframes valFlashG{0%{color:var(--up-text);text-shadow:0 0 6px var(--up)}100%{text-shadow:none}}
+  @keyframes valFlashR{0%{color:var(--down-text);text-shadow:0 0 6px var(--down)}100%{text-shadow:none}}
+
+  /* ── Print-friendly styles ───────────────────── */
+  @media print{
+    #topbar,#tabrow,#bottombar,#fkeys,.mwin,#cmd-palette,#mwin-taskbar{display:none !important;}
+    body{background:#fff !important; color:#000 !important;}
+    .panel{border:1px solid #ccc !important; break-inside:avoid;}
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
