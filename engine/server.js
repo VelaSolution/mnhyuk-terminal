@@ -1560,12 +1560,11 @@ const server = http.createServer(async (req, res) => {
         const rawEvents = fcsData.response || fcsData.data || [];
         if (!Array.isArray(rawEvents) || !rawEvents.length) throw new Error('FCS 데이터 없음');
         const events = rawEvents
-          .filter(e => e.importance === '3' || e.importance === '2' || e.importance === 'High' || e.importance === 'Medium')
           .map(e => ({
             title: e.title || e.event || '',
             country: e.currency || e.country || '',
             date: e.date || '',
-            impact: (e.importance === '3' || e.importance === 'High') ? 'High' : 'Medium',
+            impact: (e.importance === '3' || e.importance === 'High') ? 'High' : (e.importance === '2' || e.importance === 'Medium') ? 'Medium' : 'Low',
             actual: e.actual || '',
             forecast: e.forecast || e.estimate || '',
             previous: e.previous || '',
