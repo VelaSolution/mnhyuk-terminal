@@ -878,6 +878,8 @@
     <div class="ss-item"><span>GAS</span> <b id="ss-gas">—</b></div>
     <div class="ss-sep"></div>
     <div class="ss-item" id="ss-signal" style="display:none"></div>
+    <div class="ss-sep"></div>
+    <div class="ss-item"><span>POS</span> <b id="ss-pos" style="color:var(--amber)">--</b></div>
   </div>
 
   <!-- Mobile: horizontal quote ticker (hidden on desktop) -->
@@ -10646,7 +10648,7 @@ document.getElementById("cmd").addEventListener("keydown", function(e) {
         renderPTInTTPanel(PT_POSITIONS_CACHE.data);
         return;
       }
-      const res = await fetch(`${TT_URL}/api/paper/positions`, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`${TT_URL}/api/paper/status`, { signal: AbortSignal.timeout(5000) });
       if (!res.ok) return;
       const data = await res.json();
       PT_POSITIONS_CACHE.data = data;
@@ -11010,7 +11012,7 @@ document.getElementById("cmd").addEventListener("keydown", function(e) {
   async function fetchPaperPositions() {
     try {
       if (Date.now() - PT_POS_CACHE.ts < 10000 && PT_POS_CACHE.data) return PT_POS_CACHE.data;
-      const res = await fetch(`${TT}/api/paper/positions`, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`${TT}/api/paper/status`, { signal: AbortSignal.timeout(5000) });
       if (!res.ok) return null;
       const data = await res.json();
       PT_POS_CACHE.data = data;
@@ -13277,12 +13279,26 @@ setTimeout(() => { loadDrawings(); }, 1000);
       if (wrEl) {
         const wr = s.totalTrades > 0 ? (s.wins / s.totalTrades * 100).toFixed(0) : '--';
         wrEl.textContent = wr + '%';
+        wrEl.style.color = parseInt(wr) >= 50 ? 'var(--up-text)' : parseInt(wr) >= 35 ? 'var(--ink)' : 'var(--down-text)';
       }
 
       const healthEl = document.getElementById('bb-health');
       if (healthEl) {
         const score = document.getElementById('health-score');
         healthEl.textContent = score ? score.textContent : '--';
+      }
+
+      // Sharpe (from fund overview)
+      const sharpeEl = document.getElementById('bb-sharpe');
+      const fundSharpe = document.getElementById('health-sharpe');
+      if (sharpeEl && fundSharpe) sharpeEl.textContent = fundSharpe.textContent;
+
+      // Status strip position count
+      const ssPos = document.getElementById('ss-pos');
+      if (ssPos) {
+        const posCount = (s.positions||[]).length + (s.swingPositions||[]).length;
+        ssPos.textContent = posCount > 0 ? `${posCount} OPEN` : 'NONE';
+        ssPos.style.color = posCount > 0 ? 'var(--amber)' : 'var(--ink3)';
       }
 
       const ptStatus = document.getElementById('bb-pt-status');
