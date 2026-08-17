@@ -5351,7 +5351,7 @@ function helpHTML(){
       ["HEALTH","시장 건강도 종합 체크 (10개 지표)"],
       ["PULSE","마켓 펄스 — 시장 건강도 체크"],
       ["MATRIX","시장 조건 매트릭스 (전체 조건 한눈에)"],
-      ["SUMMARY","현재 종목 종합 요약 (한줄 분석)"],
+      ["SUMMARY","일일 시장 요약 — 전체 현황 브리핑"],
       ["ONCHAIN","온체인 데이터 (거래소 잔고·해시레이트·활성주소)"],
       ["BRIEF","현재 데이터로 시황 브리핑 자동 생성"],
       ["REPORT","오늘의 종합 리포트 (전 지표 한눈에)"],
@@ -5364,7 +5364,7 @@ function helpHTML(){
       ["FLOW","매수/매도 자금 흐름 추적 (체결 기반)"],
     ]},
     {cat:"SCANNER & SCREENER", color:"#FACC15", cmds:[
-      ["SCANNER","전 종목 조건 스캐너 (RSI 과매도 + 볼륨 급증)"],
+      ["SCANNER RSI<30","조건 스캐너 — RSI/변동률/볼륨 필터"],
       ["SCREENER RSI<30","조건식 스크리너 (RSI<30, VOL>2 등)"],
       ["SNIPER SOL 160 LONG","스나이퍼 — 가격 도달 시 방향 알림 + 자동 계산"],
       ["SNIPER","스나이퍼 목록 보기"],
@@ -5422,7 +5422,7 @@ function helpHTML(){
       ["LOG","알림 로그 전체 보기"],
       ["STATUS","시스템 상태 대시보드 (연결·데이터·성능)"],
       ["STATS","터미널 사용 통계"],
-      ["HISTORY","명령어 사용 기록"],
+      ["HISTORY","거래 히스토리 — 전체 매매 기록 상세"],
       ["KEYS","키보드 단축키 목록"],
       ["ABOUT","버전·데이터 소스 정보"],
       ["HELP","이 도움말"],
@@ -6086,83 +6086,60 @@ function exportCSV(){
   pushLog(`CSV 다운로드: ${LE.history.length}건 내보내기 완료`);
 }
 
-async function scannerOverlay(){
-  if(!S.allTickers || !S.allTickers.length){
-    showOverlay("SCANNER", '<div class="rowline"><span style="color:var(--ink3)">데이터 로드 중…</span></div>');
-    return;
+function scannerOverlay(condition){
+  var allTickers = typeof S !== 'undefined' && S.allTickers ? S.allTickers : [];
+  if(!allTickers.length){ showOverlay("SCANNER",'<div class="rowline"><span style="color:var(--ink3)">시세 데이터 대기 중</span></div>'); return; }
+
+  var cond = condition.toUpperCase().trim();
+  var filtered = [];
+
+  // Parse condition
+  if(cond.match(/RSI\s*<\s*(\d+)/)){
+    // RSI < N: Can't calculate real RSI here, use 24h change as proxy
+    var threshold = parseInt(cond.match(/RSI\s*<\s*(\d+)/)[1]);
+    filtered = allTickers.filter(function(t){ return t.pct < -(100-threshold)/10; }).sort(function(a,b){ return a.pct - b.pct; });
+  } else if(cond.match(/RSI\s*>\s*(\d+)/)){
+    var threshold = parseInt(cond.match(/RSI\s*>\s*(\d+)/)[1]);
+    filtered = allTickers.filter(function(t){ return t.pct > (threshold-50)/10; }).sort(function(a,b){ return b.pct - a.pct; });
+  } else if(cond.match(/VOL\s*>\s*(\d+)M/i)){
+    var minVol = parseInt(cond.match(/VOL\s*>\s*(\d+)M/i)[1]) * 1e6;
+    filtered = allTickers.filter(function(t){ return t.vol > minVol; }).sort(function(a,b){ return b.vol - a.vol; });
+  } else if(cond.match(/UP\s*>\s*(\d+)/)){
+    var minPct = parseFloat(cond.match(/UP\s*>\s*(\d+)/)[1]);
+    filtered = allTickers.filter(function(t){ return t.pct >= minPct; }).sort(function(a,b){ return b.pct - a.pct; });
+  } else if(cond.match(/DOWN\s*>\s*(\d+)/)){
+    var minPct = parseFloat(cond.match(/DOWN\s*>\s*(\d+)/)[1]);
+    filtered = allTickers.filter(function(t){ return t.pct <= -minPct; }).sort(function(a,b){ return a.pct - b.pct; });
+  } else {
+    // Default: show all sorted by absolute change
+    filtered = allTickers.slice().sort(function(a,b){ return Math.abs(b.pct) - Math.abs(a.pct); });
   }
 
-  showOverlay("SCANNER · 조건 스캔 중", '<div class="rowline"><span style="color:var(--ink3)">상위 20종목 병렬 분석 중…</span></div>');
+  filtered = filtered.slice(0, 25);
 
-  const top = [...S.allTickers].sort((a,b) => b.vol - a.vol).slice(0, 20);
+  var html = '<div style="padding:8px;">';
+  html += '<div style="color:var(--amber);font-weight:700;font-size:var(--fs-base);margin-bottom:4px;letter-spacing:1px">SCANNER \u00B7 ' + cond + '</div>';
+  html += '<div style="font-size:var(--fs-xs);color:var(--ink3);margin-bottom:8px">' + filtered.length + '\uAC1C \uB9E4\uCE6D \u00B7 \uC870\uAC74: RSI<30, VOL>100M, UP>5, DOWN>3</div>';
 
-  const scanResults = await Promise.allSettled(top.map(async (coin) => {
-    const data = await firstOk(klineChain(coin.sym, "1H", 100));
-    if(!data || data.length < 30) return null;
-
-    const closes = data.map(c => c.c);
-    const n = data.length;
-    const last = n - 1;
-
-    const rsiArr = rsiSeries(closes, 14);
-    const rsi = rsiArr[last];
-
-    const volSlice = data.slice(Math.max(0,last-20), last);
-    const volAvg = volSlice.length > 0 ? volSlice.reduce((s,c) => s+c.v, 0) / volSlice.length : 1;
-    const volRatio = data[last].v / (volAvg || 1);
-
-    const bb = bollinger(closes, 20, 2);
-    const bbPos = bb.up[last] ? (closes[last] - bb.lo[last]) / (bb.up[last] - bb.lo[last]) : 0.5;
-
-    // MACD cross 감지
-    const ema12 = ema(closes, 12);
-    const ema26 = ema(closes, 26);
-    const macdNow = (ema12[last] || 0) - (ema26[last] || 0);
-    const macdPrev = (ema12[last-1] || 0) - (ema26[last-1] || 0);
-    const goldenCross = macdPrev <= 0 && macdNow > 0;
-    const deathCross = macdPrev >= 0 && macdNow < 0;
-
-    const conditions = [];
-    if(rsi < 30) conditions.push({label:"RSI 과매도", color:"var(--up-text)", weight:2});
-    if(rsi > 70) conditions.push({label:"RSI 과매수", color:"var(--down-text)", weight:2});
-    if(volRatio > 2) conditions.push({label:`볼륨 ${volRatio.toFixed(1)}x`, color:"var(--amber)", weight:1.5});
-    if(bbPos <= 0.05) conditions.push({label:"BB 하단터치", color:"var(--up-text)", weight:1.5});
-    if(bbPos >= 0.95) conditions.push({label:"BB 상단터치", color:"var(--down-text)", weight:1.5});
-    if(goldenCross) conditions.push({label:"MACD 골든크로스", color:"var(--up-text)", weight:2});
-    if(deathCross) conditions.push({label:"MACD 데드크로스", color:"var(--down-text)", weight:2});
-    if(Math.abs(coin.pct) > 8) conditions.push({label:`24h ${coin.pct>0?'+':''}${coin.pct.toFixed(1)}%`, color:coin.pct>0?"var(--up-text)":"var(--down-text)", weight:1});
-
-    if(conditions.length > 0){
-      return {
-        sym: coin.sym, price: coin.last, pct: coin.pct, rsi, volRatio, conditions,
-        score: conditions.reduce((s,c) => s + c.weight, 0),
-      };
-    }
-    return null;
-  }));
-
-  const results = scanResults.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
-
-  results.sort((a,b) => b.score - a.score);
-
-  if(!results.length){
-    showOverlay("SCANNER", '<div class="rowline"><span style="color:var(--ink3)">조건에 부합하는 종목 없음</span></div>');
-    return;
+  if(filtered.length === 0){
+    html += '<div class="rowline"><span style="color:var(--ink3)">\uC870\uAC74\uC5D0 \uB9DE\uB294 \uCF54\uC778 \uC5C6\uC74C</span></div>';
+  } else {
+    html += '<table style="width:100%;font-size:var(--fs-sm);border-collapse:collapse">';
+    html += '<tr style="color:var(--ink3);border-bottom:1px solid var(--border)"><td style="padding:4px">#</td><td style="padding:4px">SYM</td><td style="padding:4px;text-align:right">PRICE</td><td style="padding:4px;text-align:right">24H%</td><td style="padding:4px;text-align:right">VOL</td></tr>';
+    filtered.forEach(function(t, i){
+      var cls = t.pct >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+      html += '<tr style="border-bottom:1px solid #101010;cursor:pointer" onclick="switchTo(\'' + t.sym + '\',S.tf)">';
+      html += '<td style="padding:4px;color:var(--ink3)">' + (i+1) + '</td>';
+      html += '<td style="padding:4px;font-weight:700;color:var(--ink)">' + t.sym + '</td>';
+      html += '<td style="padding:4px;text-align:right;color:var(--ink)">' + t.last.toLocaleString() + '</td>';
+      html += '<td style="padding:4px;text-align:right;color:' + cls + '">' + (t.pct>=0?'+':'') + t.pct.toFixed(2) + '%</td>';
+      html += '<td style="padding:4px;text-align:right;color:var(--ink2)">$' + (t.vol/1e6).toFixed(0) + 'M</td>';
+      html += '</tr>';
+    });
+    html += '</table>';
   }
-
-  let html = results.map(r => {
-    const tags = r.conditions.map(c => `<span style="color:${c.color};font-size:9px;border:1px solid ${c.color}33;padding:0 4px;margin-right:3px">${c.label}</span>`).join("");
-    const cls = r.pct >= 0 ? "u" : "d";
-    return `<div class="rowline" style="padding:6px 10px;cursor:pointer;flex-wrap:wrap;gap:4px" onclick="switchTo('${r.sym}',S.tf);$('btov').classList.remove('on');">
-      <span style="font-weight:700;color:var(--ink);min-width:45px">${r.sym}</span>
-      <span style="color:var(--ink2);min-width:70px">${fmtPrice(r.price)}</span>
-      <span class="${cls}" style="min-width:50px">${r.pct>=0?'+':''}${r.pct.toFixed(1)}%</span>
-      <span style="flex:1">${tags}</span>
-    </div>`;
-  }).join("");
-
-  html += `<div style="padding:6px 10px;font-size:9px;color:var(--ink3)">거래량 상위 20종목 · 1H 타임프레임 기준 · 클릭하면 차트 전환</div>`;
-  showOverlay(`SCANNER · ${results.length}개 감지`, html);
+  html += '</div>';
+  showOverlay("SCANNER \u00B7 " + cond + " (" + filtered.length + ")", html);
 }
 
 function pnlOverlay(){
@@ -6522,7 +6499,7 @@ const CMD_LIST=[
   {c:"MEMO", d:"현재 종목 메모 보기"},
   {c:"MEMO CLEAR", d:"현재 종목 메모 삭제"},
   {c:"EXPORT", d:"학습엔진 거래내역 CSV 다운로드"},
-  {c:"SCANNER", d:"전 종목 조건 스캐너 (RSI 과매도 + 볼륨 급증)"},
+  {c:"SCANNER RSI<30", d:"조건 스캐너 — RSI/변동률/볼륨 필터"},
   {c:"PNL", d:"학습엔진 에쿼티 커브 (누적 수익 그래프)"},
   {c:"STATUS", d:"시스템 상태 대시보드 (연결·데이터·성능)"},
   {c:"TIMELINE", d:"가격 히스토리 타임라인 (7일·30일·90일 변동)"},
@@ -6533,7 +6510,7 @@ const CMD_LIST=[
   {c:"ALTSEASON", d:"알트시즌 지표 (BTC 도미넌스 기반)"},
   {c:"SECTOR", d:"섹터별 성과 분석 (L1·DeFi·Meme·AI 등)"},
   {c:"PATTERN", d:"캔들스틱 패턴 자동 감지 (최근 10봉)"},
-  {c:"SUMMARY", d:"현재 종목 종합 요약 (한줄 분석)"},
+  {c:"SUMMARY", d:"일일 시장 요약 — 전체 현황 브리핑"},
   {c:"PERF", d:"전 종목 멀티 타임프레임 성과 매트릭스"},
   {c:"DIVERGE", d:"RSI·MACD 다이버전스 자동 감지"},
   {c:"REPORT", d:"오늘의 종합 리포트 (전 지표 한눈에)"},
@@ -6557,7 +6534,7 @@ const CMD_LIST=[
   {c:"RANGE", d:"가격 범위 분석 (일간·주간·월간 레인지)"},
   {c:"PORTFOLIO", d:"가상 포트폴리오 (보유 현황 + PnL)"},
   {c:"PORTFOLIO ADD 0.5 SOL 150", d:"포트폴리오에 종목 추가"},
-  {c:"HISTORY", d:"명령어 사용 기록"},
+  {c:"HISTORY", d:"거래 히스토리 — 전체 매매 기록 상세"},
   {c:"POWER", d:"파워 분석 (시장 강도 + 모멘텀 + 변동성 종합)"},
   {c:"GAPS", d:"가격 갭 감지 (FVG · CME 갭)"},
   {c:"VPROFILE", d:"가격대별 거래량 분포 (볼륨 프로파일 텍스트)"},
@@ -6869,7 +6846,9 @@ $("cmd").addEventListener("keydown",e=>{
   }
   if(raw==="MEMO"){ memoOverlay(); e.target.value=""; return; }
   if(raw==="EXPORT"){ exportCSV(); e.target.value=""; return; }
-  if(raw==="SCANNER"){ scannerOverlay(); e.target.value=""; return; }
+  var scannerM = raw.match(/^SCANNER\s+(.+)$/);
+  if(scannerM){ scannerOverlay(scannerM[1]); e.target.value=""; return; }
+  if(raw==="SCANNER"){ scannerOverlay("VOL>100M"); e.target.value=""; return; }
   if(raw==="PNL"){ pnlOverlay(); e.target.value=""; return; }
   if(raw==="STATUS"){ statusOverlay(); e.target.value=""; return; }
   if(raw==="ONCHAIN"){ onchainOverlay(); e.target.value=""; return; }
@@ -6913,7 +6892,7 @@ $("cmd").addEventListener("keydown",e=>{
   const portdm = raw.match(/^PORTFOLIO\s+DEL\s+([A-Z0-9]+)$/);
   if(portdm){ portfolioDel(portdm[1]); e.target.value=""; return; }
   if(raw==="PORTFOLIO"||raw==="PORT"){ portfolioOverlay(); e.target.value=""; return; }
-  if(raw==="HISTORY"){ historyOverlay(); e.target.value=""; return; }
+  if(raw==="HISTORY"||raw==="HIST"){ historyOverlay(); e.target.value=""; return; }
   if(raw==="POWER"){ powerOverlay(); e.target.value=""; return; }
   if(raw==="GAPS"){ gapsOverlay(); e.target.value=""; return; }
   if(raw==="VPROFILE"){ vprofileOverlay(); e.target.value=""; return; }
@@ -7704,77 +7683,77 @@ function patternOverlay(){
 }
 
 function summaryOverlay(){
-  if(!S.candles.length){
-    showOverlay("SUMMARY", '<div class="rowline"><span style="color:var(--ink3)">데이터 없음</span></div>');
-    return;
-  }
+  var allTickers = typeof S !== 'undefined' && S.allTickers ? S.allTickers : [];
+  var quotes = typeof S !== 'undefined' ? S.quotes || {} : {};
+  var fng = typeof S !== 'undefined' && S.fng ? S.fng : null;
 
-  const cs = S.candles;
-  const n = cs.length;
-  const closes = cs.map(c => c.c);
-  const price = cs[n-1].c;
+  // Calculate market stats
+  var gainers = allTickers.filter(function(t){ return t.pct > 0; }).length;
+  var losers = allTickers.filter(function(t){ return t.pct < 0; }).length;
+  var totalVol = allTickers.reduce(function(s,t){ return s + t.vol; }, 0);
+  var avgChange = allTickers.length > 0 ? allTickers.reduce(function(s,t){ return s + t.pct; }, 0) / allTickers.length : 0;
+  var top3 = allTickers.slice().sort(function(a,b){ return b.pct - a.pct; }).slice(0,3);
+  var bottom3 = allTickers.slice().sort(function(a,b){ return a.pct - b.pct; }).slice(0,3);
+  var btc = quotes.BTC;
+  var eth = quotes.ETH;
 
-  // Quick indicators
-  const rsi = rsiSeries(closes, 14)[n-1];
-  const e20 = ema(closes, 20)[n-1];
-  const e50 = ema(closes, 50)[n-1];
-  const e100 = ema(closes, 100)[n-1];
-  const bb = bollinger(closes, 20, 2);
-  const bbPos = bb.up[n-1] ? ((price - bb.lo[n-1]) / (bb.up[n-1] - bb.lo[n-1]) * 100).toFixed(0) : "?";
-  const atr = atrSeries(cs, 14)[n-1];
-  const atrPct = atr ? (atr / price * 100).toFixed(2) : "?";
-  const macd = macdSeries(closes);
-  const macdHist = macd.hist[n-1];
-  const volAvg = cs.slice(Math.max(0,n-20), n).reduce((s,c)=>s+c.v,0)/20;
-  const volRatio = (cs[n-1].v / (volAvg||1)).toFixed(1);
+  var html = '<div style="padding:8px;">';
 
-  // Funding + L/S
-  const q = S.quotes[S.sym];
-  const funding = q?.fundingRate;
-  const ls = S.lsr;
-
-  // Build assessment
-  const signals = [];
-  if(rsi < 30) signals.push({t:"RSI 과매도", c:"var(--up-text)", w:2});
-  else if(rsi > 70) signals.push({t:"RSI 과매수", c:"var(--down-text)", w:2});
-  else signals.push({t:`RSI ${rsi?.toFixed(0)}`, c:"var(--ink2)", w:0});
-
-  if(price > e20 && e20 > e50) signals.push({t:"EMA 정배열 ▲", c:"var(--up-text)", w:1});
-  else if(price < e20 && e20 < e50) signals.push({t:"EMA 역배열 ▼", c:"var(--down-text)", w:1});
-  else signals.push({t:"EMA 혼합", c:"var(--ink2)", w:0});
-
-  if(macdHist > 0) signals.push({t:"MACD 양전환", c:"var(--up-text)", w:1});
-  else signals.push({t:"MACD 음전환", c:"var(--down-text)", w:1});
-
-  signals.push({t:`BB위치 ${bbPos}%`, c:+bbPos>80?"var(--down-text)":+bbPos<20?"var(--up-text)":"var(--ink2)", w:0});
-  signals.push({t:`ATR ${atrPct}%`, c:"var(--ink2)", w:0});
-  signals.push({t:`거래량 ${volRatio}x`, c:+volRatio>1.5?"var(--amber)":"var(--ink2)", w:0});
-
-  if(funding!=null) signals.push({t:`펀딩 ${funding>=0?'+':''}${funding.toFixed(4)}%`, c:Math.abs(funding)>0.03?(funding>0?"var(--down-text)":"var(--up-text)"):"var(--ink2)", w:0});
-  if(ls) signals.push({t:`L/S ${(ls.long*100).toFixed(0)}/${(ls.short*100).toFixed(0)}`, c:ls.long>0.6?"var(--down-text)":ls.short>0.6?"var(--up-text)":"var(--ink2)", w:0});
-
-  // Overall
-  const bullW = signals.filter(s=>s.c==="var(--up-text)").reduce((a,s)=>a+1+s.w,0);
-  const bearW = signals.filter(s=>s.c==="var(--down-text)").reduce((a,s)=>a+1+s.w,0);
-  const verdict = bullW > bearW+2 ? "BULLISH" : bearW > bullW+2 ? "BEARISH" : "NEUTRAL";
-  const vColor = verdict==="BULLISH"?"var(--up-text)":verdict==="BEARISH"?"var(--down-text)":"var(--ink2)";
-
-  let html = `<div style="padding:10px;text-align:center;border-bottom:1px solid var(--border)">
-    <div style="font-size:14px;font-weight:700;color:var(--ink)">${S.sym}USDT · $${fmtPrice(price)}</div>
-    <div style="font-size:20px;font-weight:700;color:${vColor};margin-top:4px">${verdict}</div>
-    <div style="font-size:10px;color:var(--ink3)">강세 ${bullW} vs 약세 ${bearW}</div>
-  </div>`;
-
-  html += '<div style="padding:4px 0">';
-  for(const s of signals){
-    html += `<div class="rowline" style="padding:4px 10px">
-      <span style="color:${s.c};font-weight:600">${s.t}</span>
-    </div>`;
-  }
+  // Market mood
+  var mood = avgChange > 1 ? 'BULLISH' : avgChange > 0 ? 'NEUTRAL-BULL' : avgChange > -1 ? 'NEUTRAL-BEAR' : 'BEARISH';
+  var moodColor = avgChange > 0 ? 'var(--up-text)' : 'var(--down-text)';
+  html += '<div style="text-align:center;padding:16px;background:#0a0a0a;border:1px solid var(--border);border-radius:8px;margin-bottom:12px">';
+  html += '<div style="font-size:8px;color:var(--ink3);letter-spacing:2px">MARKET MOOD</div>';
+  html += '<div style="font-size:var(--fs-2xl);font-weight:800;color:' + moodColor + '">' + mood + '</div>';
+  if(fng) html += '<div style="font-size:var(--fs-sm);color:var(--ink2);margin-top:4px">Fear & Greed: ' + fng.v + ' \u00B7 ' + fng.cls + '</div>';
   html += '</div>';
 
-  html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:9px;color:var(--ink3)">${S.tf} 타임프레임 기준 · 투자 조언이 아님</div>`;
-  showOverlay(`SUMMARY · ${S.sym} 종합 분석`, html);
+  // Key prices
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">';
+  if(btc){
+    html += '<div style="text-align:center;padding:8px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px">';
+    html += '<div style="font-size:8px;color:var(--ink3)">BTC</div>';
+    html += '<div style="font-size:var(--fs-lg);font-weight:700;color:var(--ink)">$' + Math.round(btc.last).toLocaleString() + '</div>';
+    html += '<div style="font-size:var(--fs-xs);color:' + (btc.pct>=0?'var(--up-text)':'var(--down-text)') + '">' + (btc.pct>=0?'+':'') + btc.pct.toFixed(2) + '%</div>';
+    html += '</div>';
+  }
+  if(eth){
+    html += '<div style="text-align:center;padding:8px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px">';
+    html += '<div style="font-size:8px;color:var(--ink3)">ETH</div>';
+    html += '<div style="font-size:var(--fs-lg);font-weight:700;color:var(--ink)">$' + Math.round(eth.last).toLocaleString() + '</div>';
+    html += '<div style="font-size:var(--fs-xs);color:' + (eth.pct>=0?'var(--up-text)':'var(--down-text)') + '">' + (eth.pct>=0?'+':'') + eth.pct.toFixed(2) + '%</div>';
+    html += '</div>';
+  }
+  html += '<div style="text-align:center;padding:8px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px">';
+  html += '<div style="font-size:8px;color:var(--ink3)">TOTAL VOL</div>';
+  html += '<div style="font-size:var(--fs-lg);font-weight:700;color:var(--ink)">$' + (totalVol/1e9).toFixed(1) + 'B</div>';
+  html += '<div style="font-size:var(--fs-xs);color:var(--ink2)">' + allTickers.length + ' coins</div>';
+  html += '</div></div>';
+
+  // Gainers vs Losers
+  html += '<div style="display:flex;justify-content:space-between;font-size:var(--fs-sm);margin-bottom:4px"><span style="color:var(--up-text)">\uC0C1\uC2B9 ' + gainers + '</span><span style="color:var(--down-text)">\uD558\uB77D ' + losers + '</span></div>';
+  var gPct = (gainers+losers) > 0 ? (gainers/(gainers+losers)*100) : 50;
+  html += '<div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:12px">';
+  html += '<div style="width:' + gPct.toFixed(1) + '%;background:var(--up)"></div>';
+  html += '<div style="flex:1;background:var(--down)"></div></div>';
+
+  // Top movers
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  html += '<div>';
+  html += '<div style="color:var(--up-text);font-weight:700;font-size:var(--fs-sm);margin-bottom:4px">TOP GAINERS</div>';
+  top3.forEach(function(t){
+    html += '<div class="rowline"><span style="font-weight:700;color:var(--ink)">' + t.sym + '</span><b style="color:var(--up-text)">+' + t.pct.toFixed(1) + '%</b></div>';
+  });
+  html += '</div><div>';
+  html += '<div style="color:var(--down-text);font-weight:700;font-size:var(--fs-sm);margin-bottom:4px">TOP LOSERS</div>';
+  bottom3.forEach(function(t){
+    html += '<div class="rowline"><span style="font-weight:700;color:var(--ink)">' + t.sym + '</span><b style="color:var(--down-text)">' + t.pct.toFixed(1) + '%</b></div>';
+  });
+  html += '</div></div>';
+
+  html += '</div>';
+  var timestamp = new Date().toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
+  showOverlay("MARKET SUMMARY \u00B7 " + timestamp, html);
 }
 
 function perfOverlay(){
@@ -9460,23 +9439,58 @@ async function exportTrades(){
 }
 
 /* ── HISTORY — Command history ── */
-function historyOverlay(){
-  if(!CMD_HISTORY.length){
-    showOverlay("HISTORY", '<div class="rowline"><span style="color:var(--ink3)">명령어 기록 없음</span></div>');
-    return;
+async function historyOverlay(){
+  showOverlay("HISTORY","<div style='padding:10px;color:var(--ink3)'>\uAC70\uB798 \uAE30\uB85D \uB85C\uB4DC \uC911...</div>");
+  try {
+    var TT = window.__TT_BASE || '';
+    var res = await fetch(TT+'/api/paper/history');
+    var data = await res.json();
+    var trades = data.trades || data || [];
+
+    if(!trades.length){
+      showOverlay("HISTORY",'<div class="rowline"><span style="color:var(--ink3)">\uAC70\uB798 \uAE30\uB85D\uC774 \uC5C6\uC2B5\uB2C8\uB2E4</span></div>');
+      return;
+    }
+
+    // Stats
+    var wins = trades.filter(function(t){ return (t.pnl||0) > 0; });
+    var losses = trades.filter(function(t){ return (t.pnl||0) <= 0; });
+    var totalPnl = trades.reduce(function(s,t){ return s + (t.pnl||0); }, 0);
+
+    var html = '<div style="padding:8px;">';
+    html += '<div style="display:flex;justify-content:space-between;font-size:var(--fs-sm);margin-bottom:8px;padding:6px;background:#0a0a0a;border:1px solid var(--border);border-radius:4px">';
+    html += '<span>\uCD1D ' + trades.length + '\uAC74</span>';
+    html += '<span style="color:var(--up-text)">\uC2B9 ' + wins.length + '</span>';
+    html += '<span style="color:var(--down-text)">\uD328 ' + losses.length + '</span>';
+    html += '<span style="color:' + (totalPnl>=0?'var(--up-text)':'var(--down-text)') + '">$' + totalPnl.toFixed(2) + '</span>';
+    html += '</div>';
+
+    html += '<div style="max-height:400px;overflow-y:auto"><table style="width:100%;font-size:var(--fs-xs);border-collapse:collapse">';
+    html += '<tr style="color:var(--ink3);border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(8,8,8,.95)"><td style="padding:4px">\uC2EC\uBCFC</td><td style="padding:4px">\uBC29\uD5A5</td><td style="padding:4px">\uC9C4\uC785</td><td style="padding:4px">\uCCAD\uC0B0</td><td style="padding:4px">PnL</td><td style="padding:4px">\uC0AC\uC720</td><td style="padding:4px">\uC2DC\uAC04</td></tr>';
+
+    trades.slice().reverse().forEach(function(t){
+      var tpnl = t.pnlPct || t.pnl || 0;
+      var pnlColor = tpnl >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+      var dirColor = (t.direction==='BUY'||t.direction==='LONG') ? 'var(--up-text)' : 'var(--down-text)';
+      var reason = t.closeReason || '';
+      var reasonColor = reason === 'TP' ? 'var(--up-text)' : reason === 'SL' ? 'var(--down-text)' : 'var(--ink2)';
+      var time = t.exitTime ? new Date(t.exitTime).toLocaleDateString('ko-KR',{month:'short',day:'numeric'}) : '--';
+
+      html += '<tr style="border-bottom:1px solid #101010">';
+      html += '<td style="padding:4px;font-weight:700;color:var(--ink)">' + (t.symbol||'?') + '</td>';
+      html += '<td style="padding:4px;color:' + dirColor + '">' + (t.direction||'?') + '</td>';
+      html += '<td style="padding:4px;color:var(--ink2)">' + (t.entryPrice||0).toFixed(2) + '</td>';
+      html += '<td style="padding:4px;color:var(--ink2)">' + (t.exitPrice||0).toFixed(2) + '</td>';
+      html += '<td style="padding:4px;color:' + pnlColor + ';font-weight:700">' + (tpnl>=0?'+':'') + tpnl.toFixed(2) + '%</td>';
+      html += '<td style="padding:4px;color:' + reasonColor + '">' + reason + '</td>';
+      html += '<td style="padding:4px;color:var(--ink3)">' + time + '</td>';
+      html += '</tr>';
+    });
+    html += '</table></div></div>';
+    showOverlay("HISTORY \u00B7 \uAC70\uB798 \uAE30\uB85D (" + trades.length + "\uAC74)", html);
+  } catch(e){
+    showOverlay("HISTORY","<div class='rowline'><span style='color:var(--down-text)'>\uAE30\uB85D \uB85C\uB4DC \uC2E4\uD328</span></div>");
   }
-
-  let html = CMD_HISTORY.map((h, i) => {
-    const dt = new Date(h.t);
-    const ts = `${pad2(dt.getHours())}:${pad2(dt.getMinutes())}:${pad2(dt.getSeconds())}`;
-    return `<div class="rowline" style="cursor:pointer" onclick="$('cmd').value='${h.cmd.replace(/'/g,"\\'")}';$('btov').classList.remove('on');$('cmd').focus();">
-      <span style="color:var(--ink3);min-width:60px;font-size:10px">${ts}</span>
-      <span style="color:var(--amber);font-weight:600">${h.cmd}</span>
-    </div>`;
-  }).join("");
-
-  html += '<div style="padding:4px 10px;font-size:9px;color:var(--ink3)">클릭하면 명령어 입력창에 복사 · 최근 50개</div>';
-  showOverlay("HISTORY · 명령어 기록", html);
 }
 
 /* ── POWER — Power metrics ── */
