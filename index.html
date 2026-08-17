@@ -6384,6 +6384,12 @@ const CMD_LIST=[
   {c:"TUNE BTC", d:"파라미터 자동 튜닝 (SL×TP×레버)"},
   {c:"FSCAN", d:"급변동 실시간 감지 (5분 패스트스캔)"},
   {c:"FGRID BTC", d:"그리드 트레이딩 레벨 계산"},
+  {c:"TEAM", d:"트레이딩팀 대시보드 (13-에이전트 + 포지션 + 전략)"},
+  {c:"ANALYZE BTC", d:"즉시 AI 분석 실행"},
+  {c:"POSITIONS", d:"포지션 빠른 보기"},
+  {c:"START", d:"Paper Trader 시작"},
+  {c:"STOP", d:"Paper Trader 중지"},
+  {c:"SCAN", d:"전 코인 스캔"},
 ];
 let sugSel=-1, sugItems=[];
 function renderSug(){
@@ -6604,6 +6610,12 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="BENCHMARK"||raw==="BENCH"){ benchmarkOverlay(); e.target.value=""; return; }
   if(raw==="SUPPLY"){ supplyOverlay(); e.target.value=""; return; }
   if(raw==="PIVOT"){ pivotOverlay(); e.target.value=""; return; }
+  if(raw==="TEAM"||raw==="TT"){ teamDashboard(); e.target.value=""; return; }
+  if(raw.startsWith("ANALYZE ")){ const asym=raw.split(" ")[1]; triggerAnalysis(asym); e.target.value=""; return; }
+  if(raw==="POSITIONS"){ teamPositionsQuick(); e.target.value=""; return; }
+  if(raw==="START"){ fetch(TT_BASE+"/api/paper/start",{method:"POST"}).then(()=>pushLog("Paper Trader 시작")).catch(()=>pushLog("Paper Trader 시작 실패")); e.target.value=""; return; }
+  if(raw==="STOP"){ fetch(TT_BASE+"/api/paper/stop",{method:"POST"}).then(()=>pushLog("Paper Trader 중지")).catch(()=>pushLog("Paper Trader 중지 실패")); e.target.value=""; return; }
+  if(raw==="SCAN"){ fetch(TT_BASE+"/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({symbol:"BTC",mode:"algo"})}).then(()=>pushLog("전 코인 스캔 시작")).catch(()=>pushLog("스캔 실패")); e.target.value=""; return; }
   if(raw==="PAPER"){ paperTradingOverlay(); e.target.value=""; return; }
   if(raw==="FUNDOS"||raw==="FOS"){ fundOSOverlay(); e.target.value=""; return; }
   if(raw.startsWith("CRASH")){ const csym=raw.split(/\s+/)[1]||S.sym; crashOverlay(csym); e.target.value=""; return; }
@@ -14381,6 +14393,754 @@ setTimeout(loadSettings, 500);
 function isTranslateEnabled(){
   const el = document.getElementById('set-translate');
   return el ? el.checked : true;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TRADING TEAM DASHBOARD — 13-에이전트 시각화 + 포지션 + 전략 + 성과
+   ══════════════════════════════════════════════════════════════════════ */
+
+function triggerAnalysis(sym){
+  pushLog(`${sym} AI 분석 요청 중...`);
+  fetch(TT_BASE+"/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({symbol:sym,mode:"algo"})})
+    .then(r=>r.json()).then(d=>{ pushLog(`${sym} 분석 완료: ${d.action||d.signal||'DONE'}`); })
+    .catch(()=>pushLog(`${sym} 분석 실패`));
+}
+
+async function teamPositionsQuick(){
+  try{
+    const data=await fetchJson(TT_BASE+"/api/paper/status",5000);
+    const all=[...(data.positions||[]),...(data.swingPositions||[])];
+    if(!all.length){ showOverlay("POSITIONS","<div class='rowline'><span style='color:var(--ink3)'>열린 포지션 없음</span></div>"); return; }
+    let html=all.map(p=>{
+      const pnl=p.unrealizedPnl||p.pnl||0;
+      const cls=pnl>=0?"u":"d";
+      return `<div class="rowline"><span style="font-weight:700">${p.symbol||p.sym}</span><span>${p.direction||p.side||"?"}</span><span>진입 ${(p.entryPrice||p.entry||0).toFixed(2)}</span><span class="${cls}">${pnl>=0?"+":""}${pnl.toFixed(2)}%</span></div>`;
+    }).join("");
+    showOverlay(`POSITIONS · ${all.length}`,html);
+  }catch(e){ showOverlay("POSITIONS","<div class='rowline'><span style='color:var(--down-text)'>Trading Team 연결 실패</span></div>"); }
+}
+
+function teamDashboard(){
+  const TT=TT_BASE;
+  let _teamSSE=null, _teamIntervals=[];
+
+  // ── CSS for team dashboard ──
+  const css=`
+    .tt-tabs{display:flex;border-bottom:1px solid var(--border);background:#080808;}
+    .tt-tab{padding:7px 14px;font-size:var(--fs-sm);color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;font-weight:600;letter-spacing:.5px;}
+    .tt-tab:hover{color:var(--ink2);}
+    .tt-tab.active{color:var(--amber);border-bottom-color:var(--amber);}
+    .tt-content{padding:12px;overflow-y:auto;height:calc(100% - 34px);}
+    .tt-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:10px;margin-bottom:8px;}
+    .tt-big{font-size:var(--fs-2xl);font-weight:800;letter-spacing:-0.5px;}
+    .tt-label{font-size:var(--fs-xs);color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+    .tt-grid{display:grid;gap:6px;}
+    .tt-grid-2{grid-template-columns:1fr 1fr;}
+    .tt-grid-3{grid-template-columns:1fr 1fr 1fr;}
+    .tt-grid-4{grid-template-columns:1fr 1fr 1fr 1fr;}
+    .tt-agent{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:8px;text-align:center;transition:border-color .2s;}
+    .tt-agent.active{border-color:var(--amber);}
+    .tt-agent-name{font-weight:700;font-size:var(--fs-sm);margin-bottom:2px;}
+    .tt-agent-role{font-size:var(--fs-xs);color:var(--ink3);margin-bottom:4px;}
+    .tt-agent-opinion{font-size:var(--fs-sm);font-weight:700;padding:2px 6px;border-radius:3px;display:inline-block;}
+    .tt-btn{background:var(--panel);border:1px solid var(--border);color:var(--ink2);padding:5px 12px;cursor:pointer;border-radius:4px;font-size:var(--fs-sm);font-weight:600;transition:all .15s;}
+    .tt-btn:hover{color:var(--ink);border-color:#3a3a3a;background:#151515;}
+    .tt-btn.danger{border-color:#441111;color:var(--down-text);}
+    .tt-btn.danger:hover{background:#1a0a0a;border-color:var(--down);}
+    .tt-btn.primary{border-color:var(--amber-dim);color:var(--amber);}
+    .tt-btn.primary:hover{background:#1a0e04;}
+    .tt-tbl{width:100%;border-collapse:collapse;font-size:var(--fs-sm);}
+    .tt-tbl th{text-align:left;padding:4px 6px;color:var(--ink3);font-weight:600;border-bottom:1px solid var(--border);font-size:var(--fs-xs);}
+    .tt-tbl td{padding:4px 6px;border-bottom:1px solid #111;}
+    .tt-slider-wrap{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+    .tt-slider-wrap label{font-size:var(--fs-sm);color:var(--ink2);min-width:90px;}
+    .tt-slider-wrap input[type=range]{flex:1;accent-color:var(--amber);}
+    .tt-slider-wrap .val{font-size:var(--fs-sm);color:var(--ink);min-width:30px;text-align:right;font-weight:700;}
+    .tt-progress{height:3px;background:#1a1a1a;border-radius:2px;overflow:hidden;margin-top:4px;}
+    .tt-progress-bar{height:100%;background:var(--amber);transition:width .3s;}
+    .tt-status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;}
+    .tt-status-dot.on{background:var(--up);box-shadow:0 0 6px var(--up);}
+    .tt-status-dot.off{background:var(--down);}
+  `;
+
+  const AGENTS=[
+    {id:"taro",name:"TARO",role:"기술분석가",group:"analyst"},
+    {id:"diana",name:"DIANA",role:"데이터분석가",group:"analyst"},
+    {id:"nova",name:"NOVA",role:"뉴스분석가",group:"analyst"},
+    {id:"vibe",name:"VIBE",role:"심리분석가",group:"analyst"},
+    {id:"bull",name:"BULL",role:"강세 토론자",group:"debate"},
+    {id:"bear",name:"BEAR",role:"약세 토론자",group:"debate"},
+    {id:"blitz",name:"BLITZ",role:"스캘프 공격수",group:"scalp"},
+    {id:"guard",name:"GUARD",role:"스캘프 수비수",group:"scalp"},
+    {id:"risky",name:"RISKY",role:"공격적 리스크",group:"risk"},
+    {id:"neutral",name:"NEUTRAL",role:"중립 리스크",group:"risk"},
+    {id:"safe",name:"SAFE",role:"보수적 리스크",group:"risk"},
+    {id:"ace",name:"ACE",role:"최종 결정자",group:"decision"},
+    {id:"pm",name:"PM",role:"포트폴리오 매니저",group:"portfolio"},
+  ];
+
+  const groupColors={analyst:"var(--cyan-text)",debate:"var(--amber)",scalp:"#a78bfa",risk:"var(--ink2)",decision:"var(--up-text)",portfolio:"#f472b6"};
+
+  let currentTab="overview", statusData=null, historyData=null, perfData=null, equityData=null;
+
+  // ── Build initial HTML ──
+  const tabDefs=[
+    {id:"overview",label:"개요"},
+    {id:"agents",label:"에이전트"},
+    {id:"positions",label:"포지션"},
+    {id:"strategy",label:"전략"},
+    {id:"performance",label:"성과"},
+    {id:"backtest",label:"백테스트"},
+  ];
+
+  let tabsHtml=`<style>${css}</style><div class="tt-tabs">`;
+  tabDefs.forEach(t=>{
+    tabsHtml+=`<div class="tt-tab${t.id==="overview"?" active":""}" data-tt-tab="${t.id}">${t.label}</div>`;
+  });
+  tabsHtml+=`</div><div class="tt-content" id="tt-content"></div>`;
+
+  const winId=createMWin("TRADING TEAM · 13 에이전트",tabsHtml,{width:720,height:540});
+  const winEl=document.getElementById(winId);
+  if(!winEl) return;
+
+  // Tab click handlers
+  winEl.querySelectorAll('.tt-tab').forEach(tab=>{
+    tab.onclick=()=>{
+      winEl.querySelectorAll('.tt-tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+      currentTab=tab.dataset.ttTab;
+      renderTab();
+    };
+  });
+
+  // ── Data fetching ──
+  async function fetchStatus(){
+    try{
+      statusData=await fetchJson(TT+"/api/paper/status",5000);
+      if(currentTab==="overview"||currentTab==="positions"||currentTab==="agents"||currentTab==="strategy") renderTab();
+    }catch(e){ statusData={error:true}; renderTab(); }
+  }
+
+  async function fetchHistory(){
+    try{ historyData=await fetchJson(TT+"/api/paper/history",5000); }catch(e){ historyData=[]; }
+    if(currentTab==="performance") renderTab();
+  }
+
+  async function fetchPerf(){
+    try{ perfData=await fetchJson(TT+"/api/paper/performance",5000); }catch(e){ perfData=null; }
+    if(currentTab==="performance") renderTab();
+  }
+
+  async function fetchEquity(){
+    try{ equityData=await fetchJson(TT+"/api/paper/equity-curve",5000); }catch(e){ equityData=null; }
+    if(currentTab==="performance") renderTab();
+  }
+
+  // ── Render dispatcher ──
+  function renderTab(){
+    const c=winEl.querySelector('#tt-content');
+    if(!c) return;
+    switch(currentTab){
+      case "overview": renderOverview(c); break;
+      case "agents": renderAgents(c); break;
+      case "positions": renderPositions(c); break;
+      case "strategy": renderStrategy(c); break;
+      case "performance": renderPerformance(c); break;
+      case "backtest": renderBacktest(c); break;
+    }
+  }
+
+  // ══════════════ TAB 1: OVERVIEW ══════════════
+  function renderOverview(c){
+    if(!statusData||statusData.error){
+      c.innerHTML=`<div class="tt-card" style="text-align:center;padding:40px;color:var(--ink3)">Trading Team 연결 중...<div class="tt-progress" style="margin-top:12px"><div class="tt-progress-bar" style="width:30%;animation:ttPulse 1.5s infinite"></div></div></div><style>@keyframes ttPulse{0%,100%{opacity:.3}50%{opacity:1}}</style>`;
+      return;
+    }
+    const d=statusData;
+    const running=d.isRunning||d.running||false;
+    const cap=d.capital||d.initialCapital||10000;
+    const totalPnl=d.totalPnl||0;
+    const returnPct=d.returnPct||0;
+    const wr=d.winRate||0;
+    const positions=[...(d.positions||[]),...(d.swingPositions||[])];
+    const lastSymbol=d.currentSymbol||d.lastSymbol||d.lastDecision?.symbol||"--";
+    const lastRun=d.lastRunTime||d.lastAnalysis||d.lastDecision?.timestamp;
+    const lastRunStr=lastRun?new Date(lastRun).toLocaleString("ko-KR",{hour:"2-digit",minute:"2-digit",second:"2-digit"}):"--:--:--";
+
+    c.innerHTML=`
+      <div class="tt-grid tt-grid-2" style="margin-bottom:10px">
+        <div class="tt-card">
+          <div class="tt-label">상태</div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="tt-status-dot ${running?"on":"off"}"></span>
+            <span style="font-weight:700;color:${running?"var(--up-text)":"var(--down-text)"}">${running?"실행 중":"중지됨"}</span>
+          </div>
+          <div style="font-size:var(--fs-xs);color:var(--ink3);margin-top:4px">분석 심볼: <b style="color:var(--ink)">${lastSymbol}</b> · 마지막: ${lastRunStr}</div>
+        </div>
+        <div class="tt-card">
+          <div class="tt-label">자본</div>
+          <div class="tt-big" style="color:var(--ink)">$${cap.toLocaleString("en",{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+          <div style="font-size:var(--fs-xs);color:${totalPnl>=0?"var(--up-text)":"var(--down-text)"};margin-top:2px">PnL: ${totalPnl>=0?"+":""}$${totalPnl.toFixed(2)} (${returnPct>=0?"+":""}${returnPct.toFixed(2)}%)</div>
+        </div>
+      </div>
+      <div class="tt-grid tt-grid-3" style="margin-bottom:10px">
+        <div class="tt-card" style="text-align:center">
+          <div class="tt-label">포지션</div>
+          <div class="tt-big" style="color:var(--amber)">${positions.length}</div>
+        </div>
+        <div class="tt-card" style="text-align:center">
+          <div class="tt-label">승률</div>
+          <div class="tt-big" style="color:${wr>=50?"var(--up-text)":"var(--down-text)"}">${wr.toFixed(1)}%</div>
+        </div>
+        <div class="tt-card" style="text-align:center">
+          <div class="tt-label">총 거래</div>
+          <div class="tt-big" style="color:var(--ink)">${d.totalTrades||d.tradeCount||0}</div>
+        </div>
+      </div>
+      ${positions.length?`<div class="tt-card"><div class="tt-label" style="margin-bottom:6px">열린 포지션</div>
+        ${positions.slice(0,5).map(p=>{
+          const pnl=p.unrealizedPnl||p.pnl||0;
+          return `<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:var(--fs-sm)">
+            <span style="font-weight:700">${p.symbol||p.sym} <span style="color:${(p.direction||p.side)==="LONG"||p.direction===1?"var(--up-text)":"var(--down-text)";font-size:var(--fs-xs)">${p.direction||p.side}</span></span>
+            <span style="color:${pnl>=0?"var(--up-text)":"var(--down-text)"}">${pnl>=0?"+":""}${pnl.toFixed(2)}%</span>
+          </div>`;
+        }).join("")}
+        ${positions.length>5?`<div style="font-size:var(--fs-xs);color:var(--ink3);text-align:center;margin-top:4px">+${positions.length-5}개 더...</div>`:""}
+      </div>`:""}
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+        <button class="tt-btn primary" onclick="fetch('${TT}/api/paper/${running?"stop":"start"}',{method:'POST'}).then(()=>{pushLog('Paper Trader ${running?"중지":"시작"}');})">${running?"■ 중지":"▶ 시작"}</button>
+        <button class="tt-btn" onclick="fetch('${TT}/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol:'BTC',mode:'algo'})}).then(()=>pushLog('강제 스캔 실행'))">⟳ 강제 스캔</button>
+        <button class="tt-btn danger" onclick="if(confirm('자본을 초기화하시겠습니까?'))fetch('${TT}/api/paper/reset',{method:'POST'}).then(()=>pushLog('자본 초기화'))">↺ 자본 리셋</button>
+      </div>`;
+  }
+
+  // ══════════════ TAB 2: AGENTS ══════════════
+  function renderAgents(c){
+    const d=statusData||{};
+    const agentData=d.agents||d.lastAnalysis?.agents||{};
+    const lastDecision=d.lastDecision||{};
+    const analysisRunning=d.analyzing||false;
+
+    let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:var(--fs-sm);color:var(--ink2)">13-에이전트 AI 시스템 ${analysisRunning?'<span style="color:var(--amber);animation:ttPulse 1s infinite">● 분석 중...</span>':''}</div>
+      <button class="tt-btn" onclick="fetch('${TT}/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol:'${d.currentSymbol||"BTC"}',mode:'algo'})}).then(()=>pushLog('분석 실행'))">▶ 분석 실행</button>
+    </div>`;
+
+    // Group agents
+    const groups=[
+      {label:"분석팀",ids:["taro","diana","nova","vibe"],color:groupColors.analyst},
+      {label:"토론팀",ids:["bull","bear"],color:groupColors.debate},
+      {label:"스캘프팀",ids:["blitz","guard"],color:groupColors.scalp},
+      {label:"리스크팀",ids:["risky","neutral","safe"],color:groupColors.risk},
+      {label:"의사결정",ids:["ace"],color:groupColors.decision},
+      {label:"포트폴리오",ids:["pm"],color:groupColors.portfolio},
+    ];
+
+    groups.forEach(g=>{
+      html+=`<div style="font-size:var(--fs-xs);color:${g.color};margin:10px 0 4px;font-weight:700;letter-spacing:.5px">${g.label}</div>`;
+      html+=`<div class="tt-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">`;
+      g.ids.forEach(aid=>{
+        const agent=AGENTS.find(a=>a.id===aid);
+        const ad=agentData[aid]||agentData[agent.name]||agentData[agent.name.toLowerCase()]||{};
+        const opinion=ad.opinion||ad.action||ad.signal||"--";
+        const conf=ad.confidence||ad.score||0;
+        const opColor=opinion==="BUY"||opinion==="LONG"?"var(--up-text)":opinion==="SELL"||opinion==="SHORT"?"var(--down-text)":"var(--ink3)";
+        const isActive=analysisRunning;
+        html+=`<div class="tt-agent${isActive?" active":""}">
+          <div class="tt-agent-name" style="color:${g.color}">${agent.name}</div>
+          <div class="tt-agent-role">${agent.role}</div>
+          <div class="tt-agent-opinion" style="color:${opColor};background:${opColor}15;border:1px solid ${opColor}33">${opinion}</div>
+          ${conf?`<div style="font-size:var(--fs-xs);color:var(--ink3);margin-top:3px">신뢰도 ${(conf*100).toFixed(0)}%</div>`:""}
+          ${isActive?`<div class="tt-progress"><div class="tt-progress-bar" style="width:${Math.random()*80+20}%"></div></div>`:""}
+        </div>`;
+      });
+      html+=`</div>`;
+    });
+
+    // Final decision
+    if(lastDecision.action){
+      const decColor=lastDecision.action==="BUY"||lastDecision.action==="LONG"?"var(--up-text)":lastDecision.action==="SELL"||lastDecision.action==="SHORT"?"var(--down-text)":"var(--ink2)";
+      html+=`<div class="tt-card" style="margin-top:12px;border-color:${decColor}44">
+        <div class="tt-label">최종 결정</div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:var(--fs-xl);font-weight:800;color:${decColor}">${lastDecision.action}</span>
+          <span style="font-size:var(--fs-sm);color:var(--ink2)">${lastDecision.symbol||""}</span>
+          ${lastDecision.confidence?`<span style="font-size:var(--fs-sm);color:var(--ink3)">신뢰도 ${(lastDecision.confidence*100).toFixed(0)}%</span>`:""}
+        </div>
+        ${lastDecision.reasoning?`<div style="font-size:var(--fs-xs);color:var(--ink3);margin-top:4px;line-height:1.4">${lastDecision.reasoning}</div>`:""}
+      </div>`;
+    }
+
+    // SSE connection info
+    html+=`<div style="margin-top:10px;font-size:var(--fs-xs);color:var(--ink3)">SSE 스트림: ${_teamSSE?"연결됨 ●":"미연결 ○"} · 실시간 에이전트 업데이트</div>`;
+
+    c.innerHTML=html;
+  }
+
+  // ══════════════ TAB 3: POSITIONS ══════════════
+  function renderPositions(c){
+    const d=statusData||{};
+    const positions=[...(d.positions||[]),...(d.swingPositions||[])];
+
+    let html=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:var(--fs-sm);color:var(--ink2)">열린 포지션: ${positions.length}개</div>
+      <div style="display:flex;gap:4px">
+        <button class="tt-btn danger" onclick="if(confirm('모든 포지션을 청산하시겠습니까?'))fetch('${TT}/api/paper/close-all',{method:'POST'}).then(()=>pushLog('전체 포지션 청산'))">전체 청산</button>
+      </div>
+    </div>`;
+
+    if(!positions.length){
+      html+=`<div class="tt-card" style="text-align:center;padding:30px;color:var(--ink3)">열린 포지션이 없습니다</div>`;
+    } else {
+      html+=`<div style="overflow-x:auto"><table class="tt-tbl">
+        <thead><tr><th>심볼</th><th>방향</th><th>진입가</th><th>현재가</th><th>PnL%</th><th>SL</th><th>TP</th><th>기간</th><th></th></tr></thead><tbody>`;
+      positions.forEach(p=>{
+        const pnl=p.unrealizedPnl||p.pnl||0;
+        const dir=p.direction||p.side||"?";
+        const dirColor=(dir==="LONG"||dir==="BUY"||dir===1)?"var(--up-text)":"var(--down-text)";
+        const entry=p.entryPrice||p.entry||0;
+        const current=p.currentPrice||p.markPrice||entry;
+        const sl=p.stopLoss||p.sl||"--";
+        const tp=p.takeProfit||p.tp||"--";
+        const openTime=p.openTime||p.entryTime||p.timestamp;
+        let duration="--";
+        if(openTime){
+          const diff=Date.now()-new Date(openTime).getTime();
+          const hrs=Math.floor(diff/3600000);
+          const mins=Math.floor((diff%3600000)/60000);
+          duration=hrs>0?`${hrs}h ${mins}m`:`${mins}m`;
+        }
+        html+=`<tr>
+          <td style="font-weight:700">${p.symbol||p.sym}</td>
+          <td style="color:${dirColor};font-weight:600">${typeof dir==="number"?(dir===1?"LONG":"SHORT"):dir}</td>
+          <td>${parseFloat(entry).toFixed(2)}</td>
+          <td>${parseFloat(current).toFixed(2)}</td>
+          <td style="color:${pnl>=0?"var(--up-text)":"var(--down-text)";font-weight:700}">${pnl>=0?"+":""}${pnl.toFixed(2)}%</td>
+          <td style="color:var(--down-text)">${typeof sl==="number"?sl.toFixed(2):sl}</td>
+          <td style="color:var(--up-text)">${typeof tp==="number"?tp.toFixed(2):tp}</td>
+          <td style="color:var(--ink3)">${duration}</td>
+          <td><button class="tt-btn danger" style="padding:2px 6px;font-size:var(--fs-xs)" onclick="fetch('${TT}/api/paper/close',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol:'${p.symbol||p.sym}',id:'${p.id||""}'})}).then(()=>pushLog('${p.symbol||p.sym} 포지션 청산'))">청산</button></td>
+        </tr>`;
+      });
+      html+=`</tbody></table></div>`;
+
+      // Unrealized PnL summary
+      const totalUnrealized=positions.reduce((s,p)=>s+(p.unrealizedPnl||p.pnl||0),0);
+      html+=`<div class="tt-card" style="margin-top:10px;display:flex;justify-content:space-between">
+        <span style="color:var(--ink2);font-size:var(--fs-sm)">총 미실현 PnL</span>
+        <span style="font-weight:700;color:${totalUnrealized>=0?"var(--up-text)":"var(--down-text)"}">${totalUnrealized>=0?"+":""}${totalUnrealized.toFixed(2)}%</span>
+      </div>`;
+    }
+    c.innerHTML=html;
+  }
+
+  // ══════════════ TAB 4: STRATEGY ══════════════
+  function renderStrategy(c){
+    const d=statusData||{};
+    const config=d.config||d.strategy||d.settings||{};
+    const aggressiveness=config.aggressiveness||5;
+    const maxPos=config.maxPositions||config.maxOpenPositions||5;
+    const riskPct=config.riskPerTrade||config.riskPercent||2;
+    const leverage=config.defaultLeverage||config.leverage||10;
+    const mode=config.mode||config.tradingMode||"both";
+    const coins=config.coins||config.symbols||["BTC","ETH","SOL","DOGE","XRP","ADA","AVAX","LINK","DOT","MATIC"];
+    const killSwitch=config.killSwitch||false;
+
+    c.innerHTML=`
+      <div class="tt-card">
+        <div class="tt-label" style="margin-bottom:10px">트레이딩 파라미터</div>
+        <div class="tt-slider-wrap">
+          <label>공격성</label>
+          <input type="range" min="1" max="10" value="${aggressiveness}" id="tt-aggr">
+          <span class="val" id="tt-aggr-v">${aggressiveness}</span>
+        </div>
+        <div class="tt-slider-wrap">
+          <label>최대 포지션</label>
+          <input type="range" min="1" max="20" value="${maxPos}" id="tt-maxpos">
+          <span class="val" id="tt-maxpos-v">${maxPos}</span>
+        </div>
+        <div class="tt-slider-wrap">
+          <label>리스크 / 거래</label>
+          <input type="range" min="0.5" max="10" step="0.5" value="${riskPct}" id="tt-risk">
+          <span class="val" id="tt-risk-v">${riskPct}%</span>
+        </div>
+        <div class="tt-slider-wrap">
+          <label>기본 레버리지</label>
+          <input type="range" min="1" max="50" value="${leverage}" id="tt-lev">
+          <span class="val" id="tt-lev-v">${leverage}x</span>
+        </div>
+      </div>
+      <div class="tt-card">
+        <div class="tt-label" style="margin-bottom:8px">트레이딩 모드</div>
+        <div style="display:flex;gap:6px">
+          <button class="tt-btn${mode==="scalp"?" primary":""}" onclick="this.parentElement.querySelectorAll('.tt-btn').forEach(b=>b.classList.remove('primary'));this.classList.add('primary');document.getElementById('tt-mode-val').value='scalp'">스캘프</button>
+          <button class="tt-btn${mode==="swing"?" primary":""}" onclick="this.parentElement.querySelectorAll('.tt-btn').forEach(b=>b.classList.remove('primary'));this.classList.add('primary');document.getElementById('tt-mode-val').value='swing'">스윙</button>
+          <button class="tt-btn${mode==="both"?" primary":""}" onclick="this.parentElement.querySelectorAll('.tt-btn').forEach(b=>b.classList.remove('primary'));this.classList.add('primary');document.getElementById('tt-mode-val').value='both'">둘 다</button>
+        </div>
+        <input type="hidden" id="tt-mode-val" value="${mode}">
+      </div>
+      <div class="tt-card">
+        <div class="tt-label" style="margin-bottom:8px">거래 코인</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px" id="tt-coins">
+          ${["BTC","ETH","SOL","DOGE","XRP","ADA","AVAX","LINK","DOT","MATIC","ARB","OP","PEPE","WIF","SUI","APT","SEI","INJ","TIA","JUP"].map(s=>{
+            const checked=coins.includes(s);
+            return `<label style="font-size:var(--fs-xs);display:flex;align-items:center;gap:2px;padding:2px 6px;border:1px solid ${checked?"var(--amber-dim)":"var(--border)"};border-radius:3px;cursor:pointer;color:${checked?"var(--ink)":"var(--ink3)"}">
+              <input type="checkbox" value="${s}" ${checked?"checked":""} style="width:10px;height:10px"> ${s}
+            </label>`;
+          }).join("")}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:10px;align-items:center">
+        <button class="tt-btn primary" id="tt-save-cfg">설정 저장</button>
+        <button class="tt-btn danger" id="tt-kill" style="${killSwitch?"background:#220a0a;":""}">⚡ 킬 스위치 ${killSwitch?"(활성)":"(비활성)"}</button>
+      </div>`;
+
+    // Wire up sliders
+    const wireSlider=(id,suffix)=>{
+      const el=winEl.querySelector('#'+id);
+      const vEl=winEl.querySelector('#'+id+'-v');
+      if(el&&vEl) el.oninput=()=>{ vEl.textContent=el.value+(suffix||""); };
+    };
+    wireSlider('tt-aggr','');
+    wireSlider('tt-maxpos','');
+    wireSlider('tt-risk','%');
+    wireSlider('tt-lev','x');
+
+    // Save button
+    const saveBtn=winEl.querySelector('#tt-save-cfg');
+    if(saveBtn) saveBtn.onclick=()=>{
+      const coinCheckboxes=winEl.querySelectorAll('#tt-coins input[type=checkbox]:checked');
+      const selectedCoins=Array.from(coinCheckboxes).map(cb=>cb.value);
+      const body={
+        aggressiveness:+winEl.querySelector('#tt-aggr').value,
+        maxPositions:+winEl.querySelector('#tt-maxpos').value,
+        riskPerTrade:+winEl.querySelector('#tt-risk').value,
+        defaultLeverage:+winEl.querySelector('#tt-lev').value,
+        mode:winEl.querySelector('#tt-mode-val').value,
+        coins:selectedCoins,
+      };
+      fetch(TT+"/api/paper/config",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
+        .then(()=>pushLog("전략 설정 저장됨"))
+        .catch(()=>pushLog("전략 설정 저장 실패"));
+    };
+
+    // Kill switch
+    const killBtn=winEl.querySelector('#tt-kill');
+    if(killBtn) killBtn.onclick=()=>{
+      if(confirm("킬 스위치를 활성화하면 모든 포지션이 청산되고 트레이딩이 중지됩니다. 계속하시겠습니까?")){
+        fetch(TT+"/api/paper/kill",{method:"POST"}).then(()=>pushLog("⚡ 킬 스위치 활성화")).catch(()=>pushLog("킬 스위치 실패"));
+      }
+    };
+  }
+
+  // ══════════════ TAB 5: PERFORMANCE ══════════════
+  function renderPerformance(c){
+    const d=statusData||{};
+    const perf=perfData||d.performance||{};
+    const hist=historyData||d.history||d.tradeHistory||[];
+    const eq=equityData||d.equityCurve||[];
+
+    const wr=perf.winRate||d.winRate||0;
+    const sharpe=perf.sharpe||perf.sharpeRatio||0;
+    const maxDD=perf.maxDrawdown||perf.maxDD||0;
+    const pf=perf.profitFactor||0;
+    const totalReturn=perf.totalReturn||d.returnPct||0;
+    const avgWin=perf.avgWin||0;
+    const avgLoss=perf.avgLoss||0;
+
+    // Equity curve canvas
+    let equityHtml="";
+    if(eq.length>1){
+      equityHtml=`<div class="tt-card">
+        <div class="tt-label" style="margin-bottom:6px">에쿼티 커브</div>
+        <canvas id="tt-eq-canvas" width="650" height="120" style="width:100%;height:120px;background:#080808;border-radius:4px"></canvas>
+      </div>`;
+    }
+
+    c.innerHTML=`
+      ${equityHtml}
+      <div class="tt-grid tt-grid-4" style="margin-bottom:10px">
+        <div class="tt-card" style="text-align:center">
+          <div class="tt-label">승률</div>
+          <div style="font-size:var(--fs-lg);font-weight:800;color:${wr>=50?"var(--up-text)":"var(--down-text)"}">${wr.toFixed(1)}%</div>
+        </div>
+        <div class="tt-card" style="text-align:center">
+          <div class="tt-label">샤프비율</div>
+          <div style="font-size:var(--fs-lg);font-weight:800;color:${sharpe>=1?"var(--up-text)":sharpe>=0?"var(--ink)":"var(--down-text)"}">${sharpe.toFixed(2)}</div>
+        </div>
+        <div class="tt-card" style="text-align:center">
+          <div class="tt-label">최대 DD</div>
+          <div style="font-size:var(--fs-lg);font-weight:800;color:var(--down-text)">${maxDD.toFixed(1)}%</div>
+        </div>
+        <div class="tt-card" style="text-align:center">
+          <div class="tt-label">Profit Factor</div>
+          <div style="font-size:var(--fs-lg);font-weight:800;color:${pf>=1.5?"var(--up-text)":pf>=1?"var(--ink)":"var(--down-text)"}">${pf.toFixed(2)}</div>
+        </div>
+      </div>
+      <div class="tt-grid tt-grid-3" style="margin-bottom:10px">
+        <div class="tt-card" style="text-align:center">
+          <div class="tt-label">총 수익률</div>
+          <div style="font-size:var(--fs-lg);font-weight:700;color:${totalReturn>=0?"var(--up-text)":"var(--down-text)"}">${totalReturn>=0?"+":""}${totalReturn.toFixed(2)}%</div>
+        </div>
+        <div class="tt-card" style="text-align:center">
+          <div class="tt-label">평균 수익</div>
+          <div style="font-size:var(--fs-lg);font-weight:700;color:var(--up-text)">+${avgWin.toFixed(2)}%</div>
+        </div>
+        <div class="tt-card" style="text-align:center">
+          <div class="tt-label">평균 손실</div>
+          <div style="font-size:var(--fs-lg);font-weight:700;color:var(--down-text)">${avgLoss.toFixed(2)}%</div>
+        </div>
+      </div>
+      <div class="tt-card">
+        <div class="tt-label" style="margin-bottom:6px">최근 거래 (${Math.min(hist.length,20)}건)</div>
+        ${hist.length?`<div style="overflow-y:auto;max-height:200px"><table class="tt-tbl">
+          <thead><tr><th>시간</th><th>심볼</th><th>방향</th><th>PnL%</th><th>결과</th></tr></thead><tbody>
+          ${hist.slice(-20).reverse().map(t=>{
+            const pnl=t.pnl||t.realizedPnl||0;
+            const win=t.win||(pnl>0);
+            const time=t.closeTime||t.exitTime||t.timestamp||t.t;
+            const timeStr=time?new Date(time).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"--";
+            return `<tr>
+              <td style="color:var(--ink3)">${timeStr}</td>
+              <td style="font-weight:700">${t.symbol||t.sym||"?"}</td>
+              <td style="color:${(t.direction||t.side)==="LONG"?"var(--up-text)":"var(--down-text)"}">${t.direction||t.side||"?"}</td>
+              <td style="color:${pnl>=0?"var(--up-text)":"var(--down-text)";font-weight:700}">${pnl>=0?"+":""}${pnl.toFixed(2)}%</td>
+              <td>${win?'<span style="color:var(--up-text)">✓</span>':'<span style="color:var(--down-text)">✗</span>'}</td>
+            </tr>`;
+          }).join("")}
+        </tbody></table></div>`:'<div style="color:var(--ink3);font-size:var(--fs-sm);text-align:center;padding:10px">거래 내역 없음</div>'}
+      </div>
+      ${_renderCoinBreakdown(hist)}`;
+
+    // Draw equity curve
+    if(eq.length>1){
+      setTimeout(()=>{
+        const canvas=winEl.querySelector('#tt-eq-canvas');
+        if(!canvas) return;
+        const ctx=canvas.getContext('2d');
+        const W=canvas.width, H=canvas.height;
+        const values=eq.map(e=>e.equity||e.value||e.capital||0);
+        const max=Math.max(...values), min=Math.min(...values);
+        const range=max-min||1;
+        ctx.clearRect(0,0,W,H);
+        ctx.strokeStyle='#e8590c';
+        ctx.lineWidth=1.5;
+        ctx.beginPath();
+        values.forEach((v,i)=>{
+          const x=i/(values.length-1)*W;
+          const y=H-(v-min)/range*H;
+          i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+        });
+        ctx.stroke();
+        // Fill below
+        ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
+        ctx.fillStyle='rgba(232,89,12,0.08)';
+        ctx.fill();
+        // Zero line
+        if(min<0){
+          const zeroY=H-(0-min)/range*H;
+          ctx.strokeStyle='#333';
+          ctx.lineWidth=0.5;
+          ctx.setLineDash([3,3]);
+          ctx.beginPath(); ctx.moveTo(0,zeroY); ctx.lineTo(W,zeroY); ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      },50);
+    }
+  }
+
+  function _renderCoinBreakdown(hist){
+    if(!hist||!hist.length) return "";
+    const bySymbol={};
+    hist.forEach(t=>{
+      const s=t.symbol||t.sym||"?";
+      if(!bySymbol[s]) bySymbol[s]={wins:0,losses:0,totalPnl:0,count:0};
+      bySymbol[s].count++;
+      bySymbol[s].totalPnl+=(t.pnl||t.realizedPnl||0);
+      if(t.win||(t.pnl||0)>0) bySymbol[s].wins++; else bySymbol[s].losses++;
+    });
+    const entries=Object.entries(bySymbol).sort((a,b)=>b[1].totalPnl-a[1].totalPnl);
+    if(!entries.length) return "";
+    return `<div class="tt-card" style="margin-top:8px">
+      <div class="tt-label" style="margin-bottom:6px">코인별 성과</div>
+      <table class="tt-tbl"><thead><tr><th>코인</th><th>거래수</th><th>승률</th><th>총 PnL</th></tr></thead><tbody>
+      ${entries.map(([sym,d])=>{
+        const wr=d.count?d.wins/d.count*100:0;
+        return `<tr><td style="font-weight:700">${sym}</td><td>${d.count}</td><td style="color:${wr>=50?"var(--up-text)":"var(--down-text)"}">${wr.toFixed(0)}%</td><td style="color:${d.totalPnl>=0?"var(--up-text)":"var(--down-text)";font-weight:700}">${d.totalPnl>=0?"+":""}${d.totalPnl.toFixed(2)}%</td></tr>`;
+      }).join("")}
+      </tbody></table>
+    </div>`;
+  }
+
+  // ══════════════ TAB 6: BACKTEST ══════════════
+  function renderBacktest(c){
+    c.innerHTML=`
+      <div class="tt-card">
+        <div class="tt-label" style="margin-bottom:10px">백테스트 실행</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+          <div>
+            <label style="font-size:var(--fs-xs);color:var(--ink3)">심볼</label>
+            <input type="text" id="tt-bt-sym" value="${S.sym||"BTC"}" style="width:70px" placeholder="BTC">
+          </div>
+          <div>
+            <label style="font-size:var(--fs-xs);color:var(--ink3)">타임프레임</label>
+            <select id="tt-bt-tf" style="background:#111;border:1px solid var(--border);color:var(--ink);padding:3px 6px;border-radius:3px">
+              <option value="15m">15분</option>
+              <option value="1h" selected>1시간</option>
+              <option value="4h">4시간</option>
+              <option value="1d">1일</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:var(--fs-xs);color:var(--ink3)">전략</label>
+            <select id="tt-bt-strat" style="background:#111;border:1px solid var(--border);color:var(--ink);padding:3px 6px;border-radius:3px">
+              <option value="default">기본 (13-에이전트)</option>
+              <option value="momentum">모멘텀</option>
+              <option value="meanReversion">평균회귀</option>
+              <option value="breakout">돌파</option>
+              <option value="scalp">스캘핑</option>
+            </select>
+          </div>
+          <button class="tt-btn primary" id="tt-bt-run">▶ 백테스트 실행</button>
+        </div>
+      </div>
+      <div id="tt-bt-results" style="color:var(--ink3);font-size:var(--fs-sm);text-align:center;padding:20px">
+        파라미터를 설정하고 백테스트를 실행하세요
+      </div>`;
+
+    const runBtn=winEl.querySelector('#tt-bt-run');
+    if(runBtn) runBtn.onclick=async()=>{
+      const sym=winEl.querySelector('#tt-bt-sym').value.trim().toUpperCase()||"BTC";
+      const tf=winEl.querySelector('#tt-bt-tf').value;
+      const strat=winEl.querySelector('#tt-bt-strat').value;
+      const resEl=winEl.querySelector('#tt-bt-results');
+      resEl.innerHTML=`<div style="text-align:center;padding:30px;color:var(--amber)">백테스트 실행 중... <div class="tt-progress" style="margin-top:8px"><div class="tt-progress-bar" style="width:60%;animation:ttPulse 1.5s infinite"></div></div></div>`;
+      try{
+        const data=await fetchJson(`${TT}/api/paper/dashboard?symbol=${sym}&timeframe=${tf}&strategy=${strat}`,30000);
+        const bt=data.backtest||data;
+        const trades=bt.trades||[];
+        const pnl=bt.totalPnl||bt.pnl||0;
+        const wr=bt.winRate||0;
+        const dd=bt.maxDrawdown||0;
+        const eq=bt.equityCurve||bt.equity||[];
+
+        let rhtml=`<div class="tt-grid tt-grid-4" style="margin-bottom:10px">
+          <div class="tt-card" style="text-align:center">
+            <div class="tt-label">총 PnL</div>
+            <div style="font-weight:800;color:${pnl>=0?"var(--up-text)":"var(--down-text)"}">${pnl>=0?"+":""}${pnl.toFixed(2)}%</div>
+          </div>
+          <div class="tt-card" style="text-align:center">
+            <div class="tt-label">거래수</div>
+            <div style="font-weight:800">${trades.length||bt.tradeCount||0}</div>
+          </div>
+          <div class="tt-card" style="text-align:center">
+            <div class="tt-label">승률</div>
+            <div style="font-weight:800;color:${wr>=50?"var(--up-text)":"var(--down-text)"}">${wr.toFixed(1)}%</div>
+          </div>
+          <div class="tt-card" style="text-align:center">
+            <div class="tt-label">최대 DD</div>
+            <div style="font-weight:800;color:var(--down-text)">${dd.toFixed(1)}%</div>
+          </div>
+        </div>`;
+
+        if(eq.length>1){
+          rhtml+=`<div class="tt-card"><div class="tt-label" style="margin-bottom:4px">백테스트 에쿼티</div>
+            <canvas id="tt-bt-canvas" width="650" height="100" style="width:100%;height:100px;background:#080808;border-radius:4px"></canvas></div>`;
+        }
+
+        if(trades.length){
+          rhtml+=`<div class="tt-card" style="margin-top:8px"><div class="tt-label" style="margin-bottom:4px">거래 목록 (${Math.min(trades.length,15)}건)</div>
+            <div style="overflow-y:auto;max-height:150px"><table class="tt-tbl">
+            <thead><tr><th>심볼</th><th>방향</th><th>PnL%</th></tr></thead><tbody>
+            ${trades.slice(-15).reverse().map(t=>{
+              const tpnl=t.pnl||0;
+              return `<tr><td>${t.symbol||sym}</td><td style="color:${(t.direction||t.side)==="LONG"?"var(--up-text)":"var(--down-text)"}">${t.direction||t.side||"?"}</td><td style="color:${tpnl>=0?"var(--up-text)":"var(--down-text)";font-weight:700}">${tpnl>=0?"+":""}${tpnl.toFixed(2)}%</td></tr>`;
+            }).join("")}
+            </tbody></table></div></div>`;
+        }
+
+        resEl.innerHTML=rhtml;
+
+        // Draw backtest equity
+        if(eq.length>1){
+          setTimeout(()=>{
+            const canvas=winEl.querySelector('#tt-bt-canvas');
+            if(!canvas) return;
+            const ctx=canvas.getContext('2d');
+            const W=canvas.width, H=canvas.height;
+            const vals=eq.map(e=>typeof e==="number"?e:e.equity||e.value||0);
+            const max=Math.max(...vals),min=Math.min(...vals),rng=max-min||1;
+            ctx.clearRect(0,0,W,H);
+            ctx.strokeStyle='#3b82f6'; ctx.lineWidth=1.5; ctx.beginPath();
+            vals.forEach((v,i)=>{ const x=i/(vals.length-1)*W,y=H-(v-min)/rng*H; i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); });
+            ctx.stroke(); ctx.lineTo(W,H); ctx.lineTo(0,H); ctx.closePath();
+            ctx.fillStyle='rgba(59,130,246,0.08)'; ctx.fill();
+          },50);
+        }
+      }catch(err){
+        resEl.innerHTML=`<div class="tt-card" style="color:var(--down-text);text-align:center;padding:20px">백테스트 실패: ${err.message||"서버 연결 오류"}</div>`;
+      }
+    };
+  }
+
+  // ── SSE connection for real-time agent updates ──
+  function connectSSE(){
+    try{
+      if(_teamSSE){ _teamSSE.close(); _teamSSE=null; }
+      _teamSSE=new EventSource(TT+"/api/stream");
+      _teamSSE.onmessage=ev=>{
+        try{
+          const msg=JSON.parse(ev.data);
+          if(msg.type==="agent_update"||msg.type==="analysis_progress"){
+            if(statusData) statusData.analyzing=true;
+            if(msg.agent&&statusData){
+              if(!statusData.agents) statusData.agents={};
+              statusData.agents[msg.agent]=msg.data||msg;
+            }
+            if(currentTab==="agents") renderTab();
+          }
+          if(msg.type==="analysis_complete"||msg.type==="decision"){
+            if(statusData){
+              statusData.analyzing=false;
+              if(msg.decision) statusData.lastDecision=msg.decision;
+            }
+            fetchStatus();
+          }
+          if(msg.type==="position_update"||msg.type==="trade_closed"){
+            fetchStatus();
+          }
+        }catch(e){}
+      };
+      _teamSSE.onerror=()=>{
+        if(_teamSSE){ _teamSSE.close(); _teamSSE=null; }
+        setTimeout(connectSSE,10000);
+      };
+    }catch(e){}
+  }
+
+  // ── Start data fetching ──
+  fetchStatus();
+  fetchHistory();
+  fetchPerf();
+  fetchEquity();
+  connectSSE();
+
+  // Auto-refresh
+  _teamIntervals.push(setInterval(fetchStatus,5000));
+  _teamIntervals.push(setInterval(()=>{ fetchHistory(); fetchPerf(); fetchEquity(); },30000));
+
+  // Cleanup on window close
+  const origClose=window.closeMWin;
+  const myWinId=winId;
+  window.closeMWin=function(id){
+    if(id===myWinId){
+      _teamIntervals.forEach(i=>clearInterval(i));
+      _teamIntervals=[];
+      if(_teamSSE){ _teamSSE.close(); _teamSSE=null; }
+      window.closeMWin=origClose;
+    }
+    origClose(id);
+  };
 }
 </script>
 <div id="notif-stack"></div>
