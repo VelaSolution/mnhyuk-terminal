@@ -1602,9 +1602,10 @@
 "use strict";
 
 /* ═══════════════ GLOBAL CONFIG ═══════════════ */
-// 통합 모드: 엔진 서버가 UI도 서빙 → 같은 origin 사용 (빈 문자열)
-// Vercel 배포 시에도 프록시 API가 있으므로 빈 문자열 가능
-window.__TT_BASE = '';
+// Vercel 배포: VPS 엔진 서버로 연결
+// VPS 직접 접속 시: 같은 origin (빈 문자열)
+window.__TT_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.port === '8000')
+  ? '' : 'http://158.247.252.39:8000';
 
 /* ═══════════════ ERROR HANDLER ═══════════════ */
 window.onerror = function(msg, src, line, col, err) {
@@ -10248,7 +10249,7 @@ function economicCalendarOverlay(){
   showOverlay("ECONOMIC CALENDAR · 매크로 일정",html);
 }
 
-/* ── Trading Team 베이스 URL (통합: 같은 서버) ── */
+/* ── Trading Team 베이스 URL ── */
 const TT_BASE = window.__TT_BASE || '';
 
 /* ── 2. PAPER TRADING 패널 ── */
