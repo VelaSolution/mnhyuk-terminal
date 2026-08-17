@@ -2701,6 +2701,47 @@ function sigChartOverlay(G){
     ctx.setLineDash([]);
     ctx.globalAlpha = 1;
   }
+
+  // ── Paper Trader 보유 포지션 수평선 (현재 심볼과 일치하는 것만) ──
+  if (PAPER_CACHE.data) {
+    const allPos = [...(PAPER_CACHE.data.positions||[]), ...(PAPER_CACHE.data.swingPositions||[])];
+    const symPos = allPos.filter(pp => pp.symbol === S.sym);
+    const W = plotW || 600;
+    symPos.forEach(pp => {
+      const isLong = pp.direction === 'BUY' || pp.direction === 'LONG';
+      ctx.setLineDash([6, 3]);
+      ctx.lineWidth = 1.5;
+      ctx.globalAlpha = 0.8;
+
+      // Entry line (orange)
+      ctx.strokeStyle = '#e8590c';
+      ctx.beginPath(); ctx.moveTo(0, y(pp.entryPrice)); ctx.lineTo(W, y(pp.entryPrice)); ctx.stroke();
+
+      // SL line (red)
+      ctx.strokeStyle = '#ef4444';
+      ctx.beginPath(); ctx.moveTo(0, y(pp.slPrice)); ctx.lineTo(W, y(pp.slPrice)); ctx.stroke();
+
+      // TP line (green)
+      ctx.strokeStyle = '#22c55e';
+      ctx.beginPath(); ctx.moveTo(0, y(pp.tpPrice)); ctx.lineTo(W, y(pp.tpPrice)); ctx.stroke();
+
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+
+      // Labels
+      ctx.font = '10px ' + getComputedStyle(document.body).fontFamily;
+      ctx.textAlign = 'left';
+
+      ctx.fillStyle = '#e8590c';
+      ctx.fillText(`${isLong ? '▲ LONG' : '▼ SHORT'} $${fmtPrice(pp.entryPrice)} [${pp.grade||'?'}]`, 6, y(pp.entryPrice) - 4);
+
+      ctx.fillStyle = '#ef4444';
+      ctx.fillText(`SL $${fmtPrice(pp.slPrice)}`, 6, y(pp.slPrice) - 4);
+
+      ctx.fillStyle = '#22c55e';
+      ctx.fillText(`TP $${fmtPrice(pp.tpPrice)}`, 6, y(pp.tpPrice) - 4);
+    });
+  }
 }
 
 // ── BILLION AI 차트 오버레이 — 시그널 레벨 + 근거 표시 ──
@@ -12857,8 +12898,9 @@ setTimeout(() => { loadDrawings(); }, 1000);
       if (!res.ok) return;
       const s = await res.json();
 
-      // Fund Overview 업데이트
+      // Fund Overview + TopBar 업데이트
       updateFundOverview(s);
+      updateTopBarStatus(s);
 
       // Health Score 계산 (클라이언트측 간이 버전)
       let score = 100;
@@ -13207,6 +13249,15 @@ setTimeout(() => { loadDrawings(); }, 1000);
   setTimeout(updateBottomFund, 3000);
 
   // 글로벌 노출
+  // ── Top bar AI 상태 표시 ──
+  function updateTopBarStatus(s) {
+    const el = document.getElementById('billion-status');
+    if (!el) return;
+    const ret = s.startCapital > 0 ? ((s.capital - s.startCapital) / s.startCapital * 100) : 0;
+    const posCount = (s.positions||[]).length + (s.swingPositions||[]).length;
+    el.innerHTML = `<span style="color:${ret>=0?'var(--up-text)':'var(--down-text)'}">$${(s.capital||0).toFixed(0)} ${ret>=0?'+':''}${ret.toFixed(1)}%</span> · <span style="color:var(--ink2)">${posCount}pos</span>`;
+  }
+
   // ── Pipeline 바 상태 업데이트 ──
   function updatePipelineStatus() {
     const steps = document.querySelectorAll('#pipeline > div:not([style*="flex:0"])');
