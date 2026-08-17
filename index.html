@@ -107,6 +107,7 @@
   #quotes tr:hover td{background:rgba(232,89,12,0.04);}
   #quotes tr.on td{background:#181205;}
   #quotes tr.on td:first-child{color:var(--amber);}
+  #quotes tr.hit td{border-left:2px solid var(--amber);}
   .u{color:var(--up-text);} .d{color:var(--down-text);} .n{color:var(--ink2);}
   @keyframes flashU{0%{background:#00332c;}100%{background:transparent;}}
   @keyframes flashD{0%{background:#3a1210;}100%{background:transparent;}}
@@ -4895,8 +4896,11 @@ function renderQuotes(){
     const fr=q.fundingRate==null?"—":(q.fundingRate>=0?"+":"")+q.fundingRate.toFixed(4);
     const qs=S._quantSignals&&S._quantSignals[s];
     const qsIcon=qs?(qs.action==='BUY'?'<span class="qs-icon buy">▲</span>':qs.action==='SELL'?'<span class="qs-icon sell">▼</span>':'<span class="qs-icon hold">●</span>'):'';
-    return `<tr data-sym="${s}" class="${s===S.sym?"on":""}">
-      <td>${s}${qsIcon}${S.sparks[s]||""}</td><td class="${flash}">${fmtPrice(q.last)}</td>
+    // Paper Trader 포지션 마커
+    const ptPos = PAPER_CACHE.data && [...(PAPER_CACHE.data.positions||[]),...(PAPER_CACHE.data.swingPositions||[])].find(p=>p.symbol===s);
+    const ptIcon = ptPos ? `<span style="font-size:8px;margin-left:2px;color:${ptPos.direction==='BUY'?'var(--up-text)':'var(--down-text)'};font-weight:700">${ptPos.direction==='BUY'?'L':'S'}</span>` : '';
+    return `<tr data-sym="${s}" class="${s===S.sym?"on":""}${ptPos?' hit':''}">
+      <td>${s}${ptIcon}${qsIcon}${S.sparks[s]||""}</td><td class="${flash}">${fmtPrice(q.last)}</td>
       <td class="${cls}">${ar}${Math.abs(q.pct).toFixed(2)}%</td>
       <td class="${q.fundingRate>=0?'n':'d'}">${fr}</td></tr>`;
   }).join("");
@@ -12101,7 +12105,7 @@ setTimeout(() => { loadDrawings(); }, 1000);
         renderPositionsPanel(POS_CACHE.data);
         return;
       }
-      const res = await fetch(`${TT_DASH}/api/paper/positions`, { signal: AbortSignal.timeout(5000) });
+      const res = await fetch(`${TT_DASH}/api/paper/status`, { signal: AbortSignal.timeout(5000) });
       if (!res.ok) throw new Error('fetch failed');
       const data = await res.json();
       POS_CACHE.data = data;
@@ -12116,7 +12120,8 @@ setTimeout(() => { loadDrawings(); }, 1000);
     const body = document.getElementById('pos-body');
     const countEl = document.getElementById('pos-count');
     if (!body) return;
-    const positions = data.positions || [];
+    // scalp + swing 포지션 합침
+    const positions = [...(data.positions || []), ...(data.swingPositions || [])];
     if (countEl) countEl.textContent = positions.length;
 
     if (!positions.length) {
@@ -12125,48 +12130,64 @@ setTimeout(() => { loadDrawings(); }, 1000);
     }
 
     let html = '';
+    let totalUnreal = 0;
     positions.forEach(p => {
       const sym = (p.symbol || '').replace('USDT', '');
       const dir = p.direction || p.side || '';
       const isLong = dir === 'BUY' || dir === 'LONG';
-      const dirLabel = isLong ? 'LONG' : 'SHORT';
+      const dirLabel = isLong ? 'LONG' : (p.strategy === 'swing' ? 'S·SHORT' : 'SHORT');
       const dirClass = isLong ? 'long' : 'short';
       const entry = p.entryPrice || p.entry || 0;
-      const current = p.currentPrice || p.markPrice || 0;
-      const pnl = p.unrealizedPnl || 0;
-      const roe = p.unrealizedPnlPct || p.roe || 0;
+
+      // Watchlist에서 실시간 가격 가져오기
+      const liveQuote = (typeof S !== 'undefined' && S.quotes && S.quotes[sym]) ? S.quotes[sym].last : 0;
+      const current = liveQuote || p.currentPrice || p.markPrice || entry;
+
+      // PnL 계산 (실시간)
+      const qty = p.quantity || 0;
+      const rawPnl = isLong ? (current - entry) * qty : (entry - current) * qty;
+      const fee = (p.costBasis || 0) * 0.0004; // 왕복 수수료 추정
+      const pnl = rawPnl - fee;
+      const roe = (p.costBasis || 0) > 0 ? (pnl / ((p.costBasis || 1) / 20) * 100) : 0;
       const pnlCol = pnl >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+      totalUnreal += pnl;
 
       // Holding time
       let holdTime = '';
-      if (p.openedAt || p.entryTime || p.timestamp) {
-        const opened = new Date(p.openedAt || p.entryTime || p.timestamp);
+      if (p.entryTime || p.entryTs) {
+        const opened = new Date(p.entryTime || p.entryTs);
         const diffMs = Date.now() - opened.getTime();
         const diffH = Math.floor(diffMs / 3600000);
         const diffM = Math.floor((diffMs % 3600000) / 60000);
-        holdTime = diffH > 0 ? `${diffH}h ${diffM}m` : `${diffM}m`;
+        holdTime = diffH > 0 ? `${diffH}h${diffM}m` : `${diffM}m`;
       }
+
+      const grade = p.grade || '?';
 
       html += `<div class="pos-card" onclick="if(typeof switchTo==='function')switchTo('${sym}',S.tf)">`;
       html += `<div class="pos-head">`;
-      html += `<span class="pos-sym">${sym}</span>`;
+      html += `<span class="pos-sym">${sym} <span style="color:var(--ink3);font-size:8px;font-weight:400">[${grade}]</span></span>`;
       html += `<span class="pos-dir ${dirClass}">${dirLabel}</span>`;
       html += `</div>`;
       html += `<div class="pos-prices">`;
-      html += `<span>진입 $${typeof fmtPrice==='function'?fmtPrice(entry):entry}</span>`;
+      html += `<span>$${typeof fmtPrice==='function'?fmtPrice(entry):entry}</span>`;
       html += `<span style="color:var(--ink3)">→</span>`;
       html += `<span style="color:${pnlCol}">$${typeof fmtPrice==='function'?fmtPrice(current):current}</span>`;
+      html += `<span style="color:var(--ink3);font-size:8px">${holdTime}</span>`;
       html += `</div>`;
       html += `<div class="pos-pnl">`;
-      html += `<span style="color:${pnlCol}">${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}</span>`;
-      html += `<span style="color:${pnlCol};font-size:12px">${roe >= 0 ? '+' : ''}${roe.toFixed(2)}%</span>`;
-      html += `</div>`;
-      html += `<div class="pos-live">`;
-      html += `<span class="prc">현재 $${typeof fmtPrice==='function'?fmtPrice(current):current}</span>`;
-      if (holdTime) html += ` · <span style="color:var(--ink3)">보유 ${holdTime}</span>`;
+      html += `<span style="color:${pnlCol}">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</span>`;
+      html += `<span style="color:${pnlCol};font-size:10px">ROE ${roe >= 0 ? '+' : ''}${roe.toFixed(1)}%</span>`;
       html += `</div>`;
       html += `</div>`;
     });
+
+    // 합계
+    const totalCol = totalUnreal >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+    html += `<div style="padding:4px 8px;font-size:10px;display:flex;justify-content:space-between;border-top:1px solid var(--border);background:rgba(255,255,255,0.02);">
+      <span style="color:var(--ink3)">TOTAL UNREALIZED</span>
+      <span style="color:${totalCol};font-weight:700;font-family:var(--mono)">${totalUnreal>=0?'+':''}$${totalUnreal.toFixed(2)}</span>
+    </div>`;
 
     body.innerHTML = html;
     const ageEl = document.getElementById('age-pos');
