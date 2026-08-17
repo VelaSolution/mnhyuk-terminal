@@ -376,6 +376,8 @@
     body{font-size:13px; overflow:auto;}
     #app{height:auto; min-height:100vh;}
 
+    /* ── Pipeline: hide on mobile ── */
+    #pipeline{display:none !important;}
     /* ── Topbar ── */
     #topbar{flex-wrap:wrap; gap:6px; padding:6px 8px;}
     #brand{font-size:12px; width:100%; order:-1;}
@@ -12989,12 +12991,54 @@ setTimeout(() => { loadDrawings(); }, 1000);
     while (body.children.length > 20) body.removeChild(body.lastChild);
   }
 
+  // ── 포지션 변동 감지 → Activity Feed 자동 기록 ──
+  let _prevPositions = [];
+  async function detectPositionChanges() {
+    try {
+      const res = await fetch(`${TT}/api/paper/status`);
+      if (!res.ok) return;
+      const s = await res.json();
+      const allPos = [...(s.positions || []), ...(s.swingPositions || [])];
+      const curSyms = allPos.map(p => p.symbol + '_' + p.direction);
+      const prevSyms = _prevPositions.map(p => p.symbol + '_' + p.direction);
+
+      // 새로 열린 포지션
+      for (const pos of allPos) {
+        const key = pos.symbol + '_' + pos.direction;
+        if (!prevSyms.includes(key)) {
+          const dir = pos.direction === 'BUY' ? '🟢 LONG' : '🔴 SHORT';
+          addActivity(pos.direction === 'BUY' ? '🟢' : '🔴', `${pos.symbol} ${dir} @ $${pos.entryPrice} [${pos.grade}]`);
+        }
+      }
+
+      // 닫힌 포지션
+      for (const prev of _prevPositions) {
+        const key = prev.symbol + '_' + prev.direction;
+        if (!curSyms.includes(key)) {
+          addActivity('📤', `${prev.symbol} ${prev.direction} 포지션 청산`);
+        }
+      }
+
+      _prevPositions = allPos;
+
+      // 연패/서킷 알림
+      if (s.circuitBreakerActive && !window._circuitNotified) {
+        addActivity('⚡', `서킷브레이커 활성 — ${s.config?.circuitBreakerHours || 12}h 정지`);
+        window._circuitNotified = true;
+      }
+      if (!s.circuitBreakerActive) window._circuitNotified = false;
+    } catch {}
+  }
+
   // ── 주기적 업데이트 ──
   updateHealthPanel();
   updateRecentTrades();
-  addActivity('🟢', 'Billion AI Hedge Fund OS v3 initialized');
+  detectPositionChanges();
+  addActivity('🟢', 'Billion AI Hedge Fund OS v3 online');
+  addActivity('📊', `Capital $${3062} · 6 trades · v3-enhanced`);
   setInterval(updateHealthPanel, 30000);
-  setInterval(updateRecentTrades, 60000); // 1분마다
+  setInterval(updateRecentTrades, 60000);
+  setInterval(detectPositionChanges, 45000); // 45초마다 포지션 변동 감지
 
   // ── 에쿼티 미니차트 ──
   function drawEquityMini(equityCurve) {
