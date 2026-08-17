@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BILLION AI TERMINAL</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
   :root{
     --bg:#050505; --panel:#0c0c0c; --panel2:#111; --border:#1e1e1e; --border2:#161616;
     --amber:#e8590c; --amber-dim:#a63d08; --ink:#e0e0e0; --ink2:#8a8a8a; --ink3:#4a4a4a;
     --up:#22c55e; --up-text:#4ade80; --down:#ef4444; --down-text:#f87171;
     --cyan:#3b82f6; --cyan-text:#60a5fa; --grid:#131313;
-    --mono:"JetBrains Mono","IBM Plex Mono","SF Mono","Cascadia Mono",Consolas,monospace;
-    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --mono:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --sans:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   html,body{height:100%;}
@@ -20,6 +20,20 @@
     background:var(--bg); color:var(--ink); font-family:var(--mono);
     font-size:12px; overflow:hidden; -webkit-font-smoothing:antialiased;
   }
+  /* ── Global font/button unification ──────────── */
+  button,input,select,textarea{font-family:var(--mono); font-size:11px;}
+  button{
+    background:var(--panel); border:1px solid var(--border); color:var(--ink2);
+    padding:4px 10px; cursor:pointer; letter-spacing:.5px; border-radius:4px;
+    transition:all .15s; font-weight:600;
+  }
+  button:hover{color:var(--ink); border-color:#3a3a3a; background:#151515;}
+  button:active{background:#1a1a1a;}
+  input{
+    background:#111; border:1px solid var(--border); color:var(--ink);
+    padding:3px 6px; outline:none; border-radius:3px;
+  }
+  input:focus{border-color:var(--amber-dim);}
   ::-webkit-scrollbar{width:8px;height:8px;} ::-webkit-scrollbar-track{background:#0a0a0a;}
   ::-webkit-scrollbar-thumb{background:#2a2a2a;border-radius:4px;} ::-webkit-scrollbar-thumb:hover{background:#3a3a3a;}
 
@@ -181,12 +195,12 @@
   #btov-body .rowline span{color:var(--ink2);} #btov-body .rowline b{font-variant-numeric:tabular-nums;}
 
   /* ── News ────────────────────────────────────── */
-  #news .item{padding:5px 9px; border-bottom:1px solid #101010; line-height:1.45;}
-  #news .item:hover{background:#111;}
-  #news .meta{color:var(--ink3); font-size:10px;}
-  #news .meta b{color:var(--cyan-text); font-weight:400;}
-  #news a{color:var(--ink); text-decoration:none;}
-  #news a:hover{color:var(--amber);}
+  #news .item, #news-feed .item{padding:5px 9px; border-bottom:1px solid #101010; line-height:1.45;}
+  #news .item:hover, #news-feed .item:hover{background:#111;}
+  #news .meta, #news-feed .meta{color:var(--ink3); font-size:10px;}
+  #news .meta b, #news-feed .meta b{color:var(--cyan-text); font-weight:400;}
+  #news a, #news-feed a{color:var(--ink); text-decoration:none;}
+  #news a:hover, #news-feed a:hover{color:var(--amber);}
 
   /* ── Bottom tape ─────────────────────────────── */
   #tape{
@@ -378,7 +392,7 @@
     #app{height:auto; min-height:100vh;}
 
     /* ── Hero Stats: hide on mobile ── */
-    #hero-stats{display:none !important;}
+    /* hero-stats removed */
     /* ── Topbar ── */
     #topbar{flex-wrap:wrap; gap:6px; padding:6px 8px;}
     #brand{font-size:12px; width:100%; order:-1;}
@@ -832,29 +846,7 @@
     </div>
   </div>
 
-  <!-- Hero Stats Bar (seb.ai style) -->
-  <div id="hero-stats" style="display:flex;background:#060606;border-bottom:1px solid var(--border);padding:0;flex:0 0 auto;font-family:var(--mono);">
-    <div style="flex:1;padding:6px 12px;border-right:1px solid var(--border);">
-      <div style="font-size:8px;color:var(--ink3);letter-spacing:1.5px;font-family:var(--sans);">ALL TIME RETURN</div>
-      <div style="font-size:18px;font-weight:800;" id="hero-return">+0.0%</div>
-    </div>
-    <div style="flex:1;padding:6px 12px;border-right:1px solid var(--border);">
-      <div style="font-size:8px;color:var(--ink3);letter-spacing:1.5px;font-family:var(--sans);">SHARPE RATIO</div>
-      <div style="font-size:18px;font-weight:800;color:var(--ink);" id="hero-sharpe">--</div>
-    </div>
-    <div style="flex:1;padding:6px 12px;border-right:1px solid var(--border);">
-      <div style="font-size:8px;color:var(--ink3);letter-spacing:1.5px;font-family:var(--sans);">MAX DRAWDOWN</div>
-      <div style="font-size:18px;font-weight:800;color:var(--down-text);" id="hero-mdd">--%</div>
-    </div>
-    <div style="flex:1;padding:6px 12px;border-right:1px solid var(--border);">
-      <div style="font-size:8px;color:var(--ink3);letter-spacing:1.5px;font-family:var(--sans);">WIN RATE</div>
-      <div style="font-size:18px;font-weight:800;" id="hero-wr">--%</div>
-    </div>
-    <div style="flex:1;padding:6px 12px;">
-      <div style="font-size:8px;color:var(--ink3);letter-spacing:1.5px;font-family:var(--sans);">TRADES</div>
-      <div style="font-size:18px;font-weight:800;color:var(--ink);" id="hero-trades">0</div>
-    </div>
-  </div>
+  <!-- Hero Stats Bar removed -->
 
   <div id="tabrow">
     <div id="symtabs" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
@@ -1211,11 +1203,21 @@
         <div class="pbody" id="eco"><div class="rowline"><span style="color:var(--ink3)">이벤트 로드 중…</span></div></div>
       </div>
       <!-- 7. ACTIVITY FEED -->
-      <div class="panel" style="flex:1;" id="activity-panel">
+      <div class="panel" style="flex:0 0 auto;" id="activity-panel">
         <div class="ptitle">ACTIVITY <small>실시간</small></div>
-        <div class="pbody" id="activity-body" style="font-size:10px;color:var(--ink2);padding:4px;">
+        <div class="pbody" id="activity-body" style="font-size:10px;color:var(--ink2);padding:4px;max-height:120px;">
           <div style="padding:4px 6px;color:var(--ink3);font-size:9px">대기 중...</div>
         </div>
+      </div>
+      <!-- 8. NEWS FEED -->
+      <div class="panel" style="flex:1;" id="news-panel">
+        <div class="ptitle">NEWS <small>크립토 뉴스</small>
+          <span class="ntab on" data-ntab="all" style="font-size:8px;padding:1px 6px;border-radius:3px;">전체</span>
+          <span class="ntab" data-ntab="sym" style="font-size:8px;padding:1px 6px;border-radius:3px;" id="ntab-sym-label">BTC</span>
+          <span class="ntab" data-ntab="kr" style="font-size:8px;padding:1px 6px;border-radius:3px;">한국</span>
+          <span class="age" id="age-news"></span>
+        </div>
+        <div class="pbody" id="news-feed"><div class="item" style="color:var(--ink3)">로드 중…</div></div>
       </div>
       <!-- Hidden: Console (기존 호환) -->
       <div style="display:none;">
@@ -5077,14 +5079,21 @@ async function loadGlobals(){
   if(typeof loadFngHistory==='function') loadFngHistory();
 }
 
-/* news (탭: 전체 / 관련코인 / 한국) */
+/* news (탭: 전체 / 관련코인 / 한국) — 자동 새로고침 3분 */
+let _newsTimer = null;
+function scheduleNewsRefresh(){
+  if(_newsTimer) clearInterval(_newsTimer);
+  _newsTimer = setInterval(loadNews, 180000);
+}
 async function loadNews(){
   const tab=S.newsTab;
   try{
     let items=[];
     if(tab==="kr"){
       if(!S.proxy){
-        $("news").innerHTML='<div class="item" style="color:var(--ink3)">한국 크립토 뉴스는 Vercel 배포 버전에서 활성화됩니다.<br>동봉된 README의 1분 배포 가이드를 참고하세요.</div>';
+        $("news").innerHTML='<div class="item" style="color:var(--ink3)">한국 크립토 뉴스는 Vercel 배포 버전에서 활성화됩니다.</div>';
+        const nf = document.getElementById("news-feed");
+        if(nf) nf.innerHTML=$("news").innerHTML;
         return;
       }
       const j=await fetchJson("/api/rss?feed=kr");
@@ -5094,7 +5103,7 @@ async function loadNews(){
       const cat = tab === "sym" ? S.sym : tab === "defi" ? "DeFi" : "";
       const sources = [];
 
-      // Source 1: CryptoCompare
+      // Source 1: CryptoCompare (primary, reliable)
       try {
         const catQ = cat ? "&categories=" + cat : "";
         const j = await fetchJson("https://min-api.cryptocompare.com/data/v2/news/?lang=EN" + catQ);
@@ -5102,18 +5111,20 @@ async function loadNews(){
           t: n.published_on * 1000,
           src: (n.source_info && n.source_info.name) || n.source,
           title: n.title,
-          url: n.url
+          url: n.url,
+          body: (n.body || '').slice(0, 200)
         })));
       } catch(e){}
 
       // Source 2: CoinGecko news (status updates)
       try {
-        const j = await fetchJson("https://api.coingecko.com/api/v3/status_updates?per_page=10");
+        const j = await fetchJson("https://api.coingecko.com/api/v3/status_updates?per_page=15");
         if(j.status_updates) sources.push(...j.status_updates.map(n => ({
           t: Date.parse(n.created_at),
           src: n.project?.name || "CoinGecko",
           title: n.description?.slice(0, 120) || "",
-          url: n.project?.links?.homepage?.[0] || "https://coingecko.com"
+          url: n.project?.links?.homepage?.[0] || "https://coingecko.com",
+          body: ''
         })).filter(n => n.title));
       } catch(e){}
 
@@ -5121,28 +5132,44 @@ async function loadNews(){
       try {
         const filter = cat ? `&currencies=${cat}` : "";
         const j = await fetchJson("https://cryptopanic.com/api/free/v1/posts/?auth_token=free&public=true" + filter);
-        if(j.results) sources.push(...j.results.slice(0, 10).map(n => ({
+        if(j.results) sources.push(...j.results.slice(0, 15).map(n => ({
           t: Date.parse(n.published_at),
           src: n.source?.title || "CryptoPanic",
           title: n.title,
-          url: n.url
+          url: n.url,
+          body: ''
         })));
       } catch(e){}
 
       // Source 4: RSS feeds via proxy (if available)
       if(S.proxy){
         try {
-          const feeds = ["coindesk", "cointelegraph", "theblock"];
+          const feeds = ["coindesk", "cointelegraph", "theblock", "decrypt"];
           for(const feed of feeds){
             try {
               const j = await fetchJson("/api/rss?feed=" + feed);
               if(j.items) sources.push(...j.items.map(n => ({
-                t: n.ts, src: n.source || feed.toUpperCase(), title: n.title, url: n.url
+                t: n.ts, src: n.source || feed.toUpperCase(), title: n.title, url: n.url, body: ''
               })));
             } catch(e){}
           }
         } catch(e){}
       }
+
+      // Source 5: CoinGecko trending (hot topics)
+      try {
+        const j = await fetchJson("https://api.coingecko.com/api/v3/search/trending");
+        if(j.coins && j.coins.length > 0) {
+          const trendNames = j.coins.slice(0,5).map(c => c.item.name).join(', ');
+          sources.push({
+            t: Date.now(),
+            src: 'CoinGecko Trending',
+            title: `Trending: ${trendNames}`,
+            url: 'https://www.coingecko.com/en/watchlists/trending-crypto',
+            body: ''
+          });
+        }
+      } catch(e){}
 
       // Deduplicate by title similarity and sort by time
       const seen = new Set();
@@ -5153,27 +5180,39 @@ async function loadNews(){
         return true;
       }).sort((a, b) => b.t - a.t);
     }
-    items=items.slice(0,24);
+    items=items.slice(0,30);
     if(!items.length) throw 0;
     if(tab!=="kr") S.newsItems=items;
-    $("news").innerHTML=items.map(n=>{
+    const newsHtml = items.map(n=>{
       const urgent = /hack|exploit|crash|plunge|surge|soar|dump|pump|ban|sec |lawsuit|emergency|halt|delist|bankrupt/i.test(n.title);
-      const bullish = /surge|soar|rally|bullish|ath|record|approve|adopt|etf.*approv|partnership|launch/i.test(n.title);
-      const bearish = /crash|plunge|dump|bearish|hack|exploit|ban|lawsuit|delist|bankrupt|liquidat/i.test(n.title);
-      const tag = urgent ? '<span style="color:var(--down-text);font-weight:700;font-size:9px;letter-spacing:.5px;margin-left:4px;border:1px solid var(--down);padding:0 3px">URGENT</span>' :
-        bullish ? '<span style="color:var(--up-text);font-size:9px;margin-left:4px">▲</span>' :
-        bearish ? '<span style="color:var(--down-text);font-size:9px;margin-left:4px">▼</span>' : '';
-      const freshness = Date.now() - n.t < 1800000 ? ' style="border-left:2px solid var(--amber);padding-left:7px"' : '';
+      const bullish = /surge|soar|rally|bullish|ath|record|approve|adopt|etf.*approv|partnership|launch|milestone|inflow/i.test(n.title);
+      const bearish = /crash|plunge|dump|bearish|hack|exploit|ban|lawsuit|delist|bankrupt|liquidat|outflow|warning|risk/i.test(n.title);
+      const tag = urgent ? '<span style="color:#000;font-weight:700;font-size:8px;letter-spacing:.5px;margin-left:4px;border:1px solid var(--down);padding:1px 4px;background:var(--down-text);border-radius:2px">URGENT</span>' :
+        bullish ? '<span style="color:var(--up-text);font-size:8px;font-weight:600;margin-left:4px;border:1px solid rgba(74,222,128,.3);padding:1px 4px;border-radius:2px;background:rgba(74,222,128,.08)">▲ BULL</span>' :
+        bearish ? '<span style="color:var(--down-text);font-size:8px;font-weight:600;margin-left:4px;border:1px solid rgba(248,113,113,.3);padding:1px 4px;border-radius:2px;background:rgba(248,113,113,.08)">▼ BEAR</span>' : '';
+      const ago = Date.now() - n.t;
+      const freshness = ago < 1800000 ? ' style="border-left:2px solid var(--amber);padding-left:7px"' :
+        ago < 3600000 ? ' style="border-left:2px solid var(--cyan);padding-left:7px"' : '';
+      const bodySnippet = n.body ? `<div style="color:var(--ink3);font-size:9px;margin-top:2px;line-height:1.3;overflow:hidden;max-height:26px;">${n.body}</div>` : '';
       return `<div class="item"${freshness}>
-        <div class="meta">${fmtT(n.t, Date.now()-n.t>864e5)} · <b>${n.src}</b>${tag}</div>
+        <div class="meta">${fmtT(n.t, ago>864e5)} · <b>${n.src}</b>${tag}</div>
         <a href="${n.url}" target="_blank" rel="noopener">${n.title}</a>
+        ${bodySnippet}
       </div>`;
     }).join("");
+    $("news").innerHTML = newsHtml;
+    const nf = document.getElementById("news-feed");
+    if(nf) nf.innerHTML = newsHtml;
+    // Update news tab label with current symbol
+    const ntabLabel = document.getElementById("ntab-sym-label");
+    if(ntabLabel) ntabLabel.textContent = S.sym;
     renderTape(true);
     S.srcHealth.ok++; setLED(); setAge("news"); tickAges();
   }catch(e){
     S.srcHealth.fail++; setLED();
     $("news").innerHTML='<div class="item" style="color:var(--ink3)">뉴스를 불러오지 못했습니다 (네트워크 차단 가능성)</div>';
+    const nf = document.getElementById("news-feed");
+    if(nf) nf.innerHTML='<div class="item" style="color:var(--ink3)">뉴스를 불러오지 못했습니다</div>';
   }
 }
 
@@ -8100,6 +8139,7 @@ try {
   wsConnect();
   if(typeof aiConnect==='function') aiConnect(); // AI Engine 연동
   loadQuotes(); loadChart(); loadDeriv(); loadGlobals(); loadNews(); loadKimchi(); loadEco();
+  scheduleNewsRefresh();
   setInterval(loadEco, 30*60_000);
   setInterval(renderEco, 30_000);                             // 카운트다운 갱신
   setInterval(loadKimchi, 60_000);
@@ -13340,26 +13380,7 @@ setTimeout(() => { loadDrawings(); }, 1000);
     const posCount = (s.positions||[]).length + (s.swingPositions||[]).length;
     el.innerHTML = `<span style="color:${ret>=0?'var(--up-text)':'var(--down-text)'}">$${(s.capital||0).toFixed(0)} ${ret>=0?'+':''}${ret.toFixed(1)}%</span> · <span style="color:var(--ink2)">${posCount}pos</span>`;
 
-    // Hero Stats Bar
-    const wr = s.totalTrades > 0 ? (s.wins / s.totalTrades * 100) : 0;
-    const heroRet = document.getElementById('hero-return');
-    if (heroRet) {
-      heroRet.textContent = `${ret >= 0 ? '+' : ''}${ret.toFixed(1)}%`;
-      heroRet.style.color = ret >= 0 ? 'var(--up-text)' : 'var(--down-text)';
-    }
-    const heroMdd = document.getElementById('hero-mdd');
-    if (heroMdd) heroMdd.textContent = `-${(s.maxDrawdown || 0).toFixed(1)}%`;
-    const heroWr = document.getElementById('hero-wr');
-    if (heroWr) {
-      heroWr.textContent = `${wr.toFixed(0)}%`;
-      heroWr.style.color = wr >= 50 ? 'var(--up-text)' : wr >= 35 ? 'var(--ink)' : 'var(--down-text)';
-    }
-    const heroTrades = document.getElementById('hero-trades');
-    if (heroTrades) heroTrades.textContent = s.totalTrades || 0;
-    // Sharpe는 health-sharpe에서 가져옴
-    const heroSharpe = document.getElementById('hero-sharpe');
-    const srcSharpe = document.getElementById('health-sharpe');
-    if (heroSharpe && srcSharpe) heroSharpe.textContent = srcSharpe.textContent;
+    // Hero Stats Bar removed
   }
 
   // ── Pipeline 바 상태 업데이트 ──
