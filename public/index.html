@@ -5347,7 +5347,40 @@ async function loadNews(){
         } catch(e){}
       }
 
-      // Source 5: CoinGecko trending (hot topics)
+      // Source 5: Whale Alert — 대형 거래 추적
+      try {
+        const wRes = await fetchJson("https://api.whale-alert.io/v1/transactions?api_key=free&min_value=1000000&limit=10", {signal:AbortSignal.timeout(5000)});
+        if(wRes && wRes.transactions) {
+          sources.push(...wRes.transactions.slice(0,8).map(tx => {
+            const amt = tx.amount ? `${(tx.amount).toLocaleString()} ${(tx.symbol||'').toUpperCase()}` : '';
+            const val = tx.amount_usd ? `$${(tx.amount_usd/1e6).toFixed(1)}M` : '';
+            const from = tx.from?.owner_type === 'exchange' ? tx.from.owner : (tx.from?.owner_type || 'unknown');
+            const to = tx.to?.owner_type === 'exchange' ? tx.to.owner : (tx.to?.owner_type || 'unknown');
+            return {
+              t: (tx.timestamp||0)*1000,
+              src: 'Whale Alert',
+              title: `🐋 ${amt} (${val}) ${from} → ${to}`,
+              url: tx.hash ? `https://whale-alert.io/transaction/${tx.blockchain}/${tx.hash}` : 'https://whale-alert.io',
+              body: '', tag: 'whale'
+            };
+          }));
+        }
+      } catch(e){}
+
+      // Source 6: CryptoCompare 매크로/규제 카테고리 뉴스
+      try {
+        const macroJ = await fetchJson("https://min-api.cryptocompare.com/data/v2/news/?lang=EN&categories=Regulation,Business,Government");
+        if(macroJ.Data) sources.push(...macroJ.Data.slice(0,8).map(n => ({
+          t: n.published_on * 1000,
+          src: (n.source_info && n.source_info.name) || n.source,
+          title: n.title,
+          url: n.url,
+          body: (n.body || '').slice(0, 200),
+          tag: 'macro'
+        })));
+      } catch(e){}
+
+      // Source 7: CoinGecko trending (hot topics)
       try {
         const j = await fetchJson("https://api.coingecko.com/api/v3/search/trending");
         if(j.coins && j.coins.length > 0) {
@@ -5384,7 +5417,11 @@ async function loadNews(){
       const urgent = /hack|exploit|crash|plunge|surge|soar|dump|pump|ban|sec |lawsuit|emergency|halt|delist|bankrupt/i.test(n.title);
       const bullish = /surge|soar|rally|bullish|ath|record|approve|adopt|etf.*approv|partnership|launch|milestone|inflow/i.test(n.title);
       const bearish = /crash|plunge|dump|bearish|hack|exploit|ban|lawsuit|delist|bankrupt|liquidat|outflow|warning|risk/i.test(n.title);
+      const isWhale = n.tag === 'whale' || n.src === 'Whale Alert';
+      const isMacro = n.tag === 'macro' || /regulation|government|fed|sec |congress|senate|treasury|policy|sanction|law|bill|act\b/i.test(n.title);
       const tag = urgent ? '<span style="color:#000;font-weight:700;font-size:8px;letter-spacing:.5px;margin-left:4px;border:1px solid var(--down);padding:1px 4px;background:var(--down-text);border-radius:2px">URGENT</span>' :
+        isWhale ? '<span style="color:var(--cyan-text);font-size:8px;font-weight:600;margin-left:4px;border:1px solid rgba(96,165,250,.3);padding:1px 4px;border-radius:2px;background:rgba(96,165,250,.08)">🐋 WHALE</span>' :
+        isMacro ? '<span style="color:var(--amber);font-size:8px;font-weight:600;margin-left:4px;border:1px solid rgba(232,89,12,.3);padding:1px 4px;border-radius:2px;background:rgba(232,89,12,.08)">MACRO</span>' :
         bullish ? '<span style="color:var(--up-text);font-size:8px;font-weight:600;margin-left:4px;border:1px solid rgba(74,222,128,.3);padding:1px 4px;border-radius:2px;background:rgba(74,222,128,.08)">▲ BULL</span>' :
         bearish ? '<span style="color:var(--down-text);font-size:8px;font-weight:600;margin-left:4px;border:1px solid rgba(248,113,113,.3);padding:1px 4px;border-radius:2px;background:rgba(248,113,113,.08)">▼ BEAR</span>' : '';
       const ago = Date.now() - n.t;
