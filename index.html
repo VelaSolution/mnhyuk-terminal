@@ -1189,17 +1189,20 @@
           <div style="padding:4px 8px;color:var(--ink3);font-size:9px;">거래 내역 로드 중...</div>
         </div>
       </div>
-      <!-- 6. ACTIVITY FEED -->
+      <!-- 6. CALENDAR (매크로 일정) -->
+      <div class="panel" style="flex:0 0 auto;" id="eco-panel">
+        <div class="ptitle">CALENDAR <small>매크로</small><span class="age" id="age-eco"></span></div>
+        <div class="pbody" id="eco"><div class="rowline"><span style="color:var(--ink3)">이벤트 로드 중…</span></div></div>
+      </div>
+      <!-- 7. ACTIVITY FEED -->
       <div class="panel" style="flex:1;" id="activity-panel">
         <div class="ptitle">ACTIVITY <small>실시간</small></div>
         <div class="pbody" id="activity-body" style="font-size:10px;color:var(--ink2);padding:4px;">
           <div style="padding:4px 6px;color:var(--ink3);font-size:9px">대기 중...</div>
         </div>
       </div>
-      <!-- Hidden: Calendar + Console (기존 호환) -->
+      <!-- Hidden: Console (기존 호환) -->
       <div style="display:none;">
-        <div id="eco-panel-hidden"><div id="eco"><div class="rowline"><span style="color:var(--ink3)">이벤트 로드 중…</span></div></div></div>
-        <span id="age-eco"></span>
         <div id="console-body">터미널 준비 중…</div>
       </div>
     </div>
@@ -12161,7 +12164,7 @@ setTimeout(() => { loadDrawings(); }, 1000);
   const SIG_LIST_CACHE = { data: null, ts: 0 };
 
   async function loadAISignalsList() {
-    const body = document.getElementById('ai-signals-body');
+    const body = document.getElementById('r-aisig-body') || document.getElementById('ai-signals-body');
     if (!body) return;
     try {
       if (Date.now() - SIG_LIST_CACHE.ts < 15000 && SIG_LIST_CACHE.data) {
@@ -12191,7 +12194,7 @@ setTimeout(() => { loadDrawings(); }, 1000);
   }
 
   function renderAISignalsList(items) {
-    const body = document.getElementById('ai-signals-body');
+    const body = document.getElementById('r-aisig-body') || document.getElementById('ai-signals-body');
     if (!body) return;
     if (!items || !items.length) {
       body.innerHTML = '<div class="ais-empty">최근 시그널 없음</div>';

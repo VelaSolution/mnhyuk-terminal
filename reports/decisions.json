@@ -1,0 +1,682 @@
+[
+  {
+    "ts": "2026-08-11T13:07:06.680Z",
+    "symbol": "BTC",
+    "mode": "attack",
+    "action": "SHORT",
+    "confidence": 72,
+    "entry": "64268",
+    "stop": "65200",
+    "target": "61800",
+    "rationale": "MACD 음수 지속+롱 과포지션+거래량 부족의 삼각형 약세 구조. $63,788 지지대 이하 돌파 시 강제청산 연쇄로 급락 시나리오 높음. 기술적 모멘텀 부재로 반등 신뢰도 낮음.",
+    "pmVerdict": "수정승인",
+    "pmAdjustments": "진입 조건 수정: 현재가 진입 지양, $63,788 지지대 이하 명확한 돌파 후 진입 권장. 규모 축소: 초기 포지션 50% 감축으로 모멘텀 확정 후 추가 진입. 손절 조정: $65,200 → $65,800으로 상향(기술적 불확실성 반영). 모니터링: 공포지수와 기술적 신호의 정렬 확인 후 공격적 포지션 확대 검토.",
+    "report": "BTC는 $64,268에서 기술적 약세 신호가 지배적입니다. MACD(-107.75)와 히스토그램(-98.98)의 지속적 음수, SMA20 하회는 단기 약세를 명확히 합니다. 펀딩레이트 0.0072%는 중립 수준으로 '강한 상승'이 아니며, 롱/숏 61.7% vs 38.3%의 롱 과포지션은 오히려 청산 위험을 높입니다. 거래량 0.61x 저점은 기관의 진정한 매수 강도가 약함을 의미합니다. 공포지수 29는 기회일 수 있으나, 현재는 기술적 모멘텀 부재(RSI 41, ADX 33)가 반등을 제한합니다. $63,788 지지대 붕괴 시 연쇄 청산으로 $60,000대 급락 가능성이 높습니다."
+  },
+  {
+    "ts": "2026-08-11T13:10:21.047Z",
+    "symbol": "BTC",
+    "mode": "attack",
+    "action": "HOLD",
+    "confidence": 55,
+    "entry": "63788",
+    "stop": "63200",
+    "target": "65483",
+    "rationale": "극단적 공포(Fear 29)는 매수 신호지만, 롱 포지션 과다·거래량 부족·MACD 음수의 삼중 위험이 존재합니다. $63,788 지지선이 버티면 반발 가능성이 높으나, 돌파 시 청산 연쇄 위험이 임박하므로 지지선 재확인 후 진입하는 것이 안전합니다.",
+    "pmVerdict": "수정승인",
+    "pmAdjustments": "ACE 권고 HOLD 유지하되, 리스크 심사 결과를 반영한 조건부 진입 전략 수정: (1) 1차 진입은 $63,788 지지선에서 수량 50% 진행, (2) 2차 진입은 $63,200 이하 추가 하락 시 나머지 50% 분할 진입, (3) 손절은 $62,000으로 상향 조정(연쇄 청산 임계값 반영), (4) 극단적 공포 상황에서 기회비용 최소화와 연쇄 청산 위험 동시 관리를 위해 분할 진입 권고, (5) 거래량 0.8x 이상 복구 시에만 추가 진입 고려",
+    "report": "BTC는 $64,345.9에서 혼조 신호를 보이고 있습니다. 기술적으로 MACD 음수(-101.54)와 RSI 42는 약세를 나타내지만, 거래량 0.63x 저조로 하락 신뢰도가 낮으며 슈퍼트렌드는 LONG 신호를 유지하고 있습니다. 온체인 분석에서 펀딩레이트 0.0074%는 낮으나 상승 추세를 보여 과다 포지션 축적 경고이며, 롱 포지션 61.7% 우위는 급락 시 청산 연쇄 위험을 내포합니다. 공포탐욕지수 29(극심한 공포)와 고래의 보유량 증가는 역발상 매수 신호이나, 극단적 심리와 구조적 롱 쏠림의 불일치는 변동성 확대를 예고합니다. $63,788 지지선 방어 여부가 향후 방향을 결정하며, 현재는 $64,000 저항 돌파 또는 지지선 재확인 대기 국면입니다."
+  },
+  {
+    "ts": "2026-08-11T13:14:00.642Z",
+    "symbol": "KORU",
+    "mode": "attack",
+    "action": "SHORT",
+    "confidence": 78,
+    "entry": 17.35,
+    "stop": 18.1,
+    "target": 16.2,
+    "rationale": "극단적 롱 쏠림(69.7%)과 거래량 붕괴(48%)는 청산 폭발의 고전적 신호입니다. 약한 모멘텀(RSI 52, MACD -0.01, ADX 13)에 $6천만 규모 OI가 취약한 유동성에 의존하고 있어 $18 저항에서 수익실현 매도로 하락 가능성이 높습니다.",
+    "pmVerdict": "수정승인",
+    "pmAdjustments": "SHORT 포지션 진입 조건 강화 필요: (1) 진입가 $17.35→$17.50으로 상향조정하여 $18 저항 근처에서 진입(롱 청산 트리거 최대화), (2) 손실한계 $18.10→$18.25로 조정(돌파 시 즉시 청산), (3) 목표가 $16.20 유지하되 단계적 익절 설정($17.00, $16.50, $16.20), (4) 포지션 규모 제한: 계정 리스크 최대 2% 이내, (5) 거래량 재확인 후 진입(현재 48% 붕괴 상태에서 반등 확인 필수)",
+    "report": "KORU는 $17.43에서 기술적으로 SMA20/50 상단 지지와 슈퍼트렌드 LONG을 유지하나, 모멘텀이 극도로 약합니다. RSI 52(중립), MACD -0.01(약세), ADX 13(추세강도 극히 약함), 거래량 48% 붕괴로 상승의 실질 지지가 부재합니다. 온체인 구조는 더욱 위험하여 롱 포지션 69.7% 극단쏠림에 $6천만 OI가 취약한 거래량에 의존 중입니다. $18 저항 접근 시 69.7% 롱의 수익실현·강제청산 연쇄가 임박하며, 공포지수 29의 역발상 매수는 지속력이 없습니다. 현재는 명백한 청산 위험 구간으로 추가 하락 시 연쇄 폭락이 높습니다."
+  },
+  {
+    "ts": "2026-08-11T13:16:51.190Z",
+    "symbol": "KORU",
+    "mode": "attack",
+    "action": "BUY",
+    "confidence": 68,
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-11T16:08:45.149Z",
+    "symbol": "KORU",
+    "mode": "attack",
+    "action": "BUY",
+    "confidence": 0,
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-11T17:28:08.437Z",
+    "symbol": "KORU",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 0,
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-11T17:34:01.911Z",
+    "symbol": "KORU",
+    "mode": "attack",
+    "action": "BUY",
+    "confidence": 0,
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-11T18:19:23.142Z",
+    "symbol": "ETH",
+    "mode": "attack",
+    "action": "SELL",
+    "confidence": 0,
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-11T18:20:35.162Z",
+    "symbol": "ETH",
+    "mode": "algo",
+    "action": "HOLD",
+    "confidence": 0,
+    "verdict": "기각",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-11T18:27:22.008Z",
+    "symbol": "ETH",
+    "mode": "algo",
+    "action": "SHORT",
+    "confidence": 72,
+    "verdict": "수정승인",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T13:07:10.068Z",
+    "symbol": "KORU",
+    "mode": "attack",
+    "action": "BUY",
+    "confidence": 55,
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T13:22:42.227Z",
+    "symbol": "KORU",
+    "mode": "algo",
+    "action": "SHORT",
+    "confidence": 72,
+    "verdict": "수정승인",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T13:24:18.511Z",
+    "symbol": "KORU",
+    "mode": "algo",
+    "action": "HOLD",
+    "confidence": 35,
+    "verdict": "수정승인",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T13:36:15.949Z",
+    "symbol": "KORU",
+    "mode": "algo",
+    "action": "SHORT",
+    "confidence": 72,
+    "verdict": "수정승인",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T14:20:48.607Z",
+    "symbol": "KORU",
+    "mode": "algo",
+    "action": "SHORT",
+    "confidence": 68,
+    "verdict": "수정승인",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T14:34:47.544Z",
+    "symbol": "KORU",
+    "mode": "algo",
+    "action": "HOLD",
+    "confidence": 72,
+    "verdict": "수정승인",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T15:51:46.329Z",
+    "symbol": "KORU",
+    "mode": "attack",
+    "action": "BUY",
+    "confidence": 68,
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T16:06:33.525Z",
+    "symbol": "KORU",
+    "mode": "algo",
+    "action": "HOLD",
+    "confidence": 55,
+    "verdict": "수정승인",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T16:07:29.822Z",
+    "symbol": "SOL",
+    "mode": "algo",
+    "action": "SELL",
+    "confidence": 72,
+    "verdict": "수정승인",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T17:13:59.769Z",
+    "symbol": "SOL",
+    "mode": "algo",
+    "action": "SELL",
+    "confidence": 72,
+    "verdict": "수정승인",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T17:27:22.042Z",
+    "symbol": "SOL",
+    "mode": "algo",
+    "action": "SELL",
+    "confidence": 68,
+    "verdict": "수정승인",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T17:31:11.353Z",
+    "symbol": "SOL",
+    "mode": "algo",
+    "action": "SELL",
+    "confidence": 72,
+    "verdict": "수정승인",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T17:33:28.377Z",
+    "symbol": "SOL",
+    "mode": "algo",
+    "action": "SELL",
+    "confidence": 72,
+    "verdict": "수정승인",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T17:35:31.173Z",
+    "symbol": "SOL",
+    "mode": "algo",
+    "action": "HOLD",
+    "confidence": 65,
+    "verdict": "수정승인",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-12T17:38:03.990Z",
+    "symbol": "SOL",
+    "mode": "attack",
+    "action": "SELL",
+    "confidence": 62,
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T08:08:44.601Z",
+    "symbol": "SOL",
+    "mode": "attack",
+    "action": "BUY",
+    "confidence": 58,
+    "grade": "C",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T08:13:43.558Z",
+    "symbol": "BTC",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 68,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T08:43:37.294Z",
+    "symbol": "ETH",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 68,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T09:13:38.464Z",
+    "symbol": "SOL",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 62,
+    "grade": "C",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T09:43:42.891Z",
+    "symbol": "AVAX",
+    "mode": "scalp",
+    "action": "BUY",
+    "confidence": 68,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T10:13:47.326Z",
+    "symbol": "DOGE",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 35,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T11:40:05.176Z",
+    "symbol": "KORU",
+    "mode": "attack",
+    "action": "BUY",
+    "confidence": 68,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T11:42:26.936Z",
+    "symbol": "WIF",
+    "mode": "scalp",
+    "action": "BUY",
+    "confidence": 58,
+    "grade": "C",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T11:43:26.389Z",
+    "symbol": "TON",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 5,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T11:44:33.668Z",
+    "symbol": "BTC",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 72,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T12:14:31.174Z",
+    "symbol": "ETH",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 45,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T12:34:14.539Z",
+    "symbol": "ETH",
+    "mode": "algo",
+    "action": "HOLD",
+    "confidence": 35,
+    "grade": "D",
+    "verdict": "기각",
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T12:44:39.576Z",
+    "symbol": "SOL",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 58,
+    "grade": "C",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T12:45:09.382Z",
+    "symbol": "SOL",
+    "mode": "attack",
+    "action": "SELL",
+    "confidence": 62,
+    "grade": "C",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T13:43:46.166Z",
+    "symbol": "AVAX",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 52,
+    "grade": "C",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T14:01:49.603Z",
+    "symbol": "DOGE",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 35,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T15:06:08.653Z",
+    "symbol": "SUI",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 72,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T16:06:14.068Z",
+    "symbol": "WIF",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 35,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T16:40:52.051Z",
+    "symbol": "TON",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 5,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T17:10:51.153Z",
+    "symbol": "BTC",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 52,
+    "grade": "C",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T17:45:39.974Z",
+    "symbol": "ETH",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 0,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T18:26:18.620Z",
+    "symbol": "SOL",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 68,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T18:47:40.969Z",
+    "symbol": "AVAX",
+    "mode": "scalp",
+    "action": "BUY",
+    "confidence": 72,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T19:24:33.311Z",
+    "symbol": "DOGE",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 72,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T20:04:29.784Z",
+    "symbol": "LINK",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 62,
+    "grade": "C",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T20:37:59.631Z",
+    "symbol": "SUI",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 35,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T21:49:16.537Z",
+    "symbol": "WIF",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 38,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T22:22:59.666Z",
+    "symbol": "TON",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 5,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T23:07:13.844Z",
+    "symbol": "BTC",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 68,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-13T23:52:11.878Z",
+    "symbol": "ETH",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 35,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T00:24:02.642Z",
+    "symbol": "SOL",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 68,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T01:08:27.998Z",
+    "symbol": "AVAX",
+    "mode": "scalp",
+    "action": "BUY",
+    "confidence": 68,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T01:55:25.473Z",
+    "symbol": "DOGE",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 72,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T02:11:24.965Z",
+    "symbol": "LINK",
+    "mode": "scalp",
+    "action": "BUY",
+    "confidence": 76,
+    "grade": "A",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T02:54:20.102Z",
+    "symbol": "SUI",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 68,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T03:54:22.629Z",
+    "symbol": "WIF",
+    "mode": "scalp",
+    "action": "BUY",
+    "confidence": 52,
+    "grade": "C",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T04:24:20.371Z",
+    "symbol": "TON",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 5,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T04:54:15.712Z",
+    "symbol": "BTC",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 68,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T05:24:21.492Z",
+    "symbol": "ETH",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 68,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T05:54:16.125Z",
+    "symbol": "SOL",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 62,
+    "grade": "C",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T06:24:23.393Z",
+    "symbol": "AVAX",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 42,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T06:54:12.702Z",
+    "symbol": "DOGE",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 35,
+    "grade": "D",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T11:19:52.515Z",
+    "symbol": "BTC",
+    "mode": "scalp",
+    "action": "HOLD",
+    "confidence": 52,
+    "grade": "C",
+    "verdict": null,
+    "scalpBias": null
+  },
+  {
+    "ts": "2026-08-14T12:46:14.215Z",
+    "symbol": "BTC",
+    "mode": "scalp",
+    "action": "SELL",
+    "confidence": 68,
+    "grade": "B",
+    "verdict": null,
+    "scalpBias": null
+  }
+]
