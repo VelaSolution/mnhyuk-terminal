@@ -1829,12 +1829,20 @@ const server = http.createServer(async (req, res) => {
         const fcsData = await fcsRes.json();
         const rawEvents = fcsData.response || fcsData.data || [];
         if (!Array.isArray(rawEvents) || !rawEvents.length) throw new Error('FCS 데이터 없음');
+        // 주요국 필터: US, UK, EU, CA, AU, CH(중국), JP, NZD, CHF
+        const majorCurrencies = new Set(['USD','GBP','EUR','CAD','AUD','CNY','JPY','NZD','CHF']);
         const events = rawEvents
+          .filter(e => {
+            const cur = e.currency || e.country || '';
+            const imp = e.importance || '';
+            // 주요국 High+Medium만
+            return majorCurrencies.has(cur) && (imp === '3' || imp === '2' || imp === 'High' || imp === 'Medium');
+          })
           .map(e => ({
             title: e.title || e.event || '',
             country: e.currency || e.country || '',
             date: e.date || '',
-            impact: (e.importance === '3' || e.importance === 'High') ? 'High' : (e.importance === '2' || e.importance === 'Medium') ? 'Medium' : 'Low',
+            impact: (e.importance === '3' || e.importance === 'High') ? 'High' : 'Medium',
             actual: e.actual || '',
             forecast: e.forecast || e.estimate || '',
             previous: e.previous || '',
