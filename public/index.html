@@ -16836,13 +16836,20 @@ document.addEventListener('DOMContentLoaded', function(){
 })();
 </script>
 <script>
-// 안전장치: 3초 후에도 boot 안 됐으면 강제 실행
+// 안전장치: 2초 후에도 auth-loading이 보이면 authInit 강제 실행
 setTimeout(function(){
-  if(typeof _booted !== 'undefined' && !_booted && typeof boot === 'function'){
-    console.warn('[FALLBACK] boot() 강제 실행');
-    try { boot(); } catch(e) { console.error('[FALLBACK] boot 실패:', e); }
+  var al = document.getElementById('auth-loading');
+  if(al && !al.classList.contains('hidden') && al.offsetParent !== null){
+    console.warn('[FALLBACK] authInit() 강제 실행');
+    try { if(typeof authInit === 'function') authInit(); } catch(e) {
+      console.error('[FALLBACK] authInit 실패:', e);
+      // 최후수단: 로딩 숨기고 PIN 표시
+      al.classList.add('hidden');
+      var gate = document.getElementById('auth-gate');
+      if(gate) gate.style.display = '';
+    }
   }
-}, 3000);
+}, 2000);
 </script>
 <div id="notif-stack"></div>
 </body>
