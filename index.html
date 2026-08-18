@@ -1386,7 +1386,7 @@
         </div>
       </div>
       <!-- 6. CALENDAR (매크로 일정) -->
-      <div class="panel" style="flex:0 0 auto;max-height:50%;" id="eco-panel">
+      <div class="panel" style="flex:1;min-height:200px;" id="eco-panel">
         <div class="ptitle">CALENDAR <small>매크로</small><span class="age" id="age-eco"></span></div>
         <div class="pbody" id="eco" style="overflow-y:auto;max-height:calc(50vh - 30px);"><div class="rowline loading-pulse"><span style="color:var(--ink3)">이벤트 로드 중…</span></div></div>
       </div>
@@ -4211,7 +4211,9 @@ async function loadEco(){
     const j=await fetchJson("/api/calendar");
     if(j.events && j.events.length){
       evs = j.events.map(e => {
-        const t = Date.parse(e.date);
+        // FCS 날짜는 UTC — 'Z' 또는 '+00:00' 없으면 추가
+        const dateStr = e.date && !e.date.includes('T') ? e.date.replace(' ','T') + 'Z' : e.date;
+        const t = Date.parse(dateStr);
         // 국가코드 변환
         const cMap = {'USD':'USD','United States':'USD','GBP':'GBP','United Kingdom':'GBP','EUR':'EUR','Euro Area':'EUR',
           'CNY':'CNY','China':'CNY','JPY':'JPY','Japan':'JPY','AUD':'AUD','Australia':'AUD','CAD':'CAD','Canada':'CAD',
@@ -4241,9 +4243,10 @@ async function loadEco(){
     }catch(e){}
   }
   const now=Date.now();
-  let list=[...evs,...ECO_STATIC.map(e=>({...e,country:'USD',impact:'High'}))].filter(e=>e.t>now-2*36e5).sort((a,b)=>a.t-b.t);
+  // 과거 이벤트도 오늘 것은 유지 (발표값 확인 가능), 14일 앞까지 표시
+  let list=[...evs,...ECO_STATIC.map(e=>({...e,country:'USD',impact:'High'}))].filter(e=>e.t>now-24*36e5).sort((a,b)=>a.t-b.t);
   const seen=new Set();
-  list=list.filter(e=>{ const k=e.n+Math.floor(e.t/36e5); if(seen.has(k))return false; seen.add(k); return true; }).slice(0,40);
+  list=list.filter(e=>{ const k=e.n+Math.floor(e.t/36e5); if(seen.has(k))return false; seen.add(k); return true; });
   S.ecoList=list; renderEco(); setAge("eco");
 }
 const _countryFlag = {USD:'🇺🇸',GBP:'🇬🇧',EUR:'🇪🇺',CNY:'🇨🇳',JPY:'🇯🇵',AUD:'🇦🇺',CAD:'🇨🇦',CHF:'🇨🇭',NZD:'🇳🇿'};
