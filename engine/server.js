@@ -1560,6 +1560,12 @@ const server = http.createServer(async (req, res) => {
 추가 컨텍스트: ${context}
 간결하고 전문적으로 답하세요. 한국어로 답변하세요.`;
 
+        // messages 검증 — 최소 1개, role은 user/assistant만
+        const validMsgs = messages
+          .filter(m => m.content && (m.role === 'user' || m.role === 'assistant'))
+          .map(m => ({ role: m.role, content: String(m.content) }));
+        if (!validMsgs.length) validMsgs.push({ role: 'user', content: '안녕하세요' });
+
         const claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
           method: 'POST',
           headers: {
@@ -1571,14 +1577,15 @@ const server = http.createServer(async (req, res) => {
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 1024,
             system: systemPrompt,
-            messages: messages.map(m => ({ role: m.role || 'user', content: m.content || '' })),
+            messages: validMsgs,
           }),
           signal: AbortSignal.timeout(25000),
         });
 
         if (!claudeRes.ok) {
           const err = await claudeRes.text();
-          return sendJson(res, 200, { text: 'AI 응답 실패: ' + claudeRes.status });
+          console.error('[chat] Claude API error:', claudeRes.status, err);
+          return sendJson(res, 200, { text: 'AI 응답 실패 (' + claudeRes.status + '): ' + (err || '').slice(0, 200) });
         }
 
         const claudeData = await claudeRes.json();
