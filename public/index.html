@@ -1799,7 +1799,7 @@ window.__TT_BASE = '';
 if (!window.__TT_DIRECT) {
   const _origFetch = window.fetch;
   window.fetch = function(url, opts) {
-    if (typeof url === 'string' && url.startsWith('/api/') && !url.startsWith('/api/tt') && !url.startsWith('/api/auth') && !url.startsWith('/api/rss') && !url.startsWith('/api/calendar') && !url.startsWith('/api/scan') && !url.startsWith('/api/health') && !url.startsWith('/api/gateway') && !url.startsWith('/api/context') && !url.startsWith('/api/analyze')) {
+    if (typeof url === 'string' && url.startsWith('/api/') && !url.startsWith('/api/tt') && !url.startsWith('/api/auth') && !url.startsWith('/api/rss') && !url.startsWith('/api/scan') && !url.startsWith('/api/health') && !url.startsWith('/api/gateway') && !url.startsWith('/api/context') && !url.startsWith('/api/analyze')) {
       // /api/paper/status → /api/tt?p=/paper/status
       const apiPath = url.replace(/^\/api/, '');
       return _origFetch.call(this, '/api/tt?p=' + encodeURIComponent(apiPath), opts);
