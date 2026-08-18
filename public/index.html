@@ -529,6 +529,8 @@
     font-size:20px; color:#fff;
   }
   #ai-chat-toggle:hover{transform:scale(1.1);}
+  .ai-preset{padding:3px 8px;font-size:8px;background:transparent;border:1px solid var(--border);color:var(--ink2);border-radius:3px;cursor:pointer;transition:all .15s;}
+  .ai-preset:hover{border-color:var(--amber);color:var(--amber);}
   @media (max-width:640px){
     #ai-chat{width:95vw; right:2.5vw; bottom:8px; height:60vh;}
     #ai-chat-toggle{bottom:8px; right:8px; width:42px; height:42px;}
@@ -1556,6 +1558,12 @@
     <div id="ai-chat-head">
       <span class="title"><svg width="16" height="16" viewBox="0 0 32 32" style="vertical-align:-2px;margin-right:4px"><rect width="32" height="32" rx="6" fill="#1a1205"/><text x="16" y="22" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="17" fill="#e8590c">B</text></svg>BILLION AI</span>
       <span class="close" onclick="toggleAIChat()">✕</span>
+    </div>
+    <div id="ai-chat-presets" style="display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0">
+      <button class="ai-preset" onclick="aiPreset('현재 시장 상황 분석해줘')">시장 분석</button>
+      <button class="ai-preset" onclick="aiPreset('BTC 매매 전략 추천해줘')">전략 추천</button>
+      <button class="ai-preset" onclick="aiPreset('포지션 리스크 점검해줘')">리스크 점검</button>
+      <button class="ai-preset" onclick="aiPreset('오늘 주요 이벤트와 대응 전략은?')">오늘 전략</button>
     </div>
     <div id="ai-chat-msgs">
       <div class="ai-msg sys">BILLION AI 에이전트 — 시장 분석, 전략 상담, 포지션 관리</div>
@@ -5680,7 +5688,7 @@ function helpHTML(){
       ["ONCHAIN","온체인 데이터 (거래소 잔고·해시레이트·활성주소)"],
       ["BRIEF","시장 브리핑 — AI 자동 종합 분석 리포트"],
       ["MONITOR","실시간 모니터링 — 핵심 지표 자동 갱신"],
-      ["REPORT","오늘의 종합 리포트 (전 지표 한눈에)"],
+      ["REPORT","분석 리포트 — 현재 심볼 종합 보고서 (시그널·레짐·지표)"],
       ["DASH","퀵 대시보드 — 핵심 정보 한 화면"],
     ]},
     {cat:"WHALE & LIQUIDATION", color:"#ff6b66", cmds:[
@@ -5746,6 +5754,8 @@ function helpHTML(){
       ["MEMO 지지 162 돌파 시 롱","현재 종목 메모 저장 (localStorage)"],
       ["MEMO","현재 종목 메모 보기"],
       ["MEMO CLEAR","현재 종목 메모 삭제"],
+      ["SNAPSHOT","시장 스냅샷 캡처 저장 (최대 50개)"],
+      ["SNAPSHOTS","저장된 스냅샷 목록 보기"],
       ["LOG","알림 로그 전체 보기"],
       ["STATUS","시스템 상태 대시보드 (연결·데이터·성능)"],
       ["STATS","터미널 사용 통계"],
@@ -6888,7 +6898,9 @@ const CMD_LIST=[
   {c:"SUMMARY", d:"일일 시장 요약 — 전체 현황 브리핑"},
   {c:"PERF", d:"전 종목 멀티 타임프레임 성과 매트릭스"},
   {c:"DIVERGE", d:"RSI·MACD 다이버전스 자동 감지"},
-  {c:"REPORT", d:"오늘의 종합 리포트 (전 지표 한눈에)"},
+  {c:"REPORT", d:"분석 리포트 — 현재 심볼 종합 보고서"},
+  {c:"SNAPSHOT", d:"스냅샷 — 현재 시장 상태 캡처 저장"},
+  {c:"SNAPSHOTS", d:"저장된 스냅샷 목록"},
   {c:"GRID 150 170 10", d:"그리드 트레이딩 계산기 (하한·상한·격자수)"},
   {c:"MOMENTUM", d:"전 종목 모멘텀 스코어 순위"},
   {c:"LEVELS", d:"자동 지지/저항 레벨 감지"},
@@ -7264,6 +7276,8 @@ $("cmd").addEventListener("keydown",e=>{
   if(raw==="PERF"){ perfOverlay(); e.target.value=""; return; }
   if(raw==="DIVERGE"||raw==="DIV"){ divergeOverlay(); e.target.value=""; return; }
   if(raw==="REPORT"){ reportOverlay(); e.target.value=""; return; }
+  if(raw==="SNAPSHOT"||raw==="SNAP"){ snapshotSave(); e.target.value=""; return; }
+  if(raw==="SNAPSHOTS"){ snapshotList(); e.target.value=""; return; }
   const gridm = raw.match(/^GRID\s+([\d.]+)\s+([\d.]+)\s+(\d+)$/);
   if(gridm){ gridCalcOverlay(+gridm[1], +gridm[2], +gridm[3]); e.target.value=""; return; }
   if(raw==="MOMENTUM"||raw==="MOM"){ momentumOverlay(); e.target.value=""; return; }
@@ -8323,85 +8337,111 @@ function divergeOverlay(){
   showOverlay(`DIVERGENCE · ${S.sym} 다이버전스`, html);
 }
 
-function reportOverlay(){
-  const sym = S.sym;
-  const cs = S.candles;
-  if(!cs.length){
-    showOverlay("REPORT", '<div class="rowline"><span style="color:var(--ink3)">데이터 없음</span></div>');
-    return;
+async function reportOverlay(){
+  var sym = S.sym || 'BTC';
+  showOverlay("REPORT","<div style='padding:10px;color:var(--ink3)'>" + sym + " 종합 리포트 생성 중...</div>");
+  try {
+    var TT = window.__TT_BASE || '';
+    var results = await Promise.allSettled([
+      fetch(TT+'/api/quant/signal/'+sym).then(function(r){return r.json();}),
+      fetch(TT+'/api/quant/regime/'+sym).then(function(r){return r.json();}),
+    ]);
+    var sig = results[0].status==='fulfilled' ? results[0].value : {};
+    var reg = results[1].status==='fulfilled' ? results[1].value : {};
+
+    var q = S.quotes ? S.quotes[sym] : null;
+    var price = q ? q.last : 0;
+    var pct = q ? q.pct : 0;
+
+    var actionColor = (sig.action==='BUY') ? 'var(--up-text)' : (sig.action==='SELL') ? 'var(--down-text)' : 'var(--ink2)';
+
+    var html = '<div style="padding:10px;">';
+    html += '<div style="text-align:center;padding:16px;background:#0a0a0a;border:1px solid var(--border);border-radius:8px;margin-bottom:12px">';
+    html += '<div style="font-size:8px;color:var(--ink3);letter-spacing:3px">ANALYSIS REPORT</div>';
+    html += '<div style="font-size:24px;font-weight:800;color:var(--ink)">' + sym + '</div>';
+    html += '<div style="font-size:var(--fs-xl);font-weight:700;color:var(--ink)">$' + (price > 100 ? Math.round(price).toLocaleString() : price.toFixed(2)) + '</div>';
+    html += '<div style="font-size:var(--fs-sm);color:' + (pct>=0?'var(--up-text)':'var(--down-text)') + '">' + (pct>=0?'+':'') + pct.toFixed(2) + '%</div>';
+    html += '</div>';
+
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:12px">';
+    html += '<div style="text-align:center;padding:10px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px">';
+    html += '<div style="font-size:8px;color:var(--ink3)">SIGNAL</div>';
+    html += '<div style="font-size:var(--fs-xl);font-weight:800;color:' + actionColor + '">' + (sig.action||'—') + '</div></div>';
+    html += '<div style="text-align:center;padding:10px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px">';
+    html += '<div style="font-size:8px;color:var(--ink3)">CONFIDENCE</div>';
+    html += '<div style="font-size:var(--fs-xl);font-weight:800;color:var(--ink)">' + (sig.confidence||0) + '%</div></div>';
+    html += '<div style="text-align:center;padding:10px;background:#0a0a0a;border:1px solid var(--border);border-radius:6px">';
+    html += '<div style="font-size:8px;color:var(--ink3)">GRADE</div>';
+    html += '<div style="font-size:var(--fs-xl);font-weight:800;color:var(--amber)">' + (sig.grade||'?') + '</div></div>';
+    html += '</div>';
+
+    var regimeText = reg.regime || '—';
+    if(typeof regimeText === 'object') regimeText = regimeText.type || JSON.stringify(regimeText);
+    html += '<div class="rowline"><span style="color:var(--amber);font-weight:700">REGIME</span><b>' + regimeText + '</b></div>';
+
+    if(sig.indicators || sig.scores){
+      html += '<div style="color:var(--amber);font-weight:700;font-size:var(--fs-base);margin:10px 0 6px;letter-spacing:1px">INDICATORS</div>';
+      var inds = sig.indicators || sig.scores || {};
+      var keys = Object.keys(inds);
+      keys.forEach(function(k){
+        var v = inds[k];
+        var val = typeof v === 'number' ? v.toFixed(2) : (v && v.score ? v.score.toFixed(2) : String(v));
+        var cls = parseFloat(val) > 0 ? 'var(--up-text)' : parseFloat(val) < 0 ? 'var(--down-text)' : 'var(--ink2)';
+        html += '<div class="rowline"><span>' + k + '</span><b style="color:' + cls + '">' + val + '</b></div>';
+      });
+    }
+
+    html += '<div style="display:flex;gap:6px;margin-top:12px">';
+    html += '<button onclick="var c=document.getElementById(\'cmd\');if(c){c.value=\'ANALYZE ' + sym + '\';c.dispatchEvent(new KeyboardEvent(\'keydown\',{key:\'Enter\'}))}" style="flex:1;padding:8px;background:rgba(74,222,128,0.1);border:1px solid var(--up);color:var(--up-text);border-radius:4px;cursor:pointer;font-weight:700">AI 분석 실행</button>';
+    html += '<button onclick="var c=document.getElementById(\'cmd\');if(c){c.value=\'BACKTEST ' + sym + '\';c.dispatchEvent(new KeyboardEvent(\'keydown\',{key:\'Enter\'}))}" style="flex:1;padding:8px;background:rgba(59,130,246,0.1);border:1px solid var(--cyan);color:var(--cyan-text);border-radius:4px;cursor:pointer;font-weight:700">백테스트</button>';
+    html += '</div>';
+
+    html += '</div>';
+    showOverlay("REPORT · " + sym + " (" + (sig.action||'—') + ")", html);
+  } catch(e){
+    showOverlay("REPORT","<div class='rowline'><span style='color:var(--down-text)'>리포트 생성 실패: " + e.message + "</span></div>");
   }
+}
+function snapshotSave(){
+  var snap = {
+    timestamp: new Date().toISOString(),
+    symbol: S.sym,
+    prices: {},
+    fng: S.fng ? S.fng.v : null,
+  };
+  if(S.quotes){
+    for(var sym in S.quotes){
+      if(S.quotes[sym]) snap.prices[sym] = {price: S.quotes[sym].last, change: S.quotes[sym].pct};
+    }
+  }
+  var capEl = document.getElementById('fund-capital');
+  if(capEl) snap.fundCapital = capEl.textContent;
 
-  const n = cs.length;
-  const closes = cs.map(c=>c.c);
-  const price = cs[n-1].c;
-  const q = S.quotes[sym];
+  var snapshots = [];
+  try { snapshots = JSON.parse(localStorage.getItem('billion_snapshots') || '[]'); } catch(ex){}
+  snapshots.push(snap);
+  if(snapshots.length > 50) snapshots = snapshots.slice(-50);
+  try { localStorage.setItem('billion_snapshots', JSON.stringify(snapshots)); } catch(ex){}
 
-  // All indicators at once
-  const rsi = rsiSeries(closes,14)[n-1];
-  const e20=ema(closes,20)[n-1], e50=ema(closes,50)[n-1], e100=ema(closes,100)[n-1];
-  const bb=bollinger(closes,20,2);
-  const bbPos = bb.up[n-1] ? ((price-bb.lo[n-1])/(bb.up[n-1]-bb.lo[n-1])*100).toFixed(0) : "?";
-  const atr=atrSeries(cs,14)[n-1];
-  const macd=macdSeries(closes);
-  const stoch=stochRsiSeries(closes);
-  const adx=adxSeries(cs,14);
-  const volAvg=cs.slice(Math.max(0,n-20),n).reduce((s,c)=>s+c.v,0)/20;
-  const volRatio=(cs[n-1].v/(volAvg||1));
+  pushLog('스냅샷 저장 완료 (' + new Date().toLocaleTimeString('ko-KR') + ')');
+  if(typeof showToast === 'function') showToast('시장 스냅샷 저장됨', 'success');
+}
+function snapshotList(){
+  var snapshots = [];
+  try { snapshots = JSON.parse(localStorage.getItem('billion_snapshots') || '[]'); } catch(ex){}
+  if(!snapshots.length){ showOverlay("SNAPSHOTS",'<div class="rowline"><span style="color:var(--ink3)">저장된 스냅샷 없음 — SNAPSHOT 명령으로 저장</span></div>'); return; }
 
-  const now = new Date();
-  const dateStr = `${now.getFullYear()}-${pad2(now.getMonth()+1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
-
-  // Trend assessment
-  const emaAligned = price>e20 && e20>e50 && e50>e100;
-  const emaReverse = price<e20 && e20<e50 && e50<e100;
-  const trend = emaAligned?"UPTREND":emaReverse?"DOWNTREND":"SIDEWAYS";
-  const trendColor = trend==="UPTREND"?"var(--up-text)":trend==="DOWNTREND"?"var(--down-text)":"var(--ink2)";
-
-  let html = `<div style="padding:8px 10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-    <div>
-      <div style="font-size:16px;font-weight:700;color:var(--ink)">${sym}USDT</div>
-      <div style="font-size:11px;color:var(--ink3)">${dateStr} · ${S.tf}</div>
-    </div>
-    <div style="text-align:right">
-      <div style="font-size:18px;font-weight:700;color:var(--ink)">$${fmtPrice(price)}</div>
-      <div style="font-size:12px;font-weight:700;color:${trendColor}">${trend}</div>
-    </div>
-  </div>`;
-
-  // Indicator grid
-  const ind = (label, value, color) => `<div style="background:#0a0a0a;padding:4px 6px;text-align:center"><div style="color:var(--ink3);font-size:8px">${label}</div><div style="color:${color||'var(--ink)'};font-weight:600;font-size:11px">${value}</div></div>`;
-
-  html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;padding:1px">';
-  html += ind("RSI", rsi?rsi.toFixed(0):"—", rsi>70?"var(--down-text)":rsi<30?"var(--up-text)":"var(--ink)");
-  html += ind("MACD", macd.hist[n-1]>0?"▲ 양":"▼ 음", macd.hist[n-1]>0?"var(--up-text)":"var(--down-text)");
-  html += ind("BB%", bbPos+"%", +bbPos>80?"var(--down-text)":+bbPos<20?"var(--up-text)":"var(--ink)");
-  html += ind("ATR%", atr?(atr/price*100).toFixed(2)+"%":"—", "var(--ink)");
-  html += ind("StochK", stoch.K[n-1]?stoch.K[n-1].toFixed(0):"—", stoch.K[n-1]>80?"var(--down-text)":stoch.K[n-1]<20?"var(--up-text)":"var(--ink)");
-  html += ind("ADX", adx.adx&&adx.adx[n-1]?adx.adx[n-1].toFixed(0):"—", adx.adx&&adx.adx[n-1]>25?"var(--amber)":"var(--ink3)");
-  html += ind("VOL", volRatio.toFixed(1)+"x", volRatio>1.5?"var(--amber)":"var(--ink2)");
-  html += ind("EMA", emaAligned?"정배열▲":emaReverse?"역배열▼":"혼합", trendColor);
+  var html = '<div style="padding:8px;">';
+  html += '<div style="color:var(--amber);font-weight:700;font-size:var(--fs-base);margin-bottom:8px;letter-spacing:1px">SAVED SNAPSHOTS (' + snapshots.length + ')</div>';
+  snapshots.slice().reverse().forEach(function(s, i){
+    var dt = new Date(s.timestamp);
+    var timeStr = dt.toLocaleDateString('ko-KR',{month:'short',day:'numeric'}) + ' ' + dt.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+    var btc = s.prices && s.prices.BTC ? '$' + Math.round(s.prices.BTC.price).toLocaleString() : '—';
+    html += '<div class="rowline"><span>' + timeStr + '</span><span style="color:var(--ink)">' + (s.symbol||'—') + '</span><span>' + btc + '</span><b>' + (s.fundCapital||'—') + '</b></div>';
+  });
+  html += '<div style="margin-top:8px"><button onclick="if(confirm(\'전체 삭제?\')){localStorage.removeItem(\'billion_snapshots\');pushLog(\'스냅샷 전체 삭제\')}" style="width:100%;padding:6px;background:rgba(239,68,68,0.1);border:1px solid var(--down);color:var(--down-text);border-radius:4px;cursor:pointer">전체 삭제</button></div>';
   html += '</div>';
-
-  // Market data
-  html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border);border-top:1px solid var(--border)">MARKET</div>';
-  if(q){
-    html += `<div class="rowline"><span>24h 변동</span><b class="${q.pct>=0?'u':'d'}">${q.pct>=0?'+':''}${q.pct.toFixed(2)}%</b></div>`;
-    html += `<div class="rowline"><span>24h 고/저</span><b>$${fmtPrice(q.high)} / $${fmtPrice(q.low)}</b></div>`;
-    if(q.fundingRate!=null) html += `<div class="rowline"><span>펀딩레이트</span><b style="color:${Math.abs(q.fundingRate)>0.03?'var(--amber)':'var(--ink2)'}">${q.fundingRate>=0?'+':''}${q.fundingRate.toFixed(4)}%</b></div>`;
-  }
-  if(S.lsr) html += `<div class="rowline"><span>롱/숏 비율</span><b><span class="u">${(S.lsr.long*100).toFixed(0)}%</span> / <span class="d">${(S.lsr.short*100).toFixed(0)}%</span></b></div>`;
-  if(S.fng) html += `<div class="rowline"><span>공포/탐욕</span><b style="color:${S.fng.v<=25?'var(--down-text)':S.fng.v>=75?'var(--up-text)':'var(--ink)'}">${S.fng.v} · ${S.fng.cls}</b></div>`;
-
-  // Learn engine status
-  if(LE.signal){
-    html += '<div style="padding:4px 10px;color:var(--ink3);font-size:9px;letter-spacing:1px;border-bottom:1px solid var(--border);border-top:1px solid var(--border)">LEARN ENGINE</div>';
-    html += `<div class="rowline"><span>컨플루언스 점수</span><b style="color:${LE.signal.score>=60?'var(--up-text)':LE.signal.score>=40?'var(--amber)':'var(--ink3)'}">${LE.signal.score}/100</b></div>`;
-    html += `<div class="rowline"><span>방향</span><b style="color:${LE.signal.dir>0?'var(--up-text)':LE.signal.dir<0?'var(--down-text)':'var(--ink3)'}">${LE.signal.dir>0?'LONG':LE.signal.dir<0?'SHORT':'NEUTRAL'}</b></div>`;
-    html += `<div class="rowline"><span>학습 에폭</span><b>${LE.epoch}회</b></div>`;
-  }
-
-  html += `<div style="padding:6px 10px;border-top:1px solid var(--border);font-size:9px;color:var(--ink3);text-align:center">BILLION AI · ${dateStr} · 투자 조언이 아님</div>`;
-  showOverlay(`REPORT · ${sym} 종합 리포트`, html);
+  showOverlay("SNAPSHOTS · " + snapshots.length + "개", html);
 }
 function gridCalcOverlay(low, high, grids){
   if(low >= high || grids < 2 || grids > 200){
@@ -8872,11 +8912,11 @@ function aiConnect(){
   fetch("/api/health",{signal:AbortSignal.timeout(3000)})
     .then(r=>r.json()).then(()=>{
       aiConnected=true; $("led").className="ok";
-      const bs=$("billion-status"); if(bs) bs.innerHTML='<span style="color:var(--up-text)">AI READY</span>';
+      const bs=$("billion-status"); if(bs) bs.innerHTML='<span style="color:var(--up-text)">AI READY</span> · <span style="color:var(--ink2)">connected</span>';
       pushLogLocal("AI Engine 연결됨");
     }).catch(()=>{
       $("led").className="warn";
-      const bs=$("billion-status"); if(bs) bs.innerHTML='<span style="color:var(--ink3)">AI —</span>';
+      const bs=$("billion-status"); if(bs) bs.innerHTML='<span style="color:var(--ink3)">AI OFF</span> · <span style="color:var(--ink3)">disconnected</span>';
     });
 }
 
@@ -8931,6 +8971,8 @@ async function billionRunAnalysis(){
     }
 
     billionSignalOverlay(data);
+    _billionLastAnalysis = Date.now();
+    _billionLastRecommendation = (data.decision||'HOLD') + ' ' + (data.symbol||S.sym);
     $("cmd").placeholder = "분석 완료!";
     setTimeout(()=>{$("cmd").placeholder="";},2000);
   } catch(e) {
@@ -15046,9 +15088,20 @@ setTimeout(() => { loadDrawings(); }, 1000);
     if (!el) return;
     const ret = s.startCapital > 0 ? ((s.capital - s.startCapital) / s.startCapital * 100) : 0;
     const posCount = (s.positions||[]).length + (s.swingPositions||[]).length;
-    el.innerHTML = `<span style="color:${ret>=0?'var(--up-text)':'var(--down-text)'}">$${(s.capital||0).toFixed(0)} ${ret>=0?'+':''}${ret.toFixed(1)}%</span> · <span style="color:var(--ink2)">${posCount}pos</span>`;
-
-    // Hero Stats Bar removed
+    var aiStatusColor = (typeof aiConnected !== 'undefined' && aiConnected) ? 'var(--up-text)' : 'var(--ink3)';
+    var aiStatusLabel = (typeof aiConnected !== 'undefined' && aiConnected) ? 'AI ON' : 'AI OFF';
+    var lastAnalysisStr = '';
+    if(typeof _billionLastAnalysis !== 'undefined' && _billionLastAnalysis){
+      var ago = Math.round((Date.now() - _billionLastAnalysis) / 60000);
+      lastAnalysisStr = ' \u00b7 ' + (ago < 1 ? 'now' : ago + 'm');
+    }
+    var recStr = '';
+    if(typeof _billionLastRecommendation !== 'undefined' && _billionLastRecommendation){
+      recStr = ' \u00b7 ' + _billionLastRecommendation;
+    }
+    el.innerHTML = '<span style="color:' + aiStatusColor + '">' + aiStatusLabel + '</span>'
+      + ' <span style="color:' + (ret>=0?'var(--up-text)':'var(--down-text)') + '">$' + (s.capital||0).toFixed(0) + ' ' + (ret>=0?'+':'') + ret.toFixed(1) + '%</span>'
+      + ' \u00b7 <span style="color:var(--ink2)">' + posCount + 'pos' + lastAnalysisStr + recStr + '</span>';
   }
 
   // ── Pipeline 바 상태 업데이트 ──
@@ -15728,6 +15781,51 @@ function teamDashboard(){
         <button class="tt-btn primary" onclick="fetch('${TT}/api/paper/${running?"stop":"start"}',{method:'POST'}).then(()=>{pushLog('Paper Trader ${running?"중지":"시작"}');})">${running?"■ 중지":"▶ 시작"}</button>
         <button class="tt-btn" onclick="fetch('${TT}/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol:'BTC',mode:'algo'})}).then(()=>pushLog('강제 스캔 실행'))">⟳ 강제 스캔</button>
         <button class="tt-btn danger" onclick="if(confirm('자본을 초기화하시겠습니까?'))fetch('${TT}/api/paper/reset',{method:'POST'}).then(()=>pushLog('자본 초기화'))">↺ 자본 리셋</button>
+      </div>
+      <div class="tt-card" style="margin-top:10px">
+        <div class="tt-label" style="margin-bottom:6px">LIVE MARKET</div>
+        <div class="tt-grid tt-grid-4" style="margin-bottom:8px">
+          <div style="text-align:center">
+            <div style="font-size:var(--fs-xs);color:var(--ink3)">BTC</div>
+            <div style="font-weight:700;color:var(--ink);font-size:var(--fs-sm)">${S.quotes&&S.quotes.BTC?'$'+Math.round(S.quotes.BTC.last).toLocaleString():'—'}</div>
+            <div style="font-size:var(--fs-xs);color:${S.quotes&&S.quotes.BTC&&S.quotes.BTC.pct>=0?'var(--up-text)':'var(--down-text)'}">${S.quotes&&S.quotes.BTC?(S.quotes.BTC.pct>=0?'+':'')+S.quotes.BTC.pct.toFixed(2)+'%':'—'}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:var(--fs-xs);color:var(--ink3)">REGIME</div>
+            <div style="font-weight:700;color:var(--amber);font-size:var(--fs-sm)">${d.regime||d.lastDecision?.regime||'—'}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:var(--fs-xs);color:var(--ink3)">F&G</div>
+            <div style="font-weight:700;font-size:var(--fs-sm);color:${S.fng&&S.fng.v<=25?'var(--down-text)':S.fng&&S.fng.v>=75?'var(--up-text)':'var(--ink)'}">${S.fng?S.fng.v:'—'}</div>
+            <div style="font-size:var(--fs-xs);color:var(--ink3)">${S.fng?S.fng.cls:''}</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:var(--fs-xs);color:var(--ink3)">ETH</div>
+            <div style="font-weight:700;color:var(--ink);font-size:var(--fs-sm)">${S.quotes&&S.quotes.ETH?'$'+Math.round(S.quotes.ETH.last).toLocaleString():'—'}</div>
+            <div style="font-size:var(--fs-xs);color:${S.quotes&&S.quotes.ETH&&S.quotes.ETH.pct>=0?'var(--up-text)':'var(--down-text)'}">${S.quotes&&S.quotes.ETH?(S.quotes.ETH.pct>=0?'+':'')+S.quotes.ETH.pct.toFixed(2)+'%':'—'}</div>
+          </div>
+        </div>
+        ${(function(){
+          var movers='';
+          if(S.quotes){
+            var syms=Object.keys(S.quotes).filter(function(k){return S.quotes[k]&&typeof S.quotes[k].pct==='number';});
+            syms.sort(function(a,b){return Math.abs(S.quotes[b].pct)-Math.abs(S.quotes[a].pct);});
+            var top=syms.slice(0,4);
+            if(top.length){
+              movers+='<div style="font-size:var(--fs-xs);color:var(--ink3);margin-bottom:4px">TOP MOVERS</div>';
+              movers+='<div style="display:flex;gap:4px;flex-wrap:wrap">';
+              top.forEach(function(s){
+                var q=S.quotes[s];
+                var clr=q.pct>=0?'var(--up-text)':'var(--down-text)';
+                movers+='<div style="flex:1;min-width:70px;text-align:center;padding:3px 6px;background:#0a0a0a;border-radius:4px;border:1px solid var(--border)">';
+                movers+='<div style="font-size:var(--fs-xs);font-weight:700;color:var(--ink)">'+s+'</div>';
+                movers+='<div style="font-size:var(--fs-xs);color:'+clr+'">'+(q.pct>=0?'+':'')+q.pct.toFixed(2)+'%</div></div>';
+              });
+              movers+='</div>';
+            }
+          }
+          return movers;
+        })()}
       </div>`;
   }
 
@@ -16787,6 +16885,16 @@ function heatmapOverlay(){
 /* ═══ AI Chat Popup ═══ */
 var _aiChatHistory = [];
 var _aiChatBusy = false;
+var _billionLastAnalysis = null;
+var _billionLastRecommendation = '';
+
+function aiPreset(text){
+  var inp = document.getElementById('ai-chat-text');
+  if(inp){ inp.value = text; sendAIChat(); }
+  // Open chat if closed
+  var chat = document.getElementById('ai-chat');
+  if(chat && !chat.classList.contains('on')) toggleAIChat();
+}
 
 function toggleAIChat(){
   var chat = document.getElementById('ai-chat');
@@ -16830,20 +16938,40 @@ async function sendAIChat(){
   addChatMsg('sys', '분석 중...');
 
   try {
-    // 시장 컨텍스트 수집
+    // 시장 컨텍스트 수집 (강화)
     var ctx = {};
     if(typeof S !== 'undefined'){
       ctx.symbol = S.sym;
-      if(S.quotes && S.quotes.BTC) ctx.btcPrice = S.quotes.BTC.last;
-      if(S.quotes && S.quotes.ETH) ctx.ethPrice = S.quotes.ETH.last;
+      ctx.timeframe = S.tf;
+      ctx.regime = document.getElementById('regime-label') ? document.getElementById('regime-label').textContent : '';
+      // Prices
+      ctx.prices = {};
+      if(S.quotes){
+        for(var sym in S.quotes){
+          if(S.quotes[sym]) ctx.prices[sym] = {price: S.quotes[sym].last, change: S.quotes[sym].pct};
+        }
+      }
+      // FNG
       if(S.fng) ctx.fearGreed = S.fng.v + ' ' + S.fng.cls;
-      ctx.watchlist = typeof SYMBOLS !== 'undefined' ? SYMBOLS.join(',') : '';
+      // Fund
+      var capEl = document.getElementById('fund-capital');
+      var retEl = document.getElementById('fund-return');
+      if(capEl) ctx.fundCapital = capEl.textContent;
+      if(retEl) ctx.fundReturn = retEl.textContent;
+      // Positions
+      if(typeof PAPER_CACHE !== 'undefined' && PAPER_CACHE.data){
+        var pd = PAPER_CACHE.data;
+        ctx.positions = (pd.positions||[]).concat(pd.swingPositions||[]).map(function(p){
+          return {symbol:p.symbol, direction:p.direction, entry:p.entryPrice, pnl:p.unrealizedPnl||0};
+        });
+        ctx.recentTrades = (pd.recentTrades||[]).slice(0,3).map(function(t){
+          return {symbol:t.symbol, direction:t.direction, pnl:t.pnl, reason:t.closeReason};
+        });
+        ctx.capital = pd.capital;
+        ctx.winRate = pd.winRate;
+        ctx.totalTrades = pd.totalTrades;
+      }
     }
-    // 펀드 상태
-    var capEl = document.getElementById('fund-capital');
-    if(capEl) ctx.fundCapital = capEl.textContent;
-    var retEl = document.getElementById('fund-return');
-    if(retEl) ctx.fundReturn = retEl.textContent;
 
     // Billion chat API 호출 (investment.mot-era.com)
     var apiUrl = 'https://investment.mot-era.com/api/chat';
@@ -16883,6 +17011,38 @@ async function sendAIChat(){
 
     addChatMsg('ai', reply);
     _aiChatHistory.push({role:'assistant', content:reply});
+
+    // Parse for actionable items and add quick action buttons
+    var actions = [];
+    if(/분석|analyze|ANALYZE/i.test(reply)) actions.push({label:'AI 분석 실행', cmd:'ANALYZE '+S.sym});
+    if(/매수|buy|BUY|롱|LONG/i.test(reply)) actions.push({label:S.sym+' 분석', cmd:'QUANT '+S.sym});
+    if(/매도|sell|SELL|숏|SHORT/i.test(reply)) actions.push({label:S.sym+' 분석', cmd:'QUANT '+S.sym});
+    if(/브리핑|briefing|요약/i.test(reply)) actions.push({label:'시장 브리핑', cmd:'BRIEF'});
+    if(/포지션|position/i.test(reply)) actions.push({label:'포지션 확인', cmd:'POSITIONS'});
+    if(/히트맵|heatmap/i.test(reply)) actions.push({label:'히트맵', cmd:'HEATMAP'});
+
+    if(actions.length > 0){
+      var actDiv = document.createElement('div');
+      actDiv.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;padding:4px 12px;';
+      actions.forEach(function(a){
+        var btn = document.createElement('button');
+        btn.textContent = a.label;
+        btn.style.cssText = 'padding:4px 8px;font-size:9px;background:rgba(232,89,12,0.1);border:1px solid var(--amber);color:var(--amber);border-radius:4px;cursor:pointer;';
+        btn.onclick = function(){
+          var cmdInput = document.getElementById('cmd');
+          if(cmdInput){ cmdInput.value = a.cmd; cmdInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'})); }
+        };
+        actDiv.appendChild(btn);
+      });
+      var actMsgs = document.getElementById('ai-chat-msgs');
+      if(actMsgs) actMsgs.appendChild(actDiv);
+      actMsgs.scrollTop = actMsgs.scrollHeight;
+    }
+
+    // Auto-trigger analysis if AI strongly recommends
+    if(/강력 매수|강력 추천|즉시 매수|즉시 진입/i.test(reply)){
+      if(typeof showToast === 'function') showToast('AI 강력 시그널 감지 — ' + S.sym + ' 분석 실행', 'warn');
+    }
 
   } catch(e) {
     var msgs = document.getElementById('ai-chat-msgs');
