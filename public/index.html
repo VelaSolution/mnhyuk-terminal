@@ -481,59 +481,329 @@
   @keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
   @keyframes toastOut{from{opacity:1}to{opacity:0;transform:translateX(20px)}}
 
-  /* ── AI Chat Popup ─────────────────────────────── */
+  /* ── AI Chat Popup — BILLION AI ─────────────────── */
   #ai-chat{
     position:fixed; bottom:16px; right:16px; z-index:500;
-    width:380px; max-width:90vw; height:500px; max-height:70vh;
-    background:rgba(8,8,8,.98); border:1px solid var(--amber);
-    border-radius:12px; box-shadow:0 12px 48px rgba(0,0,0,.8);
+    width:420px; max-width:92vw; height:580px; max-height:78vh;
+    background:rgba(4,4,4,.98);
+    border:1px solid rgba(232,89,12,0.25);
+    border-radius:16px;
+    box-shadow:0 24px 80px rgba(0,0,0,.95), 0 0 0 1px rgba(232,89,12,0.08), inset 0 1px 0 rgba(255,255,255,0.03);
     display:none; flex-direction:column; overflow:hidden;
-    backdrop-filter:blur(12px);
+    backdrop-filter:blur(20px) saturate(1.2); resize:both;
   }
-  #ai-chat.on{display:flex;}
+  #ai-chat.on{display:flex; animation:chatSlideIn .3s cubic-bezier(.16,1,.3,1);}
+  @keyframes chatSlideIn{from{opacity:0;transform:translateY(20px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+  /* ── Header ── */
   #ai-chat-head{
     display:flex; justify-content:space-between; align-items:center;
-    padding:10px 14px; background:linear-gradient(135deg,#181205,#0a0a0a);
-    border-bottom:1px solid var(--border); flex:0 0 auto; cursor:move;
+    padding:12px 16px;
+    background:linear-gradient(135deg, rgba(232,89,12,0.06) 0%, rgba(4,4,4,0) 60%);
+    border-bottom:1px solid rgba(232,89,12,0.12); flex:0 0 auto; cursor:move;
   }
-  #ai-chat-head .title{color:var(--amber); font-weight:700; font-size:var(--fs-base); letter-spacing:1px;}
-  #ai-chat-head .close{cursor:pointer; color:var(--ink3); font-size:var(--fs-md); padding:2px 6px;}
+  #ai-chat-head .title{color:var(--ink); font-weight:700; font-size:13px; letter-spacing:.5px; display:flex; align-items:center; gap:8px;}
+  #ai-chat-head .logo-mark{
+    width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg, #e8590c, #c2410c);
+    box-shadow:0 2px 8px rgba(232,89,12,0.4);
+    font-family:system-ui; font-weight:900; font-size:16px; color:#fff; letter-spacing:0;
+    flex-shrink:0;
+  }
+  #ai-chat-head .logo-text{display:flex; flex-direction:column; gap:0;}
+  #ai-chat-head .logo-text .name{font-size:13px; font-weight:800; letter-spacing:1.5px; color:var(--ink); line-height:1;}
+  #ai-chat-head .logo-text .sub{font-size:8px; font-weight:400; color:var(--ink3); letter-spacing:.5px; line-height:1; margin-top:2px;}
+  #ai-chat-head .status{font-size:7px; padding:2px 6px; border-radius:10px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;}
+  #ai-chat-head .status.on{background:rgba(34,197,94,0.1); color:#22c55e; box-shadow:inset 0 0 0 1px rgba(34,197,94,0.2);}
+  #ai-chat-head .status.off{background:rgba(239,68,68,0.1); color:#ef4444; box-shadow:inset 0 0 0 1px rgba(239,68,68,0.2);}
+  #ai-chat-head .hdr-actions{display:flex; align-items:center; gap:6px;}
+  #ai-chat-head .clear-btn{cursor:pointer; color:var(--ink3); font-size:8px; padding:3px 8px; border:1px solid rgba(255,255,255,0.08); border-radius:4px; background:transparent; transition:all .2s; letter-spacing:.5px; font-weight:600;}
+  #ai-chat-head .clear-btn:hover{border-color:rgba(239,68,68,0.3); color:var(--down-text); background:rgba(239,68,68,0.05);}
+  #ai-chat-head .export-btn{cursor:pointer; color:var(--ink3); font-size:8px; padding:3px 8px; border:1px solid rgba(255,255,255,0.08); border-radius:4px; background:transparent; transition:all .2s; letter-spacing:.5px; font-weight:600;}
+  #ai-chat-head .export-btn:hover{border-color:rgba(59,130,246,0.3); color:#3b82f6; background:rgba(59,130,246,0.05);}
+  #ai-chat-head .close{cursor:pointer; color:var(--ink3); font-size:16px; padding:2px 4px; line-height:1; transition:color .15s;}
   #ai-chat-head .close:hover{color:var(--ink);}
-  #ai-chat-msgs{
-    flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px;
+
+  /* ── Context Bar ── */
+  #ai-chat-ctx{
+    padding:5px 12px; border-bottom:1px solid rgba(255,255,255,0.04); background:rgba(255,255,255,0.01);
+    font-size:8px; color:var(--ink3); display:flex; gap:6px; flex-wrap:wrap; align-items:center; flex-shrink:0;
   }
-  .ai-msg{padding:8px 12px; border-radius:8px; font-size:var(--fs-base); line-height:1.6; max-width:90%; word-break:break-word;}
-  .ai-msg.user{align-self:flex-end; background:rgba(232,89,12,0.15); border:1px solid rgba(232,89,12,0.2); color:var(--ink);}
-  .ai-msg.ai{align-self:flex-start; background:rgba(59,130,246,0.08); border:1px solid rgba(59,130,246,0.15); color:var(--ink); white-space:pre-wrap;}
-  .ai-msg.sys{align-self:center; color:var(--ink3); font-size:var(--fs-xs); padding:4px 8px;}
+  #ai-chat-ctx .ctx-chip{
+    padding:2px 7px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+    border-radius:4px; letter-spacing:.3px; font-family:var(--mono); font-size:8px;
+  }
+  #ai-chat-ctx .ctx-chip b{color:var(--ink); font-weight:700;}
+
+  /* ── Messages ── */
+  #ai-chat-msgs{
+    flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:10px;
+    scroll-behavior:smooth; background:rgba(0,0,0,0.2);
+  }
+  #ai-chat-msgs::-webkit-scrollbar{width:3px;}
+  #ai-chat-msgs::-webkit-scrollbar-track{background:transparent;}
+  #ai-chat-msgs::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.08); border-radius:3px;}
+  #ai-chat-msgs::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.15);}
+
+  .ai-msg{
+    padding:10px 14px; border-radius:12px; font-size:11px; line-height:1.7;
+    max-width:88%; word-break:break-word; animation:msgIn .3s cubic-bezier(.16,1,.3,1);
+  }
+  @keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .ai-msg.user{
+    align-self:flex-end; color:var(--ink);
+    background:linear-gradient(135deg, rgba(232,89,12,0.12), rgba(232,89,12,0.06));
+    border:1px solid rgba(232,89,12,0.15);
+    border-bottom-right-radius:4px;
+  }
+  .ai-msg.ai{
+    align-self:flex-start; color:var(--ink); white-space:pre-wrap;
+    font-family:var(--mono); font-size:11px;
+    background:linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.06);
+    border-bottom-left-radius:4px;
+  }
+  .ai-msg.sys{
+    align-self:center; color:var(--ink3); font-size:9px; padding:4px 10px;
+    background:rgba(255,255,255,0.02); border-radius:10px; letter-spacing:.3px;
+    border:1px solid rgba(255,255,255,0.04);
+  }
+  .ai-msg .msg-time{display:block; font-size:8px; color:var(--ink3); margin-top:6px; text-align:right; opacity:.7;}
+
+  /* ── Typing ── */
+  .ai-typing{align-self:flex-start; padding:12px 18px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.05); border-radius:12px; border-bottom-left-radius:4px;}
+  .ai-typing span{display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--amber); margin:0 2px; animation:typeDot 1.4s infinite; opacity:.4;}
+  .ai-typing span:nth-child(2){animation-delay:.2s;}
+  .ai-typing span:nth-child(3){animation-delay:.4s;}
+  @keyframes typeDot{0%,80%,100%{opacity:.2;transform:scale(.7)}40%{opacity:1;transform:scale(1)}}
+
+  /* ── Slash autocomplete ── */
+  #ai-slash-menu{
+    position:absolute; bottom:100%; left:12px; right:12px;
+    background:rgba(10,10,10,.98); border:1px solid rgba(255,255,255,0.1);
+    border-radius:10px; max-height:200px; overflow-y:auto; display:none;
+    box-shadow:0 -8px 32px rgba(0,0,0,.6); backdrop-filter:blur(12px);
+    z-index:10;
+  }
+  #ai-slash-menu.on{display:block;}
+  .slash-item{
+    padding:8px 12px; cursor:pointer; display:flex; gap:8px; align-items:center;
+    border-bottom:1px solid rgba(255,255,255,0.03); transition:background .15s;
+  }
+  .slash-item:last-child{border-bottom:none;}
+  .slash-item:hover,.slash-item.sel{background:rgba(232,89,12,0.08);}
+  .slash-item .slash-cmd{color:var(--amber); font-weight:700; font-size:11px; font-family:var(--mono); min-width:80px;}
+  .slash-item .slash-desc{color:var(--ink3); font-size:10px;}
+
+  /* ── Feedback buttons ── */
+  .ai-feedback{display:flex; gap:4px; margin-top:4px; opacity:0; transition:opacity .2s;}
+  .ai-msg.ai:hover .ai-feedback{opacity:1;}
+  .ai-fb-btn{
+    padding:2px 6px; font-size:9px; background:transparent;
+    border:1px solid rgba(255,255,255,0.08); color:var(--ink3);
+    border-radius:4px; cursor:pointer; transition:all .2s;
+  }
+  .ai-fb-btn:hover{border-color:var(--amber); color:var(--amber);}
+  .ai-fb-btn.active{border-color:var(--amber); color:var(--amber); background:rgba(232,89,12,0.1);}
+
+  /* ── Pinned messages ── */
+  .ai-msg.pinned{border-left:3px solid var(--amber) !important; background:rgba(232,89,12,0.04) !important;}
+  .ai-msg .msg-pin{
+    position:absolute; top:6px; right:28px; padding:2px 5px; font-size:8px;
+    background:transparent; border:1px solid rgba(255,255,255,0.08);
+    border-radius:4px; color:var(--ink3); cursor:pointer; opacity:0; transition:all .2s;
+  }
+  .ai-msg.ai:hover .msg-pin{opacity:1;}
+  .ai-msg .msg-pin:hover{border-color:var(--amber); color:var(--amber);}
+  .ai-msg .msg-pin.active{opacity:1; border-color:var(--amber); color:var(--amber); background:rgba(232,89,12,0.1);}
+
+  /* ── Quick re-ask ── */
+  .ai-reask{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;}
+  .ai-reask button{
+    padding:3px 8px;font-size:8px;background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.08);color:var(--ink3);
+    border-radius:4px;cursor:pointer;transition:all .15s;
+  }
+  .ai-reask button:hover{border-color:var(--amber);color:var(--amber);}
+
+  /* ── Mini mode ── */
+  #ai-chat.mini{width:320px !important; height:48px !important; overflow:hidden; border-radius:12px !important;}
+  #ai-chat.mini #ai-chat-head{padding:10px 14px;}
+  #ai-chat.mini #ai-chat-ctx,
+  #ai-chat.mini #ai-chat-search,
+  #ai-chat.mini #ai-chat-presets,
+  #ai-chat.mini #ai-chat-msgs,
+  #ai-chat.mini #ai-chat-input,
+  #ai-chat.mini #ai-scroll-bottom{display:none !important;}
+
+  /* ── Event notification in chat ── */
+  .ai-msg.event{
+    align-self:center; color:var(--ink2); font-size:9px; padding:6px 12px;
+    background:linear-gradient(90deg,transparent,rgba(232,89,12,0.04),transparent);
+    border:none; border-radius:8px; display:flex; align-items:center; gap:6px;
+    max-width:95%; letter-spacing:.3px;
+  }
+  .ai-msg.event .ev-icon{font-size:12px;}
+  .ai-msg.event .ev-time{color:var(--ink3); font-size:8px;}
+
+  /* ── Chat search ── */
+  #ai-chat-search{
+    display:none; padding:6px 12px; border-bottom:1px solid rgba(255,255,255,0.04);
+    background:rgba(255,255,255,0.01); flex-shrink:0;
+  }
+  #ai-chat-search.on{display:flex; gap:6px; align-items:center;}
+  #ai-chat-search input{
+    flex:1; padding:6px 10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+    color:var(--ink); font-size:11px; border-radius:6px; outline:none; font-family:var(--mono);
+  }
+  #ai-chat-search input:focus{border-color:rgba(232,89,12,0.3);}
+  #ai-chat-search .search-count{font-size:9px; color:var(--ink3); min-width:40px; text-align:center;}
+  #ai-chat-search .search-close{cursor:pointer; color:var(--ink3); font-size:14px; padding:0 4px;}
+  #ai-chat-search .search-close:hover{color:var(--ink);}
+  .ai-msg.highlight{background:rgba(232,89,12,0.15) !important; border-color:rgba(232,89,12,0.3) !important;}
+
+  /* ── Actions ── */
+  .ai-actions{display:flex;gap:5px;flex-wrap:wrap;padding:2px 0;margin-top:2px;}
+  .ai-action-btn{
+    padding:5px 10px;font-size:9px;font-family:var(--mono);
+    background:rgba(232,89,12,0.05);border:1px solid rgba(232,89,12,0.18);
+    color:var(--amber);border-radius:6px;cursor:pointer;transition:all .2s;
+    font-weight:600; letter-spacing:.3px;
+  }
+  .ai-action-btn:hover{background:rgba(232,89,12,0.15);border-color:rgba(232,89,12,0.4);transform:translateY(-1px);box-shadow:0 2px 8px rgba(232,89,12,0.15);}
+
+  /* ── Presets ── */
+  #ai-chat-presets{
+    display:flex;gap:5px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.04);
+    flex-wrap:wrap;flex-shrink:0; background:rgba(255,255,255,0.01);
+  }
+  .ai-preset{
+    padding:4px 10px;font-size:8px;background:transparent;
+    border:1px solid rgba(255,255,255,0.08);color:var(--ink2);
+    border-radius:6px;cursor:pointer;transition:all .2s;
+    font-weight:500; letter-spacing:.3px;
+  }
+  .ai-preset:hover{border-color:rgba(232,89,12,0.3);color:var(--amber);background:rgba(232,89,12,0.05);}
+
+  /* ── Scroll-to-bottom ── */
+  #ai-scroll-bottom{
+    position:absolute; bottom:70px; left:50%; transform:translateX(-50%);
+    padding:4px 12px; background:rgba(20,20,20,.9); border:1px solid rgba(255,255,255,0.1);
+    border-radius:12px; color:var(--ink2); font-size:9px; cursor:pointer; display:none;
+    z-index:2; transition:all .2s; backdrop-filter:blur(8px); letter-spacing:.3px;
+  }
+  #ai-scroll-bottom:hover{background:rgba(40,40,40,.95); color:var(--ink);}
+
+  /* ── Copy button on messages ── */
+  .ai-msg.ai{position:relative;}
+  .ai-msg.ai .msg-copy{
+    position:absolute; top:6px; right:6px; padding:2px 6px; font-size:8px;
+    background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);
+    border-radius:4px; color:var(--ink3); cursor:pointer; opacity:0; transition:all .2s;
+    font-family:var(--mono); letter-spacing:.3px;
+  }
+  .ai-msg.ai:hover .msg-copy{opacity:1;}
+  .ai-msg.ai .msg-copy:hover{background:rgba(255,255,255,0.12); color:var(--ink);}
+
+  /* ── Follow-up suggestions ── */
+  .ai-followups{display:flex; gap:5px; flex-wrap:wrap; padding:2px 0; margin-top:4px;}
+  .ai-followup{
+    padding:4px 10px; font-size:9px; background:rgba(59,130,246,0.05);
+    border:1px solid rgba(59,130,246,0.15); color:rgba(147,197,253,0.9);
+    border-radius:6px; cursor:pointer; transition:all .2s; font-family:var(--mono);
+  }
+  .ai-followup:hover{background:rgba(59,130,246,0.12); border-color:rgba(59,130,246,0.3); color:#93c5fd;}
+
+  /* ── Input ── */
   #ai-chat-input{
-    display:flex; gap:6px; padding:10px; border-top:1px solid var(--border); flex:0 0 auto; background:#0a0a0a;
+    display:flex; gap:8px; padding:12px; border-top:1px solid rgba(255,255,255,0.06); flex:0 0 auto;
+    background:linear-gradient(to top, rgba(4,4,4,1), rgba(4,4,4,.8));
+    position:relative;
   }
   #ai-chat-input input{
-    flex:1; padding:8px 12px; background:#111; border:1px solid var(--border);
-    color:var(--ink); font-size:var(--fs-base); border-radius:6px; outline:none;
+    flex:1; padding:10px 14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+    color:var(--ink); font-size:12px; border-radius:10px; outline:none; transition:all .2s;
+    font-family:var(--mono);
   }
-  #ai-chat-input input:focus{border-color:var(--amber);}
+  #ai-chat-input input::placeholder{color:var(--ink3); font-size:11px;}
+  #ai-chat-input input:focus{border-color:rgba(232,89,12,0.4); background:rgba(255,255,255,0.06); box-shadow:0 0 0 2px rgba(232,89,12,0.08);}
+  .ai-voice-btn{
+    width:40px; height:40px; border-radius:10px; border:1px solid rgba(255,255,255,0.08);
+    background:transparent; color:var(--ink3); cursor:pointer; display:flex;
+    align-items:center; justify-content:center; transition:all .2s; flex-shrink:0;
+  }
+  .ai-voice-btn:hover{border-color:rgba(232,89,12,0.3); color:var(--amber);}
+  .ai-voice-btn.recording{border-color:#ef4444; color:#ef4444; background:rgba(239,68,68,0.1); animation:voicePulse 1.5s infinite;}
+  @keyframes voicePulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,0.3)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}
   #ai-chat-input button{
-    padding:8px 14px; background:var(--amber); color:#fff; border:none;
-    border-radius:6px; font-weight:700; cursor:pointer; font-size:var(--fs-base);
+    padding:10px 18px;
+    background:linear-gradient(135deg, #e8590c, #c2410c);
+    color:#fff; border:none; border-radius:10px; font-weight:700; cursor:pointer;
+    font-size:12px; transition:all .25s; letter-spacing:.5px;
+    box-shadow:0 2px 12px rgba(232,89,12,0.3);
   }
-  #ai-chat-input button:hover{background:#d14e08;}
-  #ai-chat-input button:disabled{opacity:.5; cursor:default;}
+  #ai-chat-input button:hover{filter:brightness(1.15); box-shadow:0 4px 20px rgba(232,89,12,0.4); transform:translateY(-1px);}
+  #ai-chat-input button:disabled{opacity:.3; cursor:default; filter:none; box-shadow:none; transform:none;}
+
+  /* ── FAB Toggle ── */
   #ai-chat-toggle{
-    position:fixed; bottom:16px; right:16px; z-index:499;
-    width:48px; height:48px; border-radius:50%;
-    background:linear-gradient(135deg,var(--amber),#d14e08);
+    position:fixed; bottom:18px; right:18px; z-index:499;
+    width:52px; height:52px; border-radius:14px;
+    background:linear-gradient(135deg, #e8590c, #c2410c);
     border:none; cursor:pointer; display:flex; align-items:center; justify-content:center;
-    box-shadow:0 4px 20px rgba(232,89,12,0.4); transition:transform .2s;
+    box-shadow:0 4px 24px rgba(232,89,12,0.5), 0 0 0 1px rgba(232,89,12,0.1);
+    transition:all .3s cubic-bezier(.16,1,.3,1);
     font-size:20px; color:#fff;
   }
-  #ai-chat-toggle:hover{transform:scale(1.1);}
-  .ai-preset{padding:3px 8px;font-size:8px;background:transparent;border:1px solid var(--border);color:var(--ink2);border-radius:3px;cursor:pointer;transition:all .15s;}
-  .ai-preset:hover{border-color:var(--amber);color:var(--amber);}
-  @media (max-width:640px){
-    #ai-chat{width:95vw; right:2.5vw; bottom:8px; height:60vh;}
-    #ai-chat-toggle{bottom:8px; right:8px; width:42px; height:42px;}
+  #ai-chat-toggle:hover{transform:translateY(-2px) scale(1.05); box-shadow:0 8px 36px rgba(232,89,12,0.6);}
+  #ai-chat-toggle:active{transform:scale(.95);}
+  #ai-chat-toggle .unread{
+    position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;
+    background:#ef4444;font-size:9px;font-weight:700;display:none;align-items:center;justify-content:center;
+    border:2px solid #040404; padding:0 4px; box-shadow:0 2px 6px rgba(239,68,68,0.4);
+  }
+
+  @media (max-width:768px){
+    #ai-chat{
+      width:100vw; height:100vh; max-height:100vh; max-width:100vw;
+      right:0; bottom:0; left:0; top:0;
+      border-radius:0; border:none;
+      box-shadow:none;
+    }
+    #ai-chat.on{animation:none;}
+    #ai-chat-head{padding:14px 16px; padding-top:max(14px, env(safe-area-inset-top));}
+    #ai-chat-head .logo-mark{width:32px; height:32px; font-size:18px; border-radius:10px;}
+    #ai-chat-head .logo-text .name{font-size:15px;}
+    #ai-chat-head .logo-text .sub{font-size:9px;}
+    #ai-chat-ctx{padding:6px 14px;}
+    #ai-chat-ctx .ctx-chip{font-size:9px; padding:3px 8px;}
+    #ai-chat-presets{padding:10px 14px; gap:6px; overflow-x:auto; flex-wrap:nowrap; -webkit-overflow-scrolling:touch;}
+    .ai-preset{padding:6px 12px; font-size:10px; white-space:nowrap; flex-shrink:0;}
+    #ai-chat-msgs{padding:14px; gap:12px;}
+    .ai-msg{max-width:92%; font-size:12px; padding:12px 16px; border-radius:14px; line-height:1.8;}
+    .ai-msg.ai{font-size:12px;}
+    .ai-msg .msg-time{font-size:9px; margin-top:8px;}
+    .ai-typing span{width:8px; height:8px; margin:0 3px;}
+    .ai-actions{gap:6px; padding:4px 0;}
+    .ai-action-btn{padding:7px 12px; font-size:10px; border-radius:8px;}
+    #ai-chat-input{
+      padding:12px 14px; gap:8px;
+      padding-bottom:max(12px, env(safe-area-inset-bottom));
+    }
+    #ai-chat-input input{padding:12px 16px; font-size:14px; border-radius:12px;}
+    #ai-chat-input input::placeholder{font-size:13px;}
+    #ai-chat-input button{padding:12px 20px; font-size:14px; border-radius:12px;}
+    .ai-voice-btn{width:44px; height:44px; border-radius:12px;}
+    .ai-followup{padding:6px 12px; font-size:10px;}
+    #ai-scroll-bottom{bottom:80px; font-size:10px; padding:6px 14px;}
+    #ai-chat-toggle{
+      bottom:max(12px, env(safe-area-inset-bottom));
+      right:12px; width:52px; height:52px; border-radius:14px;
+    }
+  }
+  @media (max-width:380px){
+    #ai-chat-head .hdr-actions .export-btn{display:none;}
+    #ai-chat-head .logo-text .sub{display:none;}
   }
 
   /* ── Backtest Overlay ──────────────────────────── */
@@ -1074,7 +1344,7 @@
     <div id="cmdsug"></div></div>
     <div id="clocks">
       <span id="ai-badge" onclick="aiSignalBadgeClick()"></span>
-      <span id="billion-status" style="color:var(--ink3);cursor:pointer" onclick="billionOverlay()" title="BILLION AI Agent">AI —</span>
+      <span id="billion-status" style="color:var(--ink3);cursor:pointer;padding:1px 6px;border:1px solid rgba(232,89,12,0.15);border-radius:3px;font-weight:600;letter-spacing:.5px;transition:all .2s" onclick="toggleAIChat()" title="BILLION AI (Ctrl+B)">AI —</span>
       <span><span id="led"></span><span id="ledtext">CONNECTING</span></span>
       <span>SEOUL <b id="clk-kst">--:--:--</b></span>
       <span>UTC <b id="clk-utc">--:--:--</b></span>
@@ -1084,7 +1354,11 @@
     </div>
   </div>
 
-  <!-- Hero Stats Bar removed -->
+  <!-- AI Insight Ticker -->
+  <div id="ai-ticker" style="display:none;padding:3px 14px;background:linear-gradient(90deg,rgba(232,89,12,0.04),transparent 30%,transparent 70%,rgba(232,89,12,0.04));border-bottom:1px solid rgba(232,89,12,0.08);font-size:9px;color:var(--ink2);cursor:pointer;overflow:hidden;white-space:nowrap;letter-spacing:.3px" onclick="toggleAIChat()">
+    <span id="ai-ticker-text" style="display:inline-block;animation:tickerScroll 30s linear infinite"></span>
+  </div>
+  <style>@keyframes tickerScroll{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}</style>
 
   <div id="tabrow">
     <div id="symtabs" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
@@ -1493,6 +1767,7 @@
       <div class="mob-tab on" data-mpanel="signals">AI 신호</div>
       <div class="mob-tab" data-mpanel="news">뉴스</div>
       <div class="mob-tab" data-mpanel="overview">시장</div>
+      <div class="mob-tab" data-mpanel="ai-chat" onclick="toggleAIChat()" style="color:var(--amber);font-weight:700">BILLION</div>
     </div>
     <div id="mob-panel-content"></div>
   </div>
@@ -1552,25 +1827,49 @@
   <!-- Keyboard hint flash -->
   <div id="kb-hint"></div>
 
-  <!-- AI Chat Popup -->
-  <button id="ai-chat-toggle" onclick="toggleAIChat()" title="BILLION AI 채팅"><svg width="22" height="22" viewBox="0 0 32 32"><defs><linearGradient id="aig" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ffd4b8"/></linearGradient></defs><text x="16" y="22" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="17" fill="url(#aig)">B</text></svg></button>
+  <!-- AI Chat Popup — BILLION AI -->
+  <button id="ai-chat-toggle" onclick="toggleAIChat()" title="BILLION AI (Ctrl+B)">
+    <svg width="24" height="24" viewBox="0 0 32 32">
+      <defs><linearGradient id="aig" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#ffd4b8"/><stop offset="1" stop-color="#fff"/></linearGradient></defs>
+      <text x="16" y="23" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="20" fill="url(#aig)">B</text>
+    </svg>
+    <span class="unread" id="ai-unread"></span>
+  </button>
   <div id="ai-chat">
     <div id="ai-chat-head">
-      <span class="title"><svg width="16" height="16" viewBox="0 0 32 32" style="vertical-align:-2px;margin-right:4px"><rect width="32" height="32" rx="6" fill="#1a1205"/><text x="16" y="22" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="17" fill="#e8590c">B</text></svg>BILLION AI</span>
-      <span class="close" onclick="toggleAIChat()">✕</span>
+      <span class="title">
+        <span class="logo-mark">B</span>
+        <span class="logo-text">
+          <span class="name">BILLION</span>
+          <span class="sub">AI PERSONAL SECRETARY</span>
+        </span>
+        <span class="status on" id="ai-conn-status">LIVE</span>
+      </span>
+      <span class="hdr-actions">
+        <button class="export-btn" onclick="toggleChatMini()" title="미니 모드" id="ai-mini-btn">MINI</button>
+        <button class="export-btn" onclick="toggleChatSearch()" title="대화 검색 (Ctrl+F)">SEARCH</button>
+        <button class="export-btn" onclick="exportChat()" title="대화 내보내기">EXPORT</button>
+        <button class="clear-btn" onclick="clearAIChat()" title="대화 초기화">CLEAR</button>
+        <span class="close" onclick="toggleAIChat()">✕</span>
+      </span>
     </div>
-    <div id="ai-chat-presets" style="display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap;flex-shrink:0">
-      <button class="ai-preset" onclick="aiPreset('현재 시장 상황 분석해줘')">시장 분석</button>
-      <button class="ai-preset" onclick="aiPreset('BTC 매매 전략 추천해줘')">전략 추천</button>
-      <button class="ai-preset" onclick="aiPreset('포지션 리스크 점검해줘')">리스크 점검</button>
-      <button class="ai-preset" onclick="aiPreset('오늘 주요 이벤트와 대응 전략은?')">오늘 전략</button>
+    <div id="ai-chat-search">
+      <input id="ai-search-input" placeholder="대화 검색..." oninput="searchChatMessages(this.value)">
+      <span class="search-count" id="ai-search-count"></span>
+      <span class="search-close" onclick="toggleChatSearch()">✕</span>
     </div>
-    <div id="ai-chat-msgs">
-      <div class="ai-msg sys">BILLION AI 에이전트 — 시장 분석, 전략 상담, 포지션 관리</div>
-      <div class="ai-msg ai">안녕하세요 대표님. 무엇을 도와드릴까요?</div>
+    <div id="ai-chat-ctx"></div>
+    <div id="ai-chat-presets"></div>
+    <div id="ai-chat-msgs" style="position:relative">
+      <div class="ai-msg sys">BILLION — 대표님 전속 AI 비서</div>
     </div>
-    <div id="ai-chat-input">
-      <input id="ai-chat-text" placeholder="AI에게 질문..." autocomplete="off" spellcheck="false">
+    <div id="ai-scroll-bottom" onclick="scrollChatBottom()">↓ 최신 메시지</div>
+    <div id="ai-chat-input" style="position:relative">
+      <div id="ai-slash-menu"></div>
+      <button class="ai-voice-btn" id="ai-voice-btn" onclick="toggleVoiceInput()" title="음성 입력 (마이크)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+      <input id="ai-chat-text" placeholder="빌리언에게 질문... (/ 슬래시 커맨드)" autocomplete="off" spellcheck="false">
       <button id="ai-chat-send" onclick="sendAIChat()">전송</button>
     </div>
   </div>
@@ -4864,6 +5163,13 @@ async function briefOverlay(){
     });
   }
 
+  // AI 분석 요청 버튼
+  html += '<div style="margin-top:12px;padding:10px;background:#0a0a0a;border:1px solid var(--border);border-radius:8px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center">';
+  html += '<button onclick="toggleAIChat();setTimeout(function(){var i=document.getElementById(\'ai-chat-text\');if(i){i.value=\'이 시장 상황에서 어떻게 대응해야 해?\';sendAIChat();}},200)" style="padding:6px 14px;background:linear-gradient(135deg,var(--amber),#c2410c);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:10px">빌리언에게 전략 물어보기</button>';
+  html += '<button onclick="execTerminalCmd(\'SCAN\')" style="padding:6px 14px;background:transparent;border:1px solid var(--border);color:var(--ink2);border-radius:6px;cursor:pointer;font-size:10px">멀티코인 스캔</button>';
+  html += '<button onclick="execTerminalCmd(\'ANALYZE \'+S.sym)" style="padding:6px 14px;background:transparent;border:1px solid var(--border);color:var(--ink2);border-radius:6px;cursor:pointer;font-size:10px">'+S.sym+' AI 분석</button>';
+  html += '</div>';
+
   html += '</div>';
   showOverlay("BRIEFING · " + timeStr, html);
 }
@@ -5743,10 +6049,14 @@ function helpHTML(){
       ["PROFILE","프로필 · 세션 정보 · 거래 통계"],
       ["TG OFF","텔레그램 알림 릴레이 끄기/켜기(TG ON)"],
     ]},
-    {cat:"AI & AUTOMATION", color:"#c084fc", cmds:[
-      ["AI 시장 분석해줘","Billion AI 에이전트에게 질문"],
+    {cat:"BILLION AI", color:"#e8590c", cmds:[
+      ["AI 시장 분석해줘","빌리언 AI에게 질문 (오버레이)"],
+      ["AI / CHAT / B","빌리언 AI 채팅 팝업 열기 (Ctrl+B)"],
+      ["AI DASH / B DASH","빌리언 AI 대시보드 (상태·커맨드)"],
+      ["한글로 아무거나 입력","자동으로 빌리언 AI에게 전달"],
+      ["B RUN","현재 종목 AI 13-에이전트 분석"],
+      ["B SCAN","멀티코인 기회 스캔"],
       ["BACKTEST BTC","전략 백테스트 실행 (심볼·전략·기간)"],
-      ["BACKTEST BTC confluence 30","전략·기간 지정 백테스트"],
       ["SCOMPARE BTC","전 전략 비교 (최적 전략 추천)"],
       ["STRATEGIES","사용 가능한 전략 목록"],
     ]},
@@ -6957,8 +7267,12 @@ const CMD_LIST=[
   {c:"BT", d:"백테스트 결과 (BACKTEST 단축)"},
   {c:"SCOMPARE BTC", d:"전 전략 비교 (최적 전략 추천)"},
   {c:"STRATEGIES", d:"사용 가능한 전략 목록"},
-  {c:"AI", d:"Billion AI 에이전트에게 질문"},
-  {c:"AI 시장 분석해줘", d:"AI에게 시장 분석 요청"},
+  {c:"AI", d:"빌리언 AI 채팅 열기 (Ctrl+B)"},
+  {c:"CHAT", d:"빌리언 AI 채팅 열기"},
+  {c:"AI 시장 분석해줘", d:"빌리언에게 시장 분석 요청 (오버레이)"},
+  {c:"AI 진입 판단해줘", d:"빌리언에게 진입 판단 요청"},
+  {c:"AI 포지션 점검해줘", d:"빌리언에게 포지션 리스크 점검 요청"},
+  {c:"AI DASH", d:"빌리언 AI 대시보드 (상태·히스토리·커맨드)"},
   {c:"FUNDOS", d:"AI Hedge Fund OS 대시보드 (전체 펀드 현황)"},
   {c:"HEDGE", d:"헷지 권고 (방향 편향 분석)"},
   {c:"ALLOCATION", d:"포트폴리오 배분 규칙 체크"},
@@ -7156,14 +7470,16 @@ $("cmd").addEventListener("keydown",e=>{
   if(btM){ runBacktest(btM[1], btM[2]||'confluence', parseInt(btM[3])||30); e.target.value=""; return; }
   if(raw.startsWith("AI ")){
     var aiQuery = raw.slice(3).trim();
-    if(aiQuery) billionChat(aiQuery);
+    if(aiQuery) aiChat(aiQuery);
     e.target.value="";
     return;
   }
+  if(raw==="AI"||raw==="CHAT"){ toggleAIChat(); e.target.value=""; return; }
   if(raw==="BRIEF PRINT"||raw==="MORNING"){ window.open('/api/morning-brief','_blank'); pushLog('모닝 브리핑 생성 중...'); e.target.value=""; return; }
   if(raw==="BRIEF"||raw==="BRIEFING"){ briefOverlay(); e.target.value=""; return; }
   if(raw==="MONITOR"||raw==="MON"){ monitorOverlay(); e.target.value=""; return; }
-  if(raw==="BILLION"||raw==="B"){ billionOverlay(); e.target.value=""; return; }
+  if(raw==="BILLION"||raw==="B"){ toggleAIChat(); e.target.value=""; return; }
+  if(raw==="BILLION DASH"||raw==="B DASH"||raw==="AI DASH"){ aiDashboard(); e.target.value=""; return; }
   if(raw==="BILLION RUN"||raw==="B RUN"){ billionRunAnalysis(); e.target.value=""; return; }
   if(raw==="BILLION SCAN"||raw==="B SCAN"){ billionScan(); e.target.value=""; return; }
   const bset=raw.match(/^(?:BILLION|B)\s+SET\s+(.+)$/);
@@ -7371,7 +7687,12 @@ $("cmd").addEventListener("keydown",e=>{
   if(dm){ showDes(dm[1]||S.sym); e.target.value=""; return; }
   const m=raw.match(/^([A-Z0-9]{2,10})\s*(15M|1H|4H|1D)?$/);
   if(m){ switchTo(m[1], m[2]||S.tf); e.target.value=""; }  // 임의 심볼도 시도 (바이낸스/바이비트 상장 기준)
-  else { e.target.value=""; e.target.placeholder="예: SOL 4H · PEPE 1H · ALERT SOL 200 · ALERT CLEAR"; }
+  else if(isNaturalLanguage(e.target.value.trim())){
+    // 한글 자연어 → 자동으로 AI에게 전달
+    aiChat(e.target.value.trim());
+    e.target.value="";
+  }
+  else { e.target.value=""; e.target.placeholder="예: SOL 4H · PEPE 1H · AI 질문 · Ctrl+B = 채팅"; }
 });
 document.addEventListener("keydown",e=>{
   // Ctrl+K / Cmd+K — command palette (works globally)
@@ -7535,6 +7856,9 @@ function keysOverlay(){
     {key:"더블클릭", desc:"최신 봉으로 이동"},
     {key:"F1", desc:"도움말"},
     {key:"Ctrl+K", desc:"커맨드 팔레트"},
+    {key:"Ctrl+B", desc:"BILLION AI 채팅 토글"},
+    {key:"↑ ↓ (채팅)", desc:"이전 질문 히스토리"},
+    {key:"/ (채팅)", desc:"슬래시 커맨드 (/help)"},
   ];
 
   let html = '<table style="width:100%;border-collapse:collapse;font-size:11px;">';
@@ -8912,31 +9236,88 @@ function aiConnect(){
   fetch("/api/health",{signal:AbortSignal.timeout(3000)})
     .then(r=>r.json()).then(()=>{
       aiConnected=true; $("led").className="ok";
-      const bs=$("billion-status"); if(bs) bs.innerHTML='<span style="color:var(--up-text)">AI READY</span> · <span style="color:var(--ink2)">connected</span>';
+      const bs=$("billion-status"); if(bs){ bs.innerHTML='<span style="color:var(--up-text)">B</span> READY'; bs.style.borderColor='rgba(34,197,94,0.3)'; }
+      const cs=document.getElementById('ai-conn-status'); if(cs){ cs.textContent='LIVE'; cs.className='status on'; }
       pushLogLocal("AI Engine 연결됨");
     }).catch(()=>{
       $("led").className="warn";
-      const bs=$("billion-status"); if(bs) bs.innerHTML='<span style="color:var(--ink3)">AI OFF</span> · <span style="color:var(--ink3)">disconnected</span>';
+      const bs=$("billion-status"); if(bs){ bs.innerHTML='<span style="color:var(--ink3)">B</span> OFF'; bs.style.borderColor='rgba(255,255,255,0.06)'; }
+      const cs=document.getElementById('ai-conn-status'); if(cs){ cs.textContent='OFFLINE'; cs.className='status off'; }
     });
 }
 
 async function aiChat(message){
-  $("cmd").placeholder="AI 응답 대기 중...";
+  $("cmd").placeholder="BILLION AI 응답 대기 중...";
+  const bs=$("billion-status");
+  if(bs) bs.innerHTML='<span style="color:var(--amber)">AI THINKING...</span>';
+  const t0 = Date.now();
   try{
-    const ctx = `심볼:${S.sym} TF:${S.tf} 가격:${S.quotes[S.sym]?fmtPrice(S.quotes[S.sym].last):"?"} 24h:${S.quotes[S.sym]?S.quotes[S.sym].pct?.toFixed(1)+"%":"?"}`;
+    const ctx = JSON.stringify(collectTerminalContext());
     const res = await fetch("/api/chat",{
       method:"POST", headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({message, context:ctx}), signal:AbortSignal.timeout(30000)
+      body:JSON.stringify({messages:[{role:'user',content:message}], context:ctx}),
+      signal:AbortSignal.timeout(60000)
     });
-    if(!res.ok) throw new Error("API 오류");
+    if(!res.ok) throw new Error("API "+res.status);
     const data = await res.json();
+    const elapsed = ((Date.now()-t0)/1000).toFixed(1);
+    if(bs) bs.innerHTML='<span style="color:var(--up-text)">AI READY</span>';
     if(data.text){
-      showOverlay("AI",
-        `<div style="padding:10px;font-size:12px;color:var(--ink);line-height:1.8;white-space:pre-wrap;font-family:var(--mono)">${data.text}</div>`);
+      const formatted = formatAIText(data.text);
+      // 빌리언 액션 처리
+      if(data.actions) processAIActions(data.actions);
+      // 액션 버튼 생성
+      const actions = buildActionButtons(data.text);
+      let actionsHTML = '';
+      if(actions.length > 0){
+        actionsHTML = '<div style="padding:8px 14px;border-top:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap">' +
+          actions.map(a => `<button onclick="execTerminalCmd('${a.cmd}')" style="padding:5px 10px;font-size:9px;font-family:var(--mono);background:rgba(232,89,12,0.06);border:1px solid rgba(232,89,12,0.2);color:var(--amber);border-radius:6px;cursor:pointer;font-weight:600;transition:all .2s" onmouseover="this.style.background='rgba(232,89,12,0.15)'" onmouseout="this.style.background='rgba(232,89,12,0.06)'">${a.icon||'▸'} ${a.label}</button>`).join('') +
+          '</div>';
+      }
+      // 컨텍스트 칩
+      const q = S.quotes[S.sym];
+      const pctColor = q && q.pct >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+      const ctxLine = `<div style="padding:6px 14px;display:flex;gap:8px;flex-wrap:wrap;font-size:8px;color:var(--ink3);border-bottom:1px solid rgba(255,255,255,0.04);background:rgba(255,255,255,0.01)">` +
+        `<span style="padding:2px 6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:3px"><b style="color:var(--ink)">${S.sym}</b> ${S.tf}</span>` +
+        (q ? `<span style="padding:2px 6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:3px"><b style="color:var(--ink)">${fmtPrice(q.last)}</b> <span style="color:${pctColor}">${q.pct>=0?'+':''}${q.pct.toFixed(1)}%</span></span>` : '') +
+        (S.fng ? `<span style="padding:2px 6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:3px">F&G <b style="color:var(--ink)">${S.fng.v}</b></span>` : '') +
+        `<span style="margin-left:auto;padding:2px 6px;color:var(--ink3)">${elapsed}s</span>` +
+        `</div>`;
+
+      // 미니 스파크라인 차트 (캔들 데이터 있으면)
+      const sparkId = 'ai-overlay-spark-' + Date.now();
+      let sparkHTML = '';
+      if(typeof S !== 'undefined' && S.candles && S.candles.length > 10){
+        const recentCloses = S.candles.slice(-60).map(c => c.c);
+        sparkHTML = `<div style="padding:4px 14px;border-bottom:1px solid rgba(255,255,255,0.04)"><canvas id="${sparkId}" style="width:100%;height:40px;display:block;border-radius:4px"></canvas><div style="display:flex;justify-content:space-between;font-size:8px;color:var(--ink3);margin-top:2px"><span>${S.sym} ${S.tf} · 최근 60봉</span><span style="color:var(--ink2)">${fmtPrice(recentCloses[recentCloses.length-1])}</span></div></div>`;
+      }
+
+      showOverlay("BILLION AI",
+        ctxLine +
+        sparkHTML +
+        `<div style="padding:14px 16px;font-size:11px;color:var(--ink);line-height:1.8;white-space:pre-wrap;font-family:var(--mono)">${formatted}</div>` +
+        actionsHTML +
+        `<div style="padding:6px 14px;border-top:1px solid rgba(255,255,255,0.04);font-size:8px;color:var(--ink3);display:flex;justify-content:space-between;align-items:center">` +
+        `<span>BILLION AI · 대표님 전속 비서</span>` +
+        `<span style="cursor:pointer;color:var(--amber)" onclick="toggleAIChat()">채팅으로 이어가기 →</span>` +
+        `</div>`);
+      // 스파크라인 그리기
+      if(sparkHTML && typeof S !== 'undefined' && S.candles){
+        setTimeout(function(){
+          drawSparkline(sparkId, S.candles.slice(-60).map(function(c){return c.c;}));
+        }, 100);
+      }
+      // 채팅 히스토리에도 추가 (이어가기용)
+      _aiChatHistory.push({role:'user', content:message});
+      _aiChatHistory.push({role:'assistant', content:data.text});
+      saveChatSession();
     }
     $("cmd").placeholder="";
+    pushLog("BILLION: 응답 완료 ("+elapsed+"s)");
+    if(typeof addActivity === 'function') addActivity('🤖', 'Billion AI 응답 · '+S.sym+' · '+elapsed+'s');
   }catch(e){
-    pushLog("AI: 응답 실패 — "+e.message);
+    if(bs) bs.innerHTML='<span style="color:var(--down-text)">AI OFFLINE</span>';
+    pushLog("BILLION: 응답 실패 — "+e.message);
     $("cmd").placeholder="AI 응답 실패";
     setTimeout(()=>{$("cmd").placeholder="";},2000);
   }
@@ -16753,40 +17134,8 @@ async function compareStrategiesOverlay(sym){
   }
 }
 
-async function billionChat(query){
-  showOverlay("BILLION AI","<div style='padding:10px;color:var(--ink3)'>AI 분석 중...</div>");
-  try {
-    // Collect context for AI
-    var ctx = {};
-    if(typeof S !== 'undefined'){
-      ctx.symbol = S.sym;
-      ctx.btcPrice = S.quotes && S.quotes.BTC ? S.quotes.BTC.last : null;
-      ctx.fearGreed = S.fng ? S.fng.v : null;
-    }
-
-    var res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        messages: [{role:'user', content: query}],
-        context: JSON.stringify(ctx)
-      }),
-      signal: AbortSignal.timeout(30000)
-    });
-
-    if(!res.ok) throw new Error('API 응답 실패: ' + res.status);
-    var data = await res.json();
-    var text = data.text || data.content || '응답 없음';
-
-    var html = '<div style="padding:10px;">';
-    html += '<div style="color:var(--ink3);font-size:var(--fs-xs);margin-bottom:6px">Q: ' + query + '</div>';
-    html += '<div style="color:var(--ink);font-size:var(--fs-base);line-height:1.8;white-space:pre-wrap">' + text + '</div>';
-    html += '</div>';
-    showOverlay("BILLION AI · 응답", html);
-  } catch(e) {
-    showOverlay("BILLION AI","<div class='rowline'><span style='color:var(--down-text)'>AI 응답 실패: " + e.message + "</span></div>");
-  }
-}
+// billionChat → aiChat 통합 (하위호환)
+function billionChat(query){ aiChat(query); }
 
 /* ── Command Palette (Ctrl+K / Cmd+K) ── */
 function togglePalette(){
@@ -16809,13 +17158,28 @@ function filterPalette(query){
   var filtered = q ? list.filter(function(item){ return item.c.toUpperCase().indexOf(q) !== -1 || item.d.toUpperCase().indexOf(q) !== -1; }) : list.slice(0, 15);
 
   var html = '';
+  // ? 시작: AI에게 질문 바로가기
+  if(query.startsWith('?') && query.length > 1){
+    var aiQ = query.slice(1).trim();
+    html += '<div class="result sel" onclick="togglePalette();toggleAIChat();setTimeout(function(){var i=document.getElementById(\'ai-chat-text\');if(i){i.value=\''+aiQ.replace(/'/g,"\\'")+'\';sendAIChat();}},200)" style="border-left:3px solid var(--amber)">';
+    html += '<span class="cmd" style="color:var(--amber)">BILLION AI</span>';
+    html += '<span class="desc">"'+aiQ+'" 질문하기</span>';
+    html += '</div>';
+  }
   filtered.slice(0, 12).forEach(function(item, i){
-    html += '<div class="result' + (i===0?' sel':'') + '" onclick="executePaletteCmd(\'' + item.c.replace(/'/g,"\\'") + '\')">';
+    var isAI = /^AI|^CHAT|^B\b/.test(item.c);
+    html += '<div class="result' + (i===0 && !query.startsWith('?')?' sel':'') + '" onclick="executePaletteCmd(\'' + item.c.replace(/'/g,"\\'") + '\')"' + (isAI?' style="border-left:3px solid var(--amber)"':'') + '>';
     html += '<span class="cmd">' + item.c + '</span>';
     html += '<span class="desc">' + item.d + '</span>';
     html += '</div>';
   });
-  if(!filtered.length) html = '<div style="padding:12px 16px;color:var(--ink3)">일치하는 명령어 없음</div>';
+  if(!filtered.length && !query.startsWith('?')){
+    // 매칭 없으면 AI 질문 제안
+    html = '<div class="result sel" onclick="togglePalette();toggleAIChat();setTimeout(function(){var i=document.getElementById(\'ai-chat-text\');if(i){i.value=\''+query.replace(/'/g,"\\'")+'\';sendAIChat();}},200)" style="border-left:3px solid var(--amber)">';
+    html += '<span class="cmd" style="color:var(--amber)">BILLION AI에게 질문</span>';
+    html += '<span class="desc">"'+query+'"</span>';
+    html += '</div>';
+  }
   results.innerHTML = html;
 }
 
@@ -16882,18 +17246,168 @@ function heatmapOverlay(){
   showOverlay("HEATMAP · 시장 히트맵 (30)", html);
 }
 
-/* ═══ AI Chat Popup ═══ */
+/* ═══ AI Chat Popup — Billion AI 연동 (강화) ═══ */
 var _aiChatHistory = [];
 var _aiChatBusy = false;
-var _billionLastAnalysis = null;
-var _billionLastRecommendation = '';
+var _aiChatStartTime = null;
+var _aiInputHistory = [];    // 입력 히스토리 (화살표키)
+var _aiInputHistIdx = -1;
+var _aiMsgCount = 0;         // 메시지 카운트
+
+// ── 대화 히스토리 압축 (토큰 절약) ──
+function compactHistory(history){
+  if(history.length <= 16) return history.slice(-16);
+  // 최근 12개는 그대로, 나머지는 요약
+  var recent = history.slice(-12);
+  var old = history.slice(0, -12);
+  var summary = old.map(function(m){
+    var prefix = m.role === 'user' ? 'Q:' : 'A:';
+    return prefix + ' ' + m.content.slice(0, 80) + (m.content.length > 80 ? '...' : '');
+  }).join('\n');
+  return [{role:'user', content:'[이전 대화 요약]\n' + summary}].concat(recent);
+}
+
+// ── 세션 저장/복원 ──
+function saveChatSession(){
+  try {
+    sessionStorage.setItem('billion_chat', JSON.stringify({
+      history: _aiChatHistory.slice(-20),
+      inputHistory: _aiInputHistory.slice(-30),
+    }));
+  } catch(_){}
+}
+function restoreChatSession(){
+  try {
+    var saved = sessionStorage.getItem('billion_chat');
+    if(!saved) return;
+    var data = JSON.parse(saved);
+    if(data.history && data.history.length > 0){
+      _aiChatHistory = data.history;
+      var msgs = document.getElementById('ai-chat-msgs');
+      if(msgs){
+        msgs.innerHTML = '<div class="ai-msg sys">BILLION AI — 이전 대화 복원됨</div>';
+        data.history.forEach(function(m){
+          var div = document.createElement('div');
+          div.className = 'ai-msg ' + (m.role === 'user' ? 'user' : 'ai');
+          if(m.role === 'assistant') div.innerHTML = formatAIText(m.content);
+          else div.textContent = m.content;
+          msgs.appendChild(div);
+        });
+        msgs.scrollTop = msgs.scrollHeight;
+      }
+    }
+    if(data.inputHistory) _aiInputHistory = data.inputHistory;
+  } catch(_){}
+}
+
+// ── 터미널 컨텍스트 수집 (빌리언에 전달) ──
+function collectTerminalContext(){
+  var ctx = {};
+  if(typeof S === 'undefined') return ctx;
+  ctx.currentSymbol = S.sym;
+  ctx.timeframe = S.tf;
+  // 시세
+  ctx.prices = {};
+  if(S.quotes){
+    for(var sym in S.quotes){
+      if(S.quotes[sym]) ctx.prices[sym] = {
+        price: S.quotes[sym].last,
+        change24h: S.quotes[sym].pct ? S.quotes[sym].pct.toFixed(2)+'%' : '?',
+        high: S.quotes[sym].high, low: S.quotes[sym].low,
+        volume: S.quotes[sym].vol
+      };
+    }
+  }
+  // 시장 지표
+  if(S.fng) ctx.fearGreed = S.fng.v + ' (' + S.fng.cls + ')';
+  var regimeEl = document.getElementById('regime-label');
+  if(regimeEl) ctx.regime = regimeEl.textContent;
+  // 펀드 상태
+  var elVal = function(id){ var el = document.getElementById(id); return el ? el.textContent : null; };
+  ctx.fund = {
+    capital: elVal('fund-capital'), return: elVal('fund-return'),
+    winRate: elVal('fund-winrate'), trades: elVal('fund-trades'),
+    health: elVal('health-score'), sharpe: elVal('health-sharpe'),
+    mdd: elVal('risk-mdd'), exposure: elVal('risk-exp'),
+    bias: elVal('risk-bias')
+  };
+  // 포지션
+  if(typeof PAPER_CACHE !== 'undefined' && PAPER_CACHE.data){
+    var pd = PAPER_CACHE.data;
+    var allPos = (pd.positions||[]).concat(pd.swingPositions||[]);
+    ctx.positions = allPos.map(function(p){
+      return {symbol:p.symbol, direction:p.direction, entry:p.entryPrice, current:p.currentPrice,
+              pnl:p.unrealizedPnl||0, leverage:p.leverage||1, sl:p.slPrice, tp:p.tpPrice};
+    });
+    ctx.recentTrades = (pd.recentTrades||[]).slice(0,5).map(function(t){
+      return {symbol:t.symbol, direction:t.direction, pnl:t.pnl, reason:t.closeReason, date:t.closeTime};
+    });
+    if(pd.capital) ctx.paperCapital = pd.capital;
+    if(pd.initialCapital) ctx.initialCapital = pd.initialCapital;
+    if(pd.consecutiveLosses) ctx.consecutiveLosses = pd.consecutiveLosses;
+    if(pd.circuitBreakerActive) ctx.circuitBreaker = true;
+  }
+  // AI 시그널
+  if(typeof aiSignal !== 'undefined' && aiSignal){
+    ctx.lastSignal = {decision:aiSignal.decision, symbol:aiSignal.symbol, confidence:aiSignal.confidence, time:aiSignal.timestamp};
+  }
+  // 펀딩, OI
+  if(S.fundingRate) ctx.fundingRate = S.fundingRate;
+  if(S.oi) ctx.openInterest = S.oi;
+  if(S.lsRatio) ctx.longShortRatio = S.lsRatio;
+  return ctx;
+}
+
+// ── 컨텍스트 바 업데이트 ──
+function updateChatContextBar(){
+  var bar = document.getElementById('ai-chat-ctx');
+  if(!bar || typeof S === 'undefined') return;
+  var parts = [];
+  parts.push('<span class="ctx-chip"><b>'+S.sym+'</b> '+S.tf+'</span>');
+  if(S.quotes && S.quotes[S.sym]){
+    var q = S.quotes[S.sym];
+    var pctColor = q.pct >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+    parts.push('<span class="ctx-chip"><b>'+(typeof fmtPrice==='function'?fmtPrice(q.last):q.last)+'</b> <span style="color:'+pctColor+'">'+(q.pct>=0?'+':'')+q.pct.toFixed(1)+'%</span></span>');
+  }
+  if(S.fng) parts.push('<span class="ctx-chip">F&G <b style="color:'+(S.fng.v<=25?'var(--down-text)':S.fng.v>=75?'var(--up-text)':'var(--amber)')+'">'+S.fng.v+'</b></span>');
+  var capEl = document.getElementById('fund-capital');
+  var retEl = document.getElementById('fund-return');
+  if(capEl) parts.push('<span class="ctx-chip">펀드 <b>'+capEl.textContent+'</b> '+(retEl?retEl.textContent:'')+'</span>');
+  // 포지션 수
+  if(typeof PAPER_CACHE !== 'undefined' && PAPER_CACHE.data){
+    var posCount = ((PAPER_CACHE.data.positions||[]).length + (PAPER_CACHE.data.swingPositions||[]).length);
+    if(posCount > 0) parts.push('<span class="ctx-chip" style="border-color:var(--amber)">포지션 <b style="color:var(--amber)">'+posCount+'</b></span>');
+  }
+  bar.innerHTML = parts.join('');
+}
+
+// ── 프리셋 동적 업데이트 ──
+function updateDynamicPresets(){
+  var presetEl = document.getElementById('ai-chat-presets');
+  if(!presetEl || typeof S === 'undefined') return;
+  var sym = S.sym;
+  var hasPos = typeof PAPER_CACHE !== 'undefined' && PAPER_CACHE.data &&
+    ((PAPER_CACHE.data.positions||[]).length + (PAPER_CACHE.data.swingPositions||[]).length) > 0;
+  var presets = [
+    {text:sym+' 지금 상황 어때?', label:sym+' 분석'},
+    {text:sym+' 진입해도 될까?', label:'진입 판단'},
+    {text:'보유 포지션 리스크 점검해줘', label:'리스크 점검'},
+  ];
+  if(hasPos) presets.push({text:'포지션 정리할 타이밍이야?', label:'청산 판단'});
+  else presets.push({text:'지금 가장 좋은 매매 기회 찾아줘', label:'기회 탐색'});
+  presets.push({text:'펀드 성과 분석해줘', label:'펀드 진단'});
+  presets.push({text:'오늘 매크로 이벤트랑 대응 전략 알려줘', label:'오늘 전략'});
+
+  presetEl.innerHTML = presets.map(function(p){
+    return '<button class="ai-preset" onclick="aiPreset(\''+p.text.replace(/'/g,"\\'")+'\')">'+p.label+'</button>';
+  }).join('');
+}
 
 function aiPreset(text){
-  var inp = document.getElementById('ai-chat-text');
-  if(inp){ inp.value = text; sendAIChat(); }
-  // Open chat if closed
   var chat = document.getElementById('ai-chat');
   if(chat && !chat.classList.contains('on')) toggleAIChat();
+  var inp = document.getElementById('ai-chat-text');
+  if(inp){ inp.value = text; sendAIChat(); }
 }
 
 function toggleAIChat(){
@@ -16906,19 +17420,538 @@ function toggleAIChat(){
   } else {
     chat.classList.add('on');
     if(btn) btn.style.display = 'none';
+    updateChatContextBar();
+    updateDynamicPresets();
+    var unread = document.getElementById('ai-unread');
+    if(unread) unread.style.display = 'none';
     var inp = document.getElementById('ai-chat-text');
-    if(inp) inp.focus();
+    if(inp) setTimeout(function(){ inp.focus(); }, 100);
   }
+}
+
+function clearAIChat(){
+  if(_aiChatHistory.length > 0 && !confirm('대화를 초기화하시겠습니까?')) return;
+  _aiChatHistory = [];
+  _aiMsgCount = 0;
+  _aiInputHistory = [];
+  saveChatSession();
+  var msgs = document.getElementById('ai-chat-msgs');
+  if(msgs) msgs.innerHTML = '<div class="ai-msg sys">BILLION AI — 대화 초기화됨</div>';
+  initWelcomeMessage();
 }
 
 function addChatMsg(role, text){
   var msgs = document.getElementById('ai-chat-msgs');
   if(!msgs) return;
+  _aiMsgCount++;
   var div = document.createElement('div');
   div.className = 'ai-msg ' + role;
-  div.textContent = text;
+  div.setAttribute('data-idx', _aiMsgCount);
+  if(role === 'ai'){
+    div.innerHTML = formatAIText(text);
+    // 복사 버튼
+    var copyBtn = document.createElement('span');
+    copyBtn.className = 'msg-copy';
+    copyBtn.textContent = 'COPY';
+    copyBtn.setAttribute('data-raw', text);
+    copyBtn.onclick = function(e){
+      e.stopPropagation();
+      navigator.clipboard.writeText(this.getAttribute('data-raw')).then(function(){
+        copyBtn.textContent = 'COPIED';
+        setTimeout(function(){ copyBtn.textContent = 'COPY'; }, 1500);
+      });
+    };
+    div.appendChild(copyBtn);
+    // 피드백 버튼
+    var fbDiv = document.createElement('div');
+    fbDiv.className = 'ai-feedback';
+    fbDiv.innerHTML = '<button class="ai-fb-btn" onclick="aiFeedback(this,\'good\')" title="좋은 답변">👍</button><button class="ai-fb-btn" onclick="aiFeedback(this,\'bad\')" title="개선 필요">👎</button>';
+    div.appendChild(fbDiv);
+    // 핀 버튼
+    var pinBtn = document.createElement('span');
+    pinBtn.className = 'msg-pin';
+    pinBtn.textContent = 'PIN';
+    pinBtn.onclick = function(e){
+      e.stopPropagation();
+      div.classList.toggle('pinned');
+      pinBtn.classList.toggle('active');
+      pinBtn.textContent = div.classList.contains('pinned') ? 'PINNED' : 'PIN';
+    };
+    div.appendChild(pinBtn);
+    // 빠른 재질문 버튼
+    var reaskDiv = document.createElement('div');
+    reaskDiv.className = 'ai-reask';
+    reaskDiv.innerHTML = '<button onclick="quickReask(\'더 자세히 설명해줘\')">더 자세히</button><button onclick="quickReask(\'반대 의견은?\')">반대 의견</button><button onclick="quickReask(\'구체적인 숫자로 알려줘\')">숫자로</button>';
+    div.appendChild(reaskDiv);
+    // 타임스탬프
+    var timeSpan = document.createElement('span');
+    timeSpan.className = 'msg-time';
+    var elapsed = _aiChatStartTime ? ((Date.now() - _aiChatStartTime)/1000).toFixed(1)+'s' : '';
+    timeSpan.textContent = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}) + (elapsed ? ' · '+elapsed : '');
+    div.appendChild(timeSpan);
+  } else if(role === 'user'){
+    div.textContent = text;
+  } else {
+    div.textContent = text;
+  }
   msgs.appendChild(div);
   msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+function showTypingIndicator(){
+  var msgs = document.getElementById('ai-chat-msgs');
+  if(!msgs) return;
+  var div = document.createElement('div');
+  div.className = 'ai-msg ai-typing';
+  div.id = 'ai-typing';
+  div.innerHTML = '<span></span><span></span><span></span>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+function removeTypingIndicator(){
+  var el = document.getElementById('ai-typing');
+  if(el) el.remove();
+}
+
+// ── AI 텍스트 포맷팅 (마크다운 경량 변환 + 가격/수치 하이라이팅) ──
+function formatAIText(text){
+  // 코드블록 보존 (``` ... ```)
+  var codeBlocks = [];
+  text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, function(_, lang, code){
+    var idx = codeBlocks.length;
+    codeBlocks.push('<pre style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:8px 10px;font-size:10px;color:var(--ink);overflow-x:auto;margin:4px 0;font-family:var(--mono)">'+(lang?'<div style="font-size:8px;color:var(--ink3);margin-bottom:4px">'+lang+'</div>':'')+code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</pre>');
+    return '___CODE_BLOCK_'+idx+'___';
+  });
+  var s = text
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    // 헤딩
+    .replace(/^###\s+(.+)/gm,'<div style="color:var(--amber);font-weight:700;margin:6px 0 2px;font-size:12px;letter-spacing:.5px">$1</div>')
+    .replace(/^##\s+(.+)/gm,'<div style="color:var(--amber);font-weight:700;margin:8px 0 3px;font-size:13px">$1</div>')
+    // 볼드 + 이탤릭
+    .replace(/\*\*(.+?)\*\*/g,'<b style="color:var(--ink);font-weight:700">$1</b>')
+    .replace(/\*(.+?)\*/g,'<em style="color:var(--ink2)">$1</em>')
+    // 코드
+    .replace(/`([^`]+)`/g,'<code style="background:rgba(255,255,255,0.06);padding:1px 4px;border-radius:3px;font-size:10px">$1</code>')
+    // 리스트
+    .replace(/^[-•]\s+(.+)/gm,'<span style="display:block;padding-left:12px;text-indent:-8px;margin:1px 0">· $1</span>')
+    .replace(/^\d+\.\s+(.+)/gm,'<span style="display:block;padding-left:12px;margin:1px 0">$&</span>')
+    // 가격 하이라이팅 ($1,234.56)
+    .replace(/\$[\d,]+\.?\d*/g,'<span style="color:var(--amber);font-weight:600">$&</span>')
+    // 퍼센트 하이라이팅
+    .replace(/([+-]?\d+\.?\d*%)/g, function(m){
+      var v = parseFloat(m);
+      if(isNaN(v)) return m;
+      var c = v > 0 ? 'var(--up-text)' : v < 0 ? 'var(--down-text)' : 'var(--ink2)';
+      return '<span style="color:'+c+';font-weight:600">'+m+'</span>';
+    })
+    // 구분선
+    .replace(/^---+$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:6px 0">')
+    // BUY/SELL/HOLD/LONG/SHORT 키워드
+    .replace(/\b(BUY|LONG|매수)\b/g,'<span style="color:var(--up-text);font-weight:700">$1</span>')
+    .replace(/\b(SELL|SHORT|매도)\b/g,'<span style="color:var(--down-text);font-weight:700">$1</span>')
+    .replace(/\b(HOLD|관망|중립)\b/g,'<span style="color:var(--amber);font-weight:600">$1</span>')
+    // 심볼 클릭 가능 (BTC, ETH 등)
+    .replace(/\b(BTC|ETH|SOL|XRP|DOGE|ADA|AVAX|BNB|LINK|SUI|LTC|TON|WIF)\b/g,
+      '<span style="color:var(--ink);font-weight:700;cursor:pointer;border-bottom:1px dotted var(--ink3)" onclick="if(typeof execTerminalCmd===\'function\')execTerminalCmd(\'$1\')" title="$1 차트 보기">$1</span>')
+    // 진입가/손절가/목표가 하이라이팅
+    .replace(/(진입[가:]?\s*)\$?([\d,]+\.?\d*)/g,'$1<span style="color:var(--amber);font-weight:700;background:rgba(232,89,12,0.08);padding:0 3px;border-radius:2px">$$$2</span>')
+    .replace(/(손절[가:]?\s*)\$?([\d,]+\.?\d*)/g,'$1<span style="color:var(--down-text);font-weight:700;background:rgba(239,68,68,0.08);padding:0 3px;border-radius:2px">$$$2</span>')
+    .replace(/((?:목표[가:]?|익절[가:]?|TP)\s*)\$?([\d,]+\.?\d*)/gi,'$1<span style="color:var(--up-text);font-weight:700;background:rgba(34,197,94,0.08);padding:0 3px;border-radius:2px">$$$2</span>');
+  // 마크다운 테이블 파싱
+  s = s.replace(/^(\|.+\|)\n(\|[-:| ]+\|)\n((?:\|.+\|\n?)+)/gm, function(_, header, sep, body){
+    var heads = header.split('|').filter(function(c){return c.trim();});
+    var rows = body.trim().split('\n').map(function(r){return r.split('|').filter(function(c){return c.trim();});});
+    var t = '<table style="width:100%;border-collapse:collapse;font-size:10px;margin:4px 0;border:1px solid rgba(255,255,255,0.06);border-radius:4px">';
+    t += '<tr>' + heads.map(function(h){return '<th style="padding:4px 6px;text-align:left;color:var(--ink3);border-bottom:1px solid var(--border);font-weight:600;background:rgba(255,255,255,0.02)">'+h.trim()+'</th>';}).join('') + '</tr>';
+    rows.forEach(function(row){
+      t += '<tr>' + row.map(function(c){
+        var val = c.trim();
+        var style = 'padding:3px 6px;color:var(--ink);border-bottom:1px solid rgba(255,255,255,0.03);';
+        if(/^[+-]/.test(val)&&val.includes('%')) style += parseFloat(val)>=0?'color:var(--up-text)':'color:var(--down-text)';
+        return '<td style="'+style+'">'+val+'</td>';
+      }).join('') + '</tr>';
+    });
+    t += '</table>';
+    return t;
+  });
+  // 코드블록 복원
+  codeBlocks.forEach(function(block, i){
+    s = s.replace('___CODE_BLOCK_'+i+'___', block);
+  });
+  return s;
+}
+
+// ── 빌리언 액션 처리 (show_visual, alert, update_panel 등) ──
+function processAIActions(actions){
+  if(!actions || !Array.isArray(actions) || actions.length === 0) return;
+  actions.forEach(function(act){
+    switch(act.type){
+      case 'alert':
+        if(typeof showToast === 'function'){
+          var lvl = act.level === 'error' ? 'err' : act.level === 'warning' ? 'warn' : 'ok';
+          showToast(act.message || 'AI Alert', lvl);
+        }
+        if(typeof pushLog === 'function') pushLog('BILLION: ' + (act.message||''));
+        break;
+
+      case 'show_visual':
+        renderAIVisual(act);
+        break;
+
+      case 'update_panel':
+        // 패널 내용 업데이트
+        if(act.panel && act.content){
+          var panel = document.getElementById(act.panel);
+          if(panel) panel.innerHTML = act.content;
+        }
+        break;
+    }
+  });
+}
+
+// ── AI 비주얼 렌더링 (차트, 테이블, 카드 등) ──
+function renderAIVisual(act){
+  var msgs = document.getElementById('ai-chat-msgs');
+  if(!msgs || !act.data) return;
+  var div = document.createElement('div');
+  div.className = 'ai-msg ai';
+  div.style.cssText = 'max-width:95%;padding:0;overflow:hidden;border-radius:8px;';
+  var title = act.title || 'Visual';
+  var html = '<div style="padding:6px 10px;background:rgba(232,89,12,0.08);font-size:9px;font-weight:700;color:var(--amber);letter-spacing:.5px;border-bottom:1px solid var(--border)">'+title+'</div>';
+
+  if(act.data.type === 'table' && act.data.headers && act.data.rows){
+    html += '<div style="overflow-x:auto;padding:4px"><table style="width:100%;font-size:10px;border-collapse:collapse">';
+    html += '<tr>' + act.data.headers.map(function(h){ return '<th style="padding:4px 6px;text-align:left;color:var(--ink3);border-bottom:1px solid var(--border);font-weight:600">'+h+'</th>'; }).join('') + '</tr>';
+    act.data.rows.forEach(function(row){
+      html += '<tr>' + row.map(function(cell){
+        var val = String(cell);
+        var style = 'padding:3px 6px;color:var(--ink);border-bottom:1px solid rgba(255,255,255,0.03);';
+        if(/^[+-]/.test(val) && val.includes('%')){
+          style += parseFloat(val) >= 0 ? 'color:var(--up-text)' : 'color:var(--down-text)';
+        }
+        return '<td style="'+style+'">'+val+'</td>';
+      }).join('') + '</tr>';
+    });
+    html += '</table></div>';
+  }
+  else if(act.data.type === 'stats' && act.data.items){
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;padding:6px">';
+    act.data.items.forEach(function(item){
+      html += '<div style="padding:4px 6px;background:rgba(255,255,255,0.02);border-radius:4px"><div style="font-size:8px;color:var(--ink3)">'+item.label+'</div><div style="font-size:13px;font-weight:700;color:var(--ink)">'+item.value+'</div></div>';
+    });
+    html += '</div>';
+  }
+  else if(act.data.type === 'list' && act.data.items){
+    html += '<div style="padding:6px 10px;font-size:10px">';
+    act.data.items.forEach(function(item){
+      html += '<div style="padding:2px 0;color:var(--ink);border-bottom:1px solid rgba(255,255,255,0.03)">· '+(item.text||item)+'</div>';
+    });
+    html += '</div>';
+  }
+  else if(act.data.type === 'chart' && act.data.values){
+    // 스파크라인 차트
+    var cvId = 'ai-spark-'+(++_aiMsgCount);
+    html += '<div style="padding:6px 10px"><canvas id="'+cvId+'" style="width:100%;height:60px;display:block"></canvas>';
+    if(act.data.labels) html += '<div style="display:flex;justify-content:space-between;font-size:8px;color:var(--ink3);margin-top:2px"><span>'+act.data.labels[0]+'</span><span>'+act.data.labels[act.data.labels.length-1]+'</span></div>';
+    html += '</div>';
+    div.innerHTML = html;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    // 차트 그리기
+    setTimeout(function(){
+      drawSparkline(cvId, act.data.values, act.data.color);
+    }, 50);
+    return;
+  }
+  else if(act.data.type === 'gauge'){
+    // 게이지 (신뢰도, 점수 등)
+    var val = Math.min(100, Math.max(0, act.data.value || 0));
+    var gaugeColor = val >= 70 ? 'var(--up-text)' : val >= 40 ? 'var(--amber)' : 'var(--down-text)';
+    html += '<div style="padding:10px;text-align:center">';
+    html += '<div style="font-size:28px;font-weight:800;color:'+gaugeColor+';font-family:var(--mono)">'+val+'<span style="font-size:14px;color:var(--ink3)">%</span></div>';
+    html += '<div style="width:100%;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;margin:6px 0"><div style="width:'+val+'%;height:100%;background:'+gaugeColor+';border-radius:3px;transition:width .5s"></div></div>';
+    if(act.data.label) html += '<div style="font-size:9px;color:var(--ink3)">'+act.data.label+'</div>';
+    html += '</div>';
+  }
+  else if(act.data.type === 'compare' && act.data.items){
+    // 비교 바 차트
+    var maxVal = Math.max.apply(null, act.data.items.map(function(i){return Math.abs(i.value||0)})) || 1;
+    html += '<div style="padding:6px 10px">';
+    act.data.items.forEach(function(item){
+      var pct = Math.abs(item.value||0)/maxVal*100;
+      var color = (item.value||0) >= 0 ? 'var(--up-text)' : 'var(--down-text)';
+      html += '<div style="display:flex;align-items:center;gap:6px;margin:3px 0;font-size:10px">';
+      html += '<span style="width:50px;color:var(--ink2);flex-shrink:0;text-align:right">'+(item.label||'')+'</span>';
+      html += '<div style="flex:1;height:12px;background:rgba(255,255,255,0.03);border-radius:2px;overflow:hidden"><div style="width:'+pct+'%;height:100%;background:'+color+';border-radius:2px;transition:width .4s"></div></div>';
+      html += '<span style="width:40px;color:'+color+';font-weight:600;font-family:var(--mono)">'+(item.value||0)+'</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  else {
+    // fallback: JSON 표시
+    html += '<pre style="padding:6px 10px;font-size:9px;color:var(--ink2);overflow-x:auto;margin:0">'+JSON.stringify(act.data,null,2)+'</pre>';
+  }
+
+  div.innerHTML = html;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// ── 스파크라인 차트 그리기 ──
+function drawSparkline(canvasId, values, color){
+  var cv = document.getElementById(canvasId);
+  if(!cv || !values || values.length < 2) return;
+  var rect = cv.getBoundingClientRect();
+  cv.width = rect.width * 2;
+  cv.height = rect.height * 2;
+  var ctx = cv.getContext('2d');
+  ctx.scale(2, 2);
+  var W = rect.width, H = rect.height;
+  var min = Math.min.apply(null, values);
+  var max = Math.max.apply(null, values);
+  var range = max - min || 1;
+  var pad = 4;
+
+  // 그라디언트 배경
+  var grad = ctx.createLinearGradient(0, 0, 0, H);
+  var lineColor = color || (values[values.length-1] >= values[0] ? 'rgba(34,197,94,0.8)' : 'rgba(239,68,68,0.8)');
+  var fillColor = values[values.length-1] >= values[0] ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)';
+  grad.addColorStop(0, fillColor);
+  grad.addColorStop(1, 'transparent');
+
+  // 라인
+  ctx.beginPath();
+  values.forEach(function(v, i){
+    var x = pad + (i / (values.length-1)) * (W - pad*2);
+    var y = pad + (1 - (v - min) / range) * (H - pad*2);
+    if(i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 1.5;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // 영역 채우기
+  var lastX = pad + (W - pad*2);
+  var lastY = pad + (1 - (values[values.length-1] - min) / range) * (H - pad*2);
+  ctx.lineTo(lastX, H);
+  ctx.lineTo(pad, H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // 마지막 점
+  ctx.beginPath();
+  ctx.arc(lastX, lastY, 3, 0, Math.PI*2);
+  ctx.fillStyle = lineColor;
+  ctx.fill();
+}
+
+// ── 액션 버튼 생성 ──
+function buildActionButtons(reply){
+  var actions = [];
+  var sym = (typeof S !== 'undefined') ? S.sym : 'BTC';
+  // 심볼 언급 탐지
+  var mentioned = [];
+  var symMatch = reply.match(/\b(BTC|ETH|SOL|XRP|DOGE|ADA|AVAX|BNB|LINK|SUI|LTC|TON)\b/gi);
+  if(symMatch) mentioned = [...new Set(symMatch.map(function(s){return s.toUpperCase();}))];
+
+  if(/분석.*해|분석.*줘|analyze/i.test(reply)) actions.push({label:'AI 분석 '+sym, cmd:'ANALYZE '+sym, icon:'▸'});
+  if(/매수|buy|롱|long/i.test(reply) && !/매도|매수.*매도/i.test(reply)) actions.push({label:'QUANT '+sym, cmd:'QUANT '+sym, icon:'▴'});
+  if(/매도|sell|숏|short/i.test(reply) && !/매수|매도.*매수/i.test(reply)) actions.push({label:'QUANT '+sym, cmd:'QUANT '+sym, icon:'▾'});
+  if(/브리핑|briefing|요약|오버뷰|전체.*시장/i.test(reply)) actions.push({label:'브리핑', cmd:'BRIEF', icon:'◉'});
+  if(/포지션|position|보유/i.test(reply)) actions.push({label:'포지션', cmd:'POSITIONS', icon:'◎'});
+  if(/히트맵|heatmap/i.test(reply)) actions.push({label:'히트맵', cmd:'HEATMAP', icon:'▦'});
+  if(/펀딩|funding/i.test(reply)) actions.push({label:'펀딩', cmd:'FUNDING', icon:'◈'});
+  if(/청산|liquidation/i.test(reply)) actions.push({label:'청산맵', cmd:'LIQMAP', icon:'▧'});
+  if(/스캔|scan|탐색/i.test(reply)) actions.push({label:'멀티코인 스캔', cmd:'SCAN', icon:'◌'});
+  if(/백테스트|backtest/i.test(reply)) actions.push({label:'백테스트', cmd:'BACKTEST '+sym, icon:'◇'});
+  if(/모닝|morning|브리프/i.test(reply)) actions.push({label:'모닝 브리프', cmd:'MORNING', icon:'☀'});
+
+  // 진입가/손절가 파싱 → 원클릭 주문 버튼
+  var entryM = reply.match(/진입[가:]?\s*\$?([\d,]+\.?\d*)/);
+  var slM = reply.match(/손절[가:]?\s*\$?([\d,]+\.?\d*)/);
+  var tpM = reply.match(/(?:목표[가:]?|익절[가:]?|TP)\s*\$?([\d,]+\.?\d*)/i);
+  var dirM = /매수|BUY|LONG|롱/i.test(reply) ? 'LONG' : /매도|SELL|SHORT|숏/i.test(reply) ? 'SHORT' : null;
+  if(entryM && slM && dirM){
+    var entry = entryM[1].replace(/,/g,'');
+    var sl = slM[1].replace(/,/g,'');
+    var tp = tpM ? tpM[1].replace(/,/g,'') : '';
+    var orderCmd = 'ORDER '+dirM+' '+sym+' '+entry+' '+sl+(tp?' '+tp:'');
+    actions.push({label:dirM+' 주문 준비', cmd:orderCmd, icon:dirM==='LONG'?'▲':'▼'});
+  }
+
+  // 언급된 다른 심볼로 전환
+  mentioned.forEach(function(m){
+    if(m !== sym) actions.push({label:m+' 전환', cmd:m, icon:'→'});
+  });
+  // 중복 제거
+  var seen = {};
+  return actions.filter(function(a){ if(seen[a.cmd]) return false; seen[a.cmd]=true; return true; }).slice(0, 8);
+}
+
+// ── 슬래시 커맨드 처리 ──
+function handleSlashCommand(text){
+  var m;
+  m = text.match(/^\/analyze\s*(.*)$/i);
+  if(m){ execTerminalCmd('ANALYZE '+(m[1]||S.sym)); addChatMsg('sys', (m[1]||S.sym)+' AI 분석 실행'); return true; }
+  m = text.match(/^\/scan$/i);
+  if(m){ execTerminalCmd('SCAN'); addChatMsg('sys', '멀티코인 스캔 실행'); return true; }
+  m = text.match(/^\/positions?$/i);
+  if(m){ execTerminalCmd('POSITIONS'); addChatMsg('sys', '포지션 오버레이 열기'); return true; }
+  m = text.match(/^\/brief$/i);
+  if(m){ execTerminalCmd('BRIEF'); addChatMsg('sys', '시장 브리핑 실행'); return true; }
+  m = text.match(/^\/heatmap$/i);
+  if(m){ execTerminalCmd('HEATMAP'); addChatMsg('sys', '히트맵 열기'); return true; }
+  m = text.match(/^\/quant\s*(.*)$/i);
+  if(m){ execTerminalCmd('QUANT '+(m[1]||S.sym)); addChatMsg('sys', (m[1]||S.sym)+' 퀀트 시그널'); return true; }
+  m = text.match(/^\/switch\s+(\w+)$/i);
+  if(m){ execTerminalCmd(m[1].toUpperCase()); addChatMsg('sys', m[1].toUpperCase()+' 전환'); return true; }
+  m = text.match(/^\/clear$/i);
+  if(m){ clearAIChat(); return true; }
+  m = text.match(/^\/export$/i);
+  if(m){ exportChat(); return true; }
+  m = text.match(/^\/chart\s*(.*)$/i);
+  if(m){
+    var chartSym = (m[1] || (typeof S !== 'undefined' ? S.sym : 'BTC')).toUpperCase();
+    insertChatSparkline(chartSym);
+    return true;
+  }
+  m = text.match(/^\/fund$/i);
+  if(m){
+    renderAIVisual({title:'FUND STATUS', data:{type:'stats', items:[
+      {label:'자본', value:document.getElementById('fund-capital')?.textContent||'--'},
+      {label:'수익률', value:document.getElementById('fund-return')?.textContent||'--'},
+      {label:'승률', value:document.getElementById('fund-winrate')?.textContent||'--'},
+      {label:'거래수', value:document.getElementById('fund-trades')?.textContent||'--'},
+      {label:'MDD', value:document.getElementById('risk-mdd')?.textContent||'--'},
+      {label:'HEALTH', value:document.getElementById('health-score')?.textContent||'--'},
+    ]}});
+    return true;
+  }
+  m = text.match(/^\/price\s*(.*)$/i);
+  if(m){
+    var pSym = (m[1] || (typeof S !== 'undefined' ? S.sym : 'BTC')).toUpperCase();
+    if(typeof S !== 'undefined' && S.quotes && S.quotes[pSym]){
+      var pq = S.quotes[pSym];
+      addChatMsg('sys', pSym+': $'+(typeof fmtPrice==='function'?fmtPrice(pq.last):pq.last)+' ('+(pq.pct>=0?'+':'')+pq.pct.toFixed(2)+'%)');
+    } else {
+      addChatMsg('sys', pSym+' 시세 없음');
+    }
+    return true;
+  }
+  m = text.match(/^\/status$/i);
+  if(m){
+    var statusParts = [];
+    var connEl = document.getElementById('ai-conn-status');
+    statusParts.push('빌리언 AI: '+(connEl?connEl.textContent:'?'));
+    statusParts.push('대화: '+_aiChatHistory.length+'건');
+    if(typeof S !== 'undefined'){
+      statusParts.push('심볼: '+S.sym+' '+S.tf);
+      if(S.quotes && S.quotes[S.sym]) statusParts.push(S.sym+': $'+fmtPrice(S.quotes[S.sym].last));
+      if(S.fng) statusParts.push('F&G: '+S.fng.v+' ('+S.fng.cls+')');
+    }
+    var capEl = document.getElementById('fund-capital');
+    var retEl = document.getElementById('fund-return');
+    if(capEl) statusParts.push('펀드: '+capEl.textContent+' '+((retEl?retEl.textContent:'')));
+    if(typeof PAPER_CACHE !== 'undefined' && PAPER_CACHE.data){
+      var pc = ((PAPER_CACHE.data.positions||[]).length + (PAPER_CACHE.data.swingPositions||[]).length);
+      statusParts.push('포지션: '+pc+'개');
+    }
+    addChatMsg('sys', statusParts.join('\n'));
+    return true;
+  }
+  m = text.match(/^\/dash$/i);
+  if(m){ aiDashboard(); return true; }
+  m = text.match(/^\/top$/i);
+  if(m){
+    if(typeof S !== 'undefined' && S.allTickers){
+      var top5 = S.allTickers.slice().sort(function(a,b){return b.pct-a.pct;}).slice(0,5);
+      renderAIVisual({title:'TOP 5 상승', data:{type:'table', headers:['심볼','가격','변동률'],
+        rows:top5.map(function(t){return [t.sym, '$'+fmtPrice(t.last), (t.pct>=0?'+':'')+t.pct.toFixed(1)+'%'];})}});
+    } else addChatMsg('sys', '데이터 로딩 중');
+    return true;
+  }
+  m = text.match(/^\/bottom$/i);
+  if(m){
+    if(typeof S !== 'undefined' && S.allTickers){
+      var bot5 = S.allTickers.slice().sort(function(a,b){return a.pct-b.pct;}).slice(0,5);
+      renderAIVisual({title:'TOP 5 하락', data:{type:'table', headers:['심볼','가격','변동률'],
+        rows:bot5.map(function(t){return [t.sym, '$'+fmtPrice(t.last), (t.pct>=0?'+':'')+t.pct.toFixed(1)+'%'];})}});
+    } else addChatMsg('sys', '데이터 로딩 중');
+    return true;
+  }
+  m = text.match(/^\/help$/i);
+  if(m){
+    addChatMsg('sys', '슬래시 커맨드:\n/analyze [심볼] — AI 분석\n/scan — 멀티코인 스캔\n/positions — 포지션 확인\n/brief — 시장 브리핑\n/heatmap — 히트맵\n/quant [심볼] — 퀀트 시그널\n/switch [심볼] — 차트 전환\n/chart [심볼] — 스파크라인 차트\n/price [심볼] — 현재가 확인\n/fund — 펀드 상태\n/status — 시스템 상태\n/dash — AI 대시보드\n/top — 상승 TOP 5\n/bottom — 하락 TOP 5\n/clear — 대화 초기화\n/export — 대화 내보내기');
+    return true;
+  }
+  return false;
+}
+
+// ── 채팅 내 스파크라인 삽입 ──
+function insertChatSparkline(sym){
+  if(typeof S === 'undefined' || !S.candles) {
+    addChatMsg('sys', '차트 데이터 없음');
+    return;
+  }
+  var candles = S.candles;
+  if(sym !== S.sym){
+    addChatMsg('sys', sym+' 캔들 데이터는 현재 차트 심볼('+S.sym+')만 가능합니다');
+    return;
+  }
+  var closes = candles.slice(-60).map(function(c){return c.c;});
+  var q = S.quotes && S.quotes[sym] ? S.quotes[sym] : null;
+  renderAIVisual({
+    title: sym + ' · ' + S.tf + ' · 최근 60봉',
+    data: {
+      type: 'chart',
+      values: closes,
+      labels: [candles[Math.max(0,candles.length-60)].t ? new Date(candles[Math.max(0,candles.length-60)].t).toLocaleString('ko-KR',{month:'numeric',day:'numeric'}) : '', q ? '$'+(typeof fmtPrice==='function'?fmtPrice(q.last):q.last) : '']
+    }
+  });
+}
+
+// ── 대화 내보내기 ──
+function exportChat(){
+  if(_aiChatHistory.length === 0){ addChatMsg('sys', '내보낼 대화가 없습니다'); return; }
+  var now = new Date();
+  var content = '# BILLION AI 대화 기록\n';
+  content += '> ' + now.toLocaleString('ko-KR') + '\n\n';
+  // 컨텍스트 스냅샷
+  if(typeof S !== 'undefined'){
+    content += '## 시장 컨텍스트\n';
+    if(S.quotes && S.quotes.BTC) content += '- BTC: $' + Math.round(S.quotes.BTC.last).toLocaleString() + ' (' + (S.quotes.BTC.pct>=0?'+':'') + S.quotes.BTC.pct.toFixed(1) + '%)\n';
+    if(S.fng) content += '- Fear & Greed: ' + S.fng.v + ' (' + S.fng.cls + ')\n';
+    var capEl = document.getElementById('fund-capital');
+    var retEl = document.getElementById('fund-return');
+    if(capEl) content += '- 펀드: ' + capEl.textContent + ' ' + (retEl?retEl.textContent:'') + '\n';
+    content += '\n';
+  }
+  content += '## 대화\n\n';
+  _aiChatHistory.forEach(function(m, i){
+    content += (m.role === 'user' ? '### 👤 질문\n' : '### 🤖 빌리언\n') + m.content + '\n\n';
+    if(i < _aiChatHistory.length - 1) content += '---\n\n';
+  });
+  content += '\n---\n*BILLION AI · ' + _aiChatHistory.length + '건 · ' + now.toISOString().slice(0,10) + '*\n';
+
+  var blob = new Blob([content], {type:'text/markdown'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'billion-chat-'+now.toISOString().slice(0,19).replace(/[T:]/g,'-')+'.md';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  addChatMsg('sys', '대화 내보내기 완료 ('+_aiChatHistory.length+'건)');
+}
+
+function execTerminalCmd(cmd){
+  var cmdInput = document.getElementById('cmd');
+  if(!cmdInput) return;
+  cmdInput.value = cmd;
+  cmdInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true}));
 }
 
 async function sendAIChat(){
@@ -16930,139 +17963,727 @@ async function sendAIChat(){
   if(!text) return;
 
   inp.value = '';
+  _aiInputHistIdx = -1;
+
+  // 슬래시 커맨드 처리
+  if(text.startsWith('/') && handleSlashCommand(text)) return;
+
+  // 입력 히스토리 저장
+  _aiInputHistory.push(text);
+  if(_aiInputHistory.length > 30) _aiInputHistory = _aiInputHistory.slice(-30);
+
   addChatMsg('user', text);
   _aiChatHistory.push({role:'user', content:text});
 
   _aiChatBusy = true;
-  if(sendBtn) sendBtn.disabled = true;
-  addChatMsg('sys', '분석 중...');
+  _aiChatStartTime = Date.now();
+  if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = '...'; }
+  showTypingIndicator();
+  updateChatContextBar();
 
   try {
-    // 시장 컨텍스트 수집 (강화)
-    var ctx = {};
-    if(typeof S !== 'undefined'){
-      ctx.symbol = S.sym;
-      ctx.timeframe = S.tf;
-      ctx.regime = document.getElementById('regime-label') ? document.getElementById('regime-label').textContent : '';
-      // Prices
-      ctx.prices = {};
-      if(S.quotes){
-        for(var sym in S.quotes){
-          if(S.quotes[sym]) ctx.prices[sym] = {price: S.quotes[sym].last, change: S.quotes[sym].pct};
-        }
-      }
-      // FNG
-      if(S.fng) ctx.fearGreed = S.fng.v + ' ' + S.fng.cls;
-      // Fund
-      var capEl = document.getElementById('fund-capital');
-      var retEl = document.getElementById('fund-return');
-      if(capEl) ctx.fundCapital = capEl.textContent;
-      if(retEl) ctx.fundReturn = retEl.textContent;
-      // Positions
-      if(typeof PAPER_CACHE !== 'undefined' && PAPER_CACHE.data){
-        var pd = PAPER_CACHE.data;
-        ctx.positions = (pd.positions||[]).concat(pd.swingPositions||[]).map(function(p){
-          return {symbol:p.symbol, direction:p.direction, entry:p.entryPrice, pnl:p.unrealizedPnl||0};
-        });
-        ctx.recentTrades = (pd.recentTrades||[]).slice(0,3).map(function(t){
-          return {symbol:t.symbol, direction:t.direction, pnl:t.pnl, reason:t.closeReason};
-        });
-        ctx.capital = pd.capital;
-        ctx.winRate = pd.winRate;
-        ctx.totalTrades = pd.totalTrades;
-      }
-    }
+    var ctx = collectTerminalContext();
 
-    // Billion chat API 호출 (investment.mot-era.com)
-    var apiUrl = 'https://investment.mot-era.com/api/chat';
+    var res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        messages: compactHistory(_aiChatHistory),
+        context: JSON.stringify(ctx)
+      }),
+      signal: AbortSignal.timeout(60000)
+    });
 
-    // 먼저 로컬 /api/chat 시도 (Vercel 또는 VPS)
-    var res;
-    try {
-      res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          messages: _aiChatHistory.slice(-10),
-          context: JSON.stringify(ctx)
-        }),
-        signal: AbortSignal.timeout(30000)
-      });
-    } catch(localErr) {
-      // 로컬 실패 시 Billion 직접 호출
-      res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          messages: _aiChatHistory.slice(-10),
-          context: JSON.stringify(ctx)
-        }),
-        signal: AbortSignal.timeout(30000)
-      });
-    }
-
-    if(!res.ok) throw new Error('응답 실패 ' + res.status);
+    removeTypingIndicator();
+    if(!res.ok) throw new Error('응답 실패 (' + res.status + ')');
     var data = await res.json();
     var reply = data.text || data.content || '응답을 받지 못했습니다.';
 
-    // "분석 중..." 메시지 제거
-    var msgs = document.getElementById('ai-chat-msgs');
-    if(msgs && msgs.lastChild && msgs.lastChild.textContent === '분석 중...') msgs.removeChild(msgs.lastChild);
-
     addChatMsg('ai', reply);
     _aiChatHistory.push({role:'assistant', content:reply});
+    saveChatSession();
 
-    // Parse for actionable items and add quick action buttons
-    var actions = [];
-    if(/분석|analyze|ANALYZE/i.test(reply)) actions.push({label:'AI 분석 실행', cmd:'ANALYZE '+S.sym});
-    if(/매수|buy|BUY|롱|LONG/i.test(reply)) actions.push({label:S.sym+' 분석', cmd:'QUANT '+S.sym});
-    if(/매도|sell|SELL|숏|SHORT/i.test(reply)) actions.push({label:S.sym+' 분석', cmd:'QUANT '+S.sym});
-    if(/브리핑|briefing|요약/i.test(reply)) actions.push({label:'시장 브리핑', cmd:'BRIEF'});
-    if(/포지션|position/i.test(reply)) actions.push({label:'포지션 확인', cmd:'POSITIONS'});
-    if(/히트맵|heatmap/i.test(reply)) actions.push({label:'히트맵', cmd:'HEATMAP'});
+    // 알림음
+    playNotifSound();
 
+    // 슬래시 메뉴 닫기
+    var slashMenu = document.getElementById('ai-slash-menu');
+    if(slashMenu) slashMenu.classList.remove('on');
+
+    // 연결 상태
+    var statusEl = document.getElementById('ai-conn-status');
+    if(statusEl){ statusEl.textContent = 'CONNECTED'; statusEl.className = 'status on'; }
+
+    // 빌리언 액션 처리 (show_visual, alert, update_panel 등)
+    if(data.actions) processAIActions(data.actions);
+
+    // 텍스트 기반 액션 버튼
+    var actions = buildActionButtons(reply);
     if(actions.length > 0){
+      var msgs = document.getElementById('ai-chat-msgs');
       var actDiv = document.createElement('div');
-      actDiv.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;padding:4px 12px;';
+      actDiv.className = 'ai-actions';
       actions.forEach(function(a){
         var btn = document.createElement('button');
-        btn.textContent = a.label;
-        btn.style.cssText = 'padding:4px 8px;font-size:9px;background:rgba(232,89,12,0.1);border:1px solid var(--amber);color:var(--amber);border-radius:4px;cursor:pointer;';
-        btn.onclick = function(){
-          var cmdInput = document.getElementById('cmd');
-          if(cmdInput){ cmdInput.value = a.cmd; cmdInput.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter'})); }
-        };
+        btn.className = 'ai-action-btn';
+        btn.textContent = (a.icon||'') + ' ' + a.label;
+        btn.onclick = function(){ execTerminalCmd(a.cmd); };
         actDiv.appendChild(btn);
       });
-      var actMsgs = document.getElementById('ai-chat-msgs');
-      if(actMsgs) actMsgs.appendChild(actDiv);
-      actMsgs.scrollTop = actMsgs.scrollHeight;
+      if(msgs){ msgs.appendChild(actDiv); msgs.scrollTop = msgs.scrollHeight; }
     }
 
-    // Auto-trigger analysis if AI strongly recommends
-    if(/강력 매수|강력 추천|즉시 매수|즉시 진입/i.test(reply)){
-      if(typeof showToast === 'function') showToast('AI 강력 시그널 감지 — ' + S.sym + ' 분석 실행', 'warn');
+    // 채팅 닫혀있으면 unread 배지 + 데스크탑 알림
+    var chatEl = document.getElementById('ai-chat');
+    if(chatEl && !chatEl.classList.contains('on')){
+      var unread = document.getElementById('ai-unread');
+      if(unread){ unread.style.display = 'flex'; unread.textContent = '!'; }
+      sendDesktopNotif('BILLION AI', reply.slice(0, 80) + (reply.length > 80 ? '...' : ''));
+    }
+
+    // 강력 시그널 시 토스트 + 활동 로그
+    if(/강력 매수|강력 추천|즉시 진입|확실한 기회|강력 시그널/i.test(reply)){
+      if(typeof showToast === 'function') showToast('BILLION: 강력 시그널 감지 — ' + S.sym, 'warn');
+      if(typeof addActivity === 'function') addActivity('🔥', 'Billion AI 강력 시그널: '+S.sym);
+    }
+
+    // 후속 질문 추천
+    var followups = generateFollowups(text, reply);
+    if(followups.length > 0){
+      var msgs2 = document.getElementById('ai-chat-msgs');
+      var fuDiv = document.createElement('div');
+      fuDiv.className = 'ai-followups';
+      followups.forEach(function(fu){
+        var btn = document.createElement('button');
+        btn.className = 'ai-followup';
+        btn.textContent = fu;
+        btn.onclick = function(){ var inp2=document.getElementById('ai-chat-text'); if(inp2){inp2.value=fu; sendAIChat();} };
+        fuDiv.appendChild(btn);
+      });
+      if(msgs2){ msgs2.appendChild(fuDiv); msgs2.scrollTop = msgs2.scrollHeight; }
     }
 
   } catch(e) {
-    var msgs = document.getElementById('ai-chat-msgs');
-    if(msgs && msgs.lastChild && msgs.lastChild.textContent === '분석 중...') msgs.removeChild(msgs.lastChild);
-    addChatMsg('sys', 'AI 연결 실패: ' + e.message);
+    removeTypingIndicator();
+    addChatMsg('sys', '연결 실패: ' + e.message);
+    // 재시도 버튼
+    var msgs3 = document.getElementById('ai-chat-msgs');
+    if(msgs3){
+      var retryDiv = document.createElement('div');
+      retryDiv.className = 'ai-actions';
+      var retryBtn = document.createElement('button');
+      retryBtn.className = 'ai-action-btn';
+      retryBtn.textContent = '재시도';
+      retryBtn.onclick = function(){
+        retryDiv.remove();
+        var inp3 = document.getElementById('ai-chat-text');
+        if(inp3 && _aiChatHistory.length > 0){
+          var lastMsg = _aiChatHistory[_aiChatHistory.length-1];
+          if(lastMsg.role === 'user'){ _aiChatHistory.pop(); inp3.value = lastMsg.content; sendAIChat(); }
+        }
+      };
+      retryDiv.appendChild(retryBtn);
+      msgs3.appendChild(retryDiv);
+      msgs3.scrollTop = msgs3.scrollHeight;
+    }
+    var statusEl = document.getElementById('ai-conn-status');
+    if(statusEl){ statusEl.textContent = 'OFFLINE'; statusEl.className = 'status off'; }
   }
 
   _aiChatBusy = false;
-  if(sendBtn) sendBtn.disabled = false;
+  if(sendBtn){ sendBtn.disabled = false; sendBtn.textContent = '전송'; }
 }
 
-// Enter 키로 전송
+// ── 피드백 버튼 ──
+function aiFeedback(btn, type){
+  var parent = btn.parentElement;
+  var btns = parent.querySelectorAll('.ai-fb-btn');
+  btns.forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  if(typeof pushLog === 'function') pushLog('BILLION: 피드백 기록 — ' + (type==='good'?'👍':'👎'));
+}
+
+// ── 알림음 ──
+function playNotifSound(){
+  try {
+    var ac = new (window.AudioContext || window.webkitAudioContext)();
+    var osc = ac.createOscillator();
+    var gain = ac.createGain();
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    osc.frequency.setValueAtTime(800, ac.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(600, ac.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.08, ac.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.15);
+    osc.start(ac.currentTime);
+    osc.stop(ac.currentTime + 0.15);
+  } catch(_){}
+}
+
+// ── 데스크탑 알림 ──
+function sendDesktopNotif(title, body){
+  if(!('Notification' in window)) return;
+  if(Notification.permission === 'granted'){
+    new Notification(title, {body:body, icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="%23e8590c"/><text x="16" y="22" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="17" fill="white">B</text></svg>', silent:true});
+  } else if(Notification.permission !== 'denied'){
+    Notification.requestPermission();
+  }
+}
+
+// ── 채팅 검색 ──
+function toggleChatSearch(){
+  var bar = document.getElementById('ai-chat-search');
+  if(!bar) return;
+  if(bar.classList.contains('on')){
+    bar.classList.remove('on');
+    clearSearchHighlights();
+  } else {
+    bar.classList.add('on');
+    var inp = document.getElementById('ai-search-input');
+    if(inp){ inp.value = ''; inp.focus(); }
+  }
+}
+
+function searchChatMessages(query){
+  clearSearchHighlights();
+  var countEl = document.getElementById('ai-search-count');
+  if(!query || query.length < 2){ if(countEl) countEl.textContent = ''; return; }
+  var msgs = document.querySelectorAll('#ai-chat-msgs .ai-msg.ai, #ai-chat-msgs .ai-msg.user');
+  var count = 0;
+  var q = query.toLowerCase();
+  msgs.forEach(function(el){
+    var text = el.textContent.toLowerCase();
+    if(text.indexOf(q) !== -1){
+      el.classList.add('highlight');
+      count++;
+      if(count === 1) el.scrollIntoView({behavior:'smooth', block:'center'});
+    }
+  });
+  if(countEl) countEl.textContent = count > 0 ? count+'건' : '없음';
+}
+
+function clearSearchHighlights(){
+  document.querySelectorAll('#ai-chat-msgs .highlight').forEach(function(el){
+    el.classList.remove('highlight');
+  });
+}
+
+// ── 슬래시 커맨드 자동완성 ──
+var SLASH_COMMANDS = [
+  {cmd:'/analyze', args:'[심볼]', desc:'AI 13-에이전트 분석'},
+  {cmd:'/scan', args:'', desc:'멀티코인 기회 스캔'},
+  {cmd:'/positions', args:'', desc:'보유 포지션 확인'},
+  {cmd:'/brief', args:'', desc:'시장 브리핑'},
+  {cmd:'/heatmap', args:'', desc:'시장 히트맵'},
+  {cmd:'/quant', args:'[심볼]', desc:'퀀트 시그널 점수'},
+  {cmd:'/chart', args:'[심볼]', desc:'스파크라인 차트'},
+  {cmd:'/price', args:'[심볼]', desc:'현재가 확인'},
+  {cmd:'/fund', args:'', desc:'펀드 상태 대시보드'},
+  {cmd:'/status', args:'', desc:'시스템 전체 상태'},
+  {cmd:'/dash', args:'', desc:'AI 대시보드 오버레이'},
+  {cmd:'/top', args:'', desc:'상승 TOP 5 테이블'},
+  {cmd:'/bottom', args:'', desc:'하락 TOP 5 테이블'},
+  {cmd:'/switch', args:'심볼', desc:'차트 심볼 전환'},
+  {cmd:'/clear', args:'', desc:'대화 초기화'},
+  {cmd:'/export', args:'', desc:'대화 마크다운 내보내기'},
+  {cmd:'/help', args:'', desc:'커맨드 도움말'},
+];
+var _slashSelIdx = 0;
+
+function updateSlashMenu(text){
+  var menu = document.getElementById('ai-slash-menu');
+  if(!menu) return;
+  if(!text.startsWith('/')){
+    menu.classList.remove('on');
+    return;
+  }
+  var q = text.toLowerCase();
+  var filtered = SLASH_COMMANDS.filter(function(s){
+    return s.cmd.indexOf(q) === 0 || s.desc.indexOf(q.slice(1)) !== -1;
+  });
+  if(filtered.length === 0 || text === '/'){
+    filtered = SLASH_COMMANDS;
+  }
+  _slashSelIdx = 0;
+  var html = filtered.map(function(s, i){
+    return '<div class="slash-item'+(i===0?' sel':'')+'" data-cmd="'+s.cmd+'" onclick="selectSlashCmd(\''+s.cmd+'\')">' +
+      '<span class="slash-cmd">'+s.cmd+' <span style="color:var(--ink3);font-weight:400">'+s.args+'</span></span>' +
+      '<span class="slash-desc">'+s.desc+'</span></div>';
+  }).join('');
+  menu.innerHTML = html;
+  menu.classList.add('on');
+}
+
+function selectSlashCmd(cmd){
+  var inp = document.getElementById('ai-chat-text');
+  var menu = document.getElementById('ai-slash-menu');
+  if(inp) inp.value = cmd + ' ';
+  if(menu) menu.classList.remove('on');
+  if(inp) inp.focus();
+}
+
+function navigateSlashMenu(dir){
+  var menu = document.getElementById('ai-slash-menu');
+  if(!menu || !menu.classList.contains('on')) return false;
+  var items = menu.querySelectorAll('.slash-item');
+  if(items.length === 0) return false;
+  items.forEach(function(el){ el.classList.remove('sel'); });
+  _slashSelIdx = Math.max(0, Math.min(items.length-1, _slashSelIdx + dir));
+  items[_slashSelIdx].classList.add('sel');
+  items[_slashSelIdx].scrollIntoView({block:'nearest'});
+  return true;
+}
+
+function confirmSlashSelection(){
+  var menu = document.getElementById('ai-slash-menu');
+  if(!menu || !menu.classList.contains('on')) return false;
+  var sel = menu.querySelector('.slash-item.sel');
+  if(sel) selectSlashCmd(sel.getAttribute('data-cmd'));
+  return true;
+}
+
+// ── 후속 질문 추천 생성 ──
+function generateFollowups(userMsg, aiReply){
+  var sym = (typeof S !== 'undefined') ? S.sym : 'BTC';
+  var followups = [];
+  if(/분석|상황/i.test(userMsg)){
+    followups.push('진입 타이밍은 언제가 좋아?');
+    followups.push('손절/익절 가격은?');
+  }
+  if(/진입|매수|롱/i.test(userMsg) || /진입|매수|BUY|LONG/i.test(aiReply)){
+    followups.push('리스크 관리 어떻게 해?');
+    followups.push('목표가까지 얼마나 걸릴까?');
+  }
+  if(/포지션|리스크/i.test(userMsg)){
+    followups.push('손절 조정해야 해?');
+    followups.push('추가 진입해도 될까?');
+  }
+  if(/펀드|수익률|성과/i.test(userMsg)){
+    followups.push('승률 개선하려면?');
+    followups.push('가장 큰 손실 원인은?');
+  }
+  if(/전략|이벤트|매크로/i.test(userMsg)){
+    followups.push(sym+' 지금 어때?');
+    followups.push('다른 코인 기회 있어?');
+  }
+  // 기본 후속
+  if(followups.length === 0){
+    followups.push(sym+' 차트 분석해줘');
+    followups.push('다른 좋은 기회 있어?');
+  }
+  return followups.slice(0, 3);
+}
+
+// ── 음성 입력 (Web Speech API) ──
+var _voiceRecognition = null;
+var _voiceActive = false;
+
+function toggleVoiceInput(){
+  var btn = document.getElementById('ai-voice-btn');
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    if(typeof showToast === 'function') showToast('이 브라우저에서 음성 인식을 지원하지 않습니다', 'err');
+    return;
+  }
+
+  if(_voiceActive && _voiceRecognition){
+    _voiceRecognition.stop();
+    _voiceActive = false;
+    if(btn) btn.classList.remove('recording');
+    return;
+  }
+
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  _voiceRecognition = new SpeechRecognition();
+  _voiceRecognition.lang = 'ko-KR';
+  _voiceRecognition.interimResults = true;
+  _voiceRecognition.maxAlternatives = 1;
+  _voiceRecognition.continuous = false;
+
+  var inp = document.getElementById('ai-chat-text');
+  var finalText = '';
+
+  _voiceRecognition.onstart = function(){
+    _voiceActive = true;
+    if(btn) btn.classList.add('recording');
+    if(inp) inp.placeholder = '음성 인식 중...';
+  };
+
+  _voiceRecognition.onresult = function(e){
+    var transcript = '';
+    for(var i = e.resultIndex; i < e.results.length; i++){
+      if(e.results[i].isFinal) finalText += e.results[i][0].transcript;
+      else transcript += e.results[i][0].transcript;
+    }
+    if(inp) inp.value = finalText + transcript;
+  };
+
+  _voiceRecognition.onend = function(){
+    _voiceActive = false;
+    if(btn) btn.classList.remove('recording');
+    if(inp) inp.placeholder = '빌리언에게 질문... (/ 슬래시 커맨드)';
+    // 최종 텍스트가 있으면 자동 전송
+    if(finalText.trim()){
+      if(inp) inp.value = finalText.trim();
+      sendAIChat();
+    }
+    finalText = '';
+  };
+
+  _voiceRecognition.onerror = function(e){
+    _voiceActive = false;
+    if(btn) btn.classList.remove('recording');
+    if(inp) inp.placeholder = '빌리언에게 질문... (/ 슬래시 커맨드)';
+    if(e.error !== 'no-speech' && e.error !== 'aborted'){
+      addChatMsg('sys', '음성 인식 오류: ' + e.error);
+    }
+  };
+
+  _voiceRecognition.start();
+}
+
+// ── 스크롤 감지 (최하단이 아니면 버튼 표시) ──
+function scrollChatBottom(){
+  var msgs = document.getElementById('ai-chat-msgs');
+  if(msgs) msgs.scrollTop = msgs.scrollHeight;
+}
+
+function initScrollDetection(){
+  var msgs = document.getElementById('ai-chat-msgs');
+  var scrollBtn = document.getElementById('ai-scroll-bottom');
+  if(!msgs || !scrollBtn) return;
+  msgs.addEventListener('scroll', function(){
+    var isNearBottom = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight < 60;
+    scrollBtn.style.display = isNearBottom ? 'none' : 'block';
+  });
+}
+
+// ── 시간대별 웰컴 메시지 ──
+function getTimeGreeting(){
+  var h = new Date().getHours();
+  if(h < 6) return '새벽에도 일하시는군요. 무엇을 도와드릴까요?';
+  if(h < 12) return '좋은 아침입니다, 대표님. 오늘의 시장은 어떨까요?';
+  if(h < 18) return '오후 시장 어떻게 흘러가고 있는지 궁금하시면 물어보세요.';
+  return '저녁 시간이네요. 오늘 하루 시장 정리해드릴까요?';
+}
+
+function initWelcomeMessage(){
+  var msgs = document.getElementById('ai-chat-msgs');
+  if(!msgs || _aiChatHistory.length > 0) return;
+  // 인사 메시지
+  var welcomeDiv = document.createElement('div');
+  welcomeDiv.className = 'ai-msg ai';
+  welcomeDiv.innerHTML = formatAIText(getTimeGreeting());
+  var ts = document.createElement('span');
+  ts.className = 'msg-time';
+  ts.textContent = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  welcomeDiv.appendChild(ts);
+  msgs.appendChild(welcomeDiv);
+
+  // 시간대별 추천 액션
+  var h = new Date().getHours();
+  var suggestions = [];
+  if(h >= 7 && h <= 10){
+    suggestions = [{text:'오늘 시장 브리핑 해줘', label:'모닝 브리프'}, {text:'어젯밤 주요 이슈 정리해줘', label:'야간 리뷰'}];
+  } else if(h >= 14 && h <= 16){
+    suggestions = [{text:'오후 시장 중간 점검해줘', label:'오후 점검'}, {text:'미국장 오픈 전 준비사항은?', label:'US 대비'}];
+  } else if(h >= 21 || h < 2){
+    suggestions = [{text:'오늘 하루 성과 정리해줘', label:'일일 리뷰'}, {text:'내일 주목할 이벤트는?', label:'내일 전략'}];
+  }
+  if(suggestions.length > 0){
+    var fuDiv = document.createElement('div');
+    fuDiv.className = 'ai-followups';
+    suggestions.forEach(function(s){
+      var btn = document.createElement('button');
+      btn.className = 'ai-followup';
+      btn.textContent = s.label;
+      btn.onclick = function(){ var inp = document.getElementById('ai-chat-text'); if(inp){inp.value=s.text; sendAIChat();} };
+      fuDiv.appendChild(btn);
+    });
+    msgs.appendChild(fuDiv);
+  }
+}
+
+// ── 키보드 이벤트 ──
 document.addEventListener('DOMContentLoaded', function(){
   var chatInp = document.getElementById('ai-chat-text');
   if(chatInp){
     chatInp.addEventListener('keydown', function(e){
-      if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendAIChat(); }
+      // 슬래시 메뉴가 열려있을 때
+      var slashMenu = document.getElementById('ai-slash-menu');
+      if(slashMenu && slashMenu.classList.contains('on')){
+        if(e.key === 'ArrowDown'){ e.preventDefault(); navigateSlashMenu(1); return; }
+        if(e.key === 'ArrowUp'){ e.preventDefault(); navigateSlashMenu(-1); return; }
+        if(e.key === 'Tab' || (e.key === 'Enter' && chatInp.value.startsWith('/') && chatInp.value.indexOf(' ')===-1)){
+          e.preventDefault(); confirmSlashSelection(); return;
+        }
+        if(e.key === 'Escape'){ slashMenu.classList.remove('on'); return; }
+      }
+      if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); sendAIChat(); return; }
+      if(e.key === 'Escape'){
+        var searchBar = document.getElementById('ai-chat-search');
+        if(searchBar && searchBar.classList.contains('on')){ toggleChatSearch(); return; }
+        toggleAIChat(); return;
+      }
+      // Ctrl+F — 채팅 내 검색
+      if((e.ctrlKey || e.metaKey) && e.key === 'f'){
+        e.preventDefault(); e.stopPropagation();
+        toggleChatSearch();
+        return;
+      }
+      // 화살표 위/아래 — 입력 히스토리 (빈 입력일 때만)
+      if(e.key === 'ArrowUp' && !chatInp.value){
+        e.preventDefault();
+        if(_aiInputHistory.length === 0) return;
+        if(_aiInputHistIdx === -1) _aiInputHistIdx = _aiInputHistory.length;
+        _aiInputHistIdx = Math.max(0, _aiInputHistIdx - 1);
+        chatInp.value = _aiInputHistory[_aiInputHistIdx] || '';
+      }
+      if(e.key === 'ArrowDown' && _aiInputHistIdx >= 0){
+        e.preventDefault();
+        _aiInputHistIdx = Math.min(_aiInputHistory.length, _aiInputHistIdx + 1);
+        chatInp.value = _aiInputHistIdx >= _aiInputHistory.length ? '' : (_aiInputHistory[_aiInputHistIdx] || '');
+        if(_aiInputHistIdx >= _aiInputHistory.length) _aiInputHistIdx = -1;
+      }
+    });
+    // 슬래시 메뉴 트리거 (input 이벤트)
+    chatInp.addEventListener('input', function(){
+      updateSlashMenu(chatInp.value);
     });
   }
+  // 세션 복원 + 초기화
+  restoreChatSession();
+  initWelcomeMessage();
+  initScrollDetection();
 });
+
+// Ctrl+B 글로벌 단축키
+document.addEventListener('keydown', function(e){
+  if(e.ctrlKey && e.key === 'b' && !e.shiftKey && !e.altKey){
+    var active = document.activeElement;
+    if(active && (active.tagName==='INPUT'||active.tagName==='TEXTAREA') && active.id !== 'cmd' && active.id !== 'ai-chat-text') return;
+    e.preventDefault();
+    toggleAIChat();
+  }
+});
+
+// 컨텍스트 바 주기적 업데이트
+setInterval(function(){
+  var chat = document.getElementById('ai-chat');
+  if(chat && chat.classList.contains('on')){ updateChatContextBar(); updateDynamicPresets(); }
+}, 10000);
+
+// ── 시장 급변 감지 → AI 자동 추천 ──
+var _lastAlertPrices = {};
+var _aiAlertCooldown = {};
+setInterval(function(){
+  if(typeof S === 'undefined' || !S.quotes) return;
+  var watchList = ['BTC','ETH','SOL'];
+  watchList.forEach(function(sym){
+    var q = S.quotes[sym];
+    if(!q || !q.last) return;
+    var last = _lastAlertPrices[sym];
+    _lastAlertPrices[sym] = q.last;
+    if(!last) return;
+    var changePct = ((q.last - last) / last) * 100;
+    var threshold = sym === 'BTC' ? 2.0 : 3.0; // BTC 2%, 알트 3%
+    if(Math.abs(changePct) >= threshold && !_aiAlertCooldown[sym]){
+      _aiAlertCooldown[sym] = true;
+      setTimeout(function(){ _aiAlertCooldown[sym] = false; }, 300000); // 5분 쿨다운
+      var dir = changePct > 0 ? '급등' : '급락';
+      var msg = sym + ' ' + dir + ' ' + Math.abs(changePct).toFixed(1) + '% 감지';
+      if(typeof showToast === 'function') showToast('BILLION: ' + msg, 'warn');
+      if(typeof addActivity === 'function') addActivity('⚡', msg);
+      if(typeof pushLog === 'function') pushLog('BILLION: ' + msg + ' — 채팅에서 AI 분석 가능');
+      // 채팅에 시스템 메시지 추가
+      var chat = document.getElementById('ai-chat');
+      addChatMsg('sys', msg + ' — "'+sym+' 지금 어때?" 로 분석 요청');
+      // unread 배지
+      if(chat && !chat.classList.contains('on')){
+        var unread = document.getElementById('ai-unread');
+        if(unread){ unread.style.display = 'flex'; unread.textContent = '!'; }
+      }
+    }
+  });
+}, 30000); // 30초마다 체크
+
+// ── 빌리언 연결 헬스체크 (1분마다, /api/health 사용) ──
+setInterval(function(){
+  fetch('/api/health', { signal: AbortSignal.timeout(5000) })
+  .then(function(res){ return res.json(); })
+  .then(function(data){
+    var statusEl = document.getElementById('ai-conn-status');
+    var bs = document.getElementById('billion-status');
+    if(statusEl){ statusEl.textContent = 'LIVE'; statusEl.className = 'status on'; }
+    if(bs){ bs.innerHTML = '<span style="color:var(--up-text)">B</span> READY'; bs.style.borderColor = 'rgba(34,197,94,0.3)'; }
+  }).catch(function(){
+    var statusEl = document.getElementById('ai-conn-status');
+    var bs = document.getElementById('billion-status');
+    if(statusEl){ statusEl.textContent = 'OFFLINE'; statusEl.className = 'status off'; }
+    if(bs){ bs.innerHTML = '<span style="color:var(--ink3)">B</span> OFF'; bs.style.borderColor = 'rgba(255,255,255,0.06)'; }
+  });
+}, 60000);
+
+// ── AI 인사이트 티커 업데이트 (2분마다) ──
+function updateAITicker(){
+  var ticker = document.getElementById('ai-ticker');
+  var textEl = document.getElementById('ai-ticker-text');
+  if(!ticker || !textEl || typeof S === 'undefined') return;
+
+  var parts = [];
+  // 시장 상태
+  if(S.fng){
+    var fLabel = S.fng.v <= 25 ? 'EXTREME FEAR' : S.fng.v <= 40 ? 'FEAR' : S.fng.v <= 60 ? 'NEUTRAL' : S.fng.v <= 75 ? 'GREED' : 'EXTREME GREED';
+    parts.push('Fear & Greed: '+S.fng.v+' ('+fLabel+')');
+  }
+  // 주요 시세
+  if(S.quotes){
+    ['BTC','ETH','SOL'].forEach(function(sym){
+      var q = S.quotes[sym];
+      if(q) parts.push(sym+' $'+(typeof fmtPrice==='function'?fmtPrice(q.last):q.last)+' '+(q.pct>=0?'+':'')+q.pct.toFixed(1)+'%');
+    });
+  }
+  // 펀드
+  var retEl = document.getElementById('fund-return');
+  if(retEl) parts.push('FUND '+retEl.textContent);
+  // 포지션
+  if(typeof PAPER_CACHE !== 'undefined' && PAPER_CACHE.data){
+    var pCount = ((PAPER_CACHE.data.positions||[]).length + (PAPER_CACHE.data.swingPositions||[]).length);
+    if(pCount > 0) parts.push('POSITIONS: '+pCount+'개 보유중');
+  }
+  // AI 시그널
+  if(typeof aiSignal !== 'undefined' && aiSignal){
+    parts.push('AI SIGNAL: '+aiSignal.decision+' '+aiSignal.symbol+' (confidence: '+(aiSignal.confidence||'?')+')');
+  }
+  // 레짐
+  var regEl = document.getElementById('regime-label');
+  if(regEl && regEl.textContent) parts.push('REGIME: '+regEl.textContent);
+
+  if(parts.length > 0){
+    textEl.textContent = parts.join('    ·    ');
+    ticker.style.display = '';
+  }
+}
+setInterval(updateAITicker, 120000);
+setTimeout(updateAITicker, 5000);
+
+// ── AI 퀵 인사이트 — 포지션 변동 자동 감지 ──
+var _lastPosSnapshot = null;
+setInterval(function(){
+  if(typeof PAPER_CACHE === 'undefined' || !PAPER_CACHE.data) return;
+  var pd = PAPER_CACHE.data;
+  var allPos = (pd.positions||[]).concat(pd.swingPositions||[]);
+  var snapshot = allPos.map(function(p){ return p.symbol+':'+p.direction+':'+(p.unrealizedPnl||0).toFixed(2); }).join('|');
+  if(_lastPosSnapshot === null){ _lastPosSnapshot = snapshot; return; }
+  if(snapshot === _lastPosSnapshot) return;
+  _lastPosSnapshot = snapshot;
+  // 포지션 변동 감지 — 새 포지션 or 청산 발생
+  var prevCount = (_lastPosSnapshot.match(/:/g)||[]).length / 3;
+  var currCount = allPos.length;
+  if(currCount > prevCount){
+    // 새 포지션 진입
+    var newest = allPos[allPos.length-1];
+    if(newest && typeof addActivity === 'function'){
+      addActivity('📈', '새 포지션: '+newest.direction+' '+newest.symbol+' @ $'+newest.entryPrice);
+    }
+  }
+  // 큰 손실 포지션 경고
+  allPos.forEach(function(p){
+    if(p.unrealizedPnl && p.unrealizedPnl < -30){
+      var chat = document.getElementById('ai-chat');
+      if(chat && !_aiAlertCooldown['pnl_'+p.symbol]){
+        _aiAlertCooldown['pnl_'+p.symbol] = true;
+        setTimeout(function(){ _aiAlertCooldown['pnl_'+p.symbol] = false; }, 600000);
+        addChatMsg('sys', '⚠ '+p.symbol+' 포지션 손실 $'+Math.abs(p.unrealizedPnl).toFixed(1)+' — "'+p.symbol+' 어떻게 해?" 로 AI 상담');
+        var unread = document.getElementById('ai-unread');
+        if(chat && !chat.classList.contains('on') && unread){ unread.style.display = 'flex'; unread.textContent = '!'; }
+      }
+    }
+  });
+}, 15000);
+
+// ── 자동 모닝 브리프 제안 (하루 1회) ──
+(function(){
+  var h = new Date().getHours();
+  if(h >= 7 && h <= 9){
+    var lastBrief = sessionStorage.getItem('lastMorningBrief');
+    var today = new Date().toISOString().slice(0,10);
+    if(lastBrief !== today){
+      setTimeout(function(){
+        if(typeof showToast === 'function'){
+          showToast('BILLION: 모닝 브리프 준비됐습니다. B 입력 또는 Ctrl+B', 'info');
+        }
+        addChatMsg('sys', '좋은 아침입니다. "오늘 시장 브리핑 해줘"로 모닝 브리프를 받아보세요.');
+        sessionStorage.setItem('lastMorningBrief', today);
+      }, 10000);
+    }
+  }
+})();
+
+// ── 알림 권한 요청 (첫 방문 시) ──
+(function(){
+  if('Notification' in window && Notification.permission === 'default'){
+    setTimeout(function(){ Notification.requestPermission(); }, 30000);
+  }
+})();
+
+// ── AI 대시보드 오버레이 ──
+function aiDashboard(){
+  var html = '';
+  // 연결 상태
+  var connEl = document.getElementById('ai-conn-status');
+  var connStatus = connEl ? connEl.textContent : 'UNKNOWN';
+  var connColor = connStatus === 'LIVE' ? 'var(--up-text)' : 'var(--down-text)';
+  html += '<div style="padding:10px 14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+  html += '<div style="padding:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;text-align:center"><div style="font-size:8px;color:var(--ink3);letter-spacing:.5px">STATUS</div><div style="font-size:16px;font-weight:800;color:'+connColor+'">'+connStatus+'</div></div>';
+  html += '<div style="padding:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;text-align:center"><div style="font-size:8px;color:var(--ink3);letter-spacing:.5px">MESSAGES</div><div style="font-size:16px;font-weight:800;color:var(--ink)">'+_aiChatHistory.length+'</div></div>';
+  html += '<div style="padding:8px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;text-align:center"><div style="font-size:8px;color:var(--ink3);letter-spacing:.5px">SESSION</div><div style="font-size:16px;font-weight:800;color:var(--ink)">'+_aiInputHistory.length+'</div></div>';
+  html += '</div>';
+
+  // 최근 대화 요약
+  html += '<div style="padding:4px 14px;font-size:9px;color:var(--ink3);letter-spacing:1px;border-top:1px solid var(--border)">최근 질문</div>';
+  var recent = _aiInputHistory.slice(-5).reverse();
+  if(recent.length === 0) html += '<div style="padding:6px 14px;color:var(--ink3);font-size:10px">아직 질문이 없습니다</div>';
+  else recent.forEach(function(q){
+    html += '<div class="rowline" style="cursor:pointer" onclick="toggleAIChat();setTimeout(function(){var i=document.getElementById(\'ai-chat-text\');if(i){i.value=\''+q.replace(/'/g,"\\'")+'\';sendAIChat();}},200)"><span style="color:var(--ink2);font-size:10px">'+q.slice(0,50)+(q.length>50?'...':'')+'</span></div>';
+  });
+
+  // 슬래시 커맨드 목록
+  html += '<div style="padding:4px 14px;font-size:9px;color:var(--ink3);letter-spacing:1px;border-top:1px solid var(--border);margin-top:4px">슬래시 커맨드</div>';
+  html += '<div style="padding:6px 14px;display:flex;flex-wrap:wrap;gap:4px">';
+  SLASH_COMMANDS.forEach(function(s){
+    html += '<span style="padding:3px 8px;border:1px solid var(--border);color:var(--amber);font-size:9px;border-radius:4px;cursor:pointer;font-family:var(--mono)" onclick="toggleAIChat();setTimeout(function(){var i=document.getElementById(\'ai-chat-text\');if(i){i.value=\''+s.cmd+' \';i.focus();}},200)">'+s.cmd+'</span>';
+  });
+  html += '</div>';
+
+  // 단축키
+  html += '<div style="padding:4px 14px;font-size:9px;color:var(--ink3);letter-spacing:1px;border-top:1px solid var(--border);margin-top:4px">단축키</div>';
+  html += '<div style="padding:6px 14px;font-size:10px;color:var(--ink2);line-height:1.8">';
+  html += '<kbd style="background:#1a1a1a;border:1px solid var(--border);padding:1px 6px;color:var(--amber);font-family:var(--mono);font-size:10px;border-radius:3px">Ctrl+B</kbd> 채팅 토글 · ';
+  html += '<kbd style="background:#1a1a1a;border:1px solid var(--border);padding:1px 6px;color:var(--amber);font-family:var(--mono);font-size:10px;border-radius:3px">Ctrl+F</kbd> 검색 · ';
+  html += '<kbd style="background:#1a1a1a;border:1px solid var(--border);padding:1px 6px;color:var(--amber);font-family:var(--mono);font-size:10px;border-radius:3px">↑↓</kbd> 히스토리 · ';
+  html += '<kbd style="background:#1a1a1a;border:1px solid var(--border);padding:1px 6px;color:var(--amber);font-family:var(--mono);font-size:10px;border-radius:3px">/</kbd> 슬래시 커맨드 · ';
+  html += '<kbd style="background:#1a1a1a;border:1px solid var(--border);padding:1px 6px;color:var(--amber);font-family:var(--mono);font-size:10px;border-radius:3px">Esc</kbd> 닫기';
+  html += '</div>';
+
+  html += '<div style="padding:8px 14px;border-top:1px solid var(--border);text-align:center"><button style="padding:6px 16px;background:linear-gradient(135deg,var(--amber),#c2410c);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:11px" onclick="toggleAIChat()">채팅 열기</button></div>';
+
+  showOverlay('BILLION AI · Dashboard', html);
+}
+
+// ── 커맨드바 자연어 감지 (한글 입력 → AI 자동 연결) ──
+function isNaturalLanguage(text){
+  // 한글 2글자 이상이고 명령어가 아니면 자연어로 판단
+  var korean = text.match(/[가-힣]/g);
+  if(!korean || korean.length < 2) return false;
+  var upper = text.toUpperCase();
+  // 기존 명령어 패턴 체크
+  var cmdPatterns = /^(BTC|ETH|SOL|XRP|DOGE|ADA|AVAX|BNB|LINK|SUI|LTC|TON|HELP|BRIEF|LOG|SETTINGS|PROFILE|ABOUT|VER|SAVE|QUAD|OPEN|TV|HMAP|FMAP|AI |CHAT|ORDER|ALERT|MEMO|SNIPER|EXPORT|RISK|PNL|REPORT|SUMMARY|ANALYZE|SCAN|POSITIONS|BACKTEST|SCREENER|STATUS|DASH|FUNDING|FLOW|WHALE|ONCHAIN|TIMELINE|KRW|CONVERT|RATIO|GRID|LIQMAP|CORR|COMPARE|SPREAD|DEPTH|MOMENTUM|SECTOR|HEATMAP|TOP|BOTTOM|WATCHLIST|WATCH|MTF|LEVELS|PATTERN|DIVERGE|MOST|KEYS|TG |PIN |B |BILLION|MONITOR|FUNDOS|HEDGE|ALLOCATION|REBALANCE|SWEEP|CRASH|TUNE|FSCAN|SCOMPARE|STRATEGIES|PLAYBOOK|REGIME|HEALTH)/;
+  if(cmdPatterns.test(upper)) return false;
+  return true;
+}
+
+// ── BILLION DASH 명령어 등록 ──
+// (커맨드 입력에서 처리)
 
 // 채팅 드래그 이동
 (function(){
@@ -17070,7 +18691,7 @@ document.addEventListener('DOMContentLoaded', function(){
   var head = document.getElementById('ai-chat-head');
   if(!chat || !head) return;
   head.addEventListener('mousedown', function(e){
-    if(e.target.classList.contains('close')) return;
+    if(e.target.classList.contains('close') || e.target.classList.contains('clear-btn')) return;
     e.preventDefault();
     var rect = chat.getBoundingClientRect();
     var ox = e.clientX - rect.left, oy = e.clientY - rect.top;

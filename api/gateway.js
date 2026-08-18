@@ -9,6 +9,7 @@
 const GATEWAY_SECRET = process.env.GATEWAY_SECRET || 'motera-billion-bridge-2026';
 const TRADING_TEAM_URL = process.env.TRADING_TEAM_URL || 'http://localhost:8000';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const BILLION_URL = process.env.BILLION_URL || 'http://localhost:3847';
 
 // 간단한 인메모리 상태
 let terminalState = {
@@ -182,31 +183,23 @@ export default async function handler(req, res) {
         }
       }
 
-      // ── chat: Terminal AI 채팅 ──
+      // ── chat: Billion AI 프록시 ──
       case 'chat': {
         const messages = data?.messages || [];
-        if (!ANTHROPIC_API_KEY) {
-          return res.status(500).json({ error: 'API key not configured' });
-        }
+        const context = data?.context || '';
         try {
-          const response = await fetch('https://api.anthropic.com/v1/messages', {
+          const response = await fetch(`${BILLION_URL}/api/chat`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': ANTHROPIC_API_KEY,
-              'anthropic-version': '2023-06-01',
-            },
-            body: JSON.stringify({
-              model: 'claude-haiku-4-5-20251001',
-              max_tokens: 1000,
-              system: '당신은 MOTERA Terminal의 AI 어시스턴트입니다. 크립토 시장 분석, 매매 전략, 기술적 분석에 대해 한국어로 간결하게 답변하세요. 대표님에게 보고하는 톤으로 대화합니다.',
-              messages,
-            }),
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages, context }),
+            signal: AbortSignal.timeout(60000),
           });
           const result = await response.json();
           return res.json({
-            reply: result.content?.[0]?.text || '응답 생성 실패',
-            model: 'claude-haiku-4-5',
+            reply: result.text || '응답 생성 실패',
+            text: result.text || '응답 생성 실패',
+            actions: result.actions || [],
+            model: 'billion-ai',
           });
         } catch (e) {
           return res.status(500).json({ error: e.message });

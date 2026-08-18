@@ -1,48 +1,47 @@
+const BILLION_URL = process.env.BILLION_URL || 'http://localhost:3847';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const API_KEY = process.env.ANTHROPIC_API_KEY;
-  if (!API_KEY) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+  const { message, messages, context } = req.body || {};
+  if (!message && (!messages || messages.length === 0)) return res.status(400).json({ error: 'No message' });
 
-  const { message, context } = req.body || {};
-  if (!message) return res.status(400).json({ error: 'No message' });
-
-  const systemPrompt = `당신은 MNHYUK CRYPTO TERMINAL의 AI 어시스턴트입니다.
-트레이더를 위한 크립토 분석 전문가입니다.
-
-=== 규칙 ===
-- 반드시 "대표님"이라고 호칭하세요. 이름 부르기 금지.
-- 따뜻하고 편안한 해요체 사용. "~습니다" 금지, "~이에요", "~해요" 사용.
-- 최대 3~4줄. 핵심만 간결하게.
-- 마크다운 금지. 이모지 금지.
-- 숫자/데이터는 정확하게.
-
-=== 역할 ===
-- 시장 상황 분석, 차트 해석, 매매 전략 조언
-- 코인 비교, 진입/손절/익절 의견
-- 온체인, 펀딩, 청산, 고래 데이터 해석
-- 일반 대화도 자연스럽게 대응
-
-현재 터미널 컨텍스트:
-${context || '(없음)'}`;
+  // 서버 사이드 컨텍스트 보강 — /api/context에서 풍부한 시장 데이터 수집
+  let enrichedContext = context || '';
+  try {
+    const ctxRes = await fetch(`${new URL(req.url, `http://${req.headers.host}`).origin}/api/context`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (ctxRes.ok) {
+      const serverCtx = await ctxRes.json();
+      // 클라이언트 컨텍스트와 서버 컨텍스트 합치기
+      let merged = context || '';
+      if (serverCtx.news?.length) {
+        merged += '\n\n[최신 뉴스]\n' + serverCtx.news.slice(0, 5).map(n => `- ${n.title} (${n.source}, ${n.age})`).join('\n');
+      }
+      if (serverCtx.calendar?.length) {
+        merged += '\n\n[매크로 일정]\n' + serverCtx.calendar.slice(0, 5).map(e => `- ${e.event} (${e.date}, 중요도:${e.importance})`).join('\n');
+      }
+      if (serverCtx.fund) {
+        const f = serverCtx.fund;
+        merged += `\n\n[펀드 상태] 자본:$${f.capital} 수익률:${f.returnPct}% 승률:${f.winRate}% 포지션:${(f.positions||[]).length}개 MDD:${f.maxDrawdown}% 서킷브레이커:${f.circuitBreakerActive?'ON':'OFF'} 레짐:${f.marketRegime}`;
+      }
+      enrichedContext = merged;
+    }
+  } catch (_) { /* 서버 컨텍스트 실패 시 클라이언트 컨텍스트만 사용 */ }
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(`${BILLION_URL}/api/chat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 600,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: message }],
+        messages: messages || [{ role: 'user', content: message }],
+        context: enrichedContext,
       }),
+      signal: AbortSignal.timeout(60000),
     });
 
     if (!response.ok) {
@@ -51,8 +50,11 @@ ${context || '(없음)'}`;
     }
 
     const data = await response.json();
-    const text = data.content?.[0]?.text || '';
-    res.json({ text });
+    // 빌리언의 text + actions 모두 전달
+    res.json({
+      text: data.text || '',
+      actions: data.actions || [],
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
