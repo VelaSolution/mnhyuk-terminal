@@ -120,7 +120,7 @@ export default async function handler(req, res) {
     });
 
     // 뉴스 (CryptoCompare)
-    const rawNews = newsData?.Data || [];
+    const rawNews = Array.isArray(newsData?.Data) ? newsData.Data : [];
     const newsItems = rawNews.slice(0, 6).map(n => {
       const title = n.title || '';
       const bullish = /surge|soar|rally|bull|approve|adopt|etf|inflow|record/i.test(title);
