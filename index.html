@@ -9587,6 +9587,12 @@ function billionSignalOverlay(data){
     switchTo(sym, S.tf);
   }
 
+  // AI 질문 버튼
+  html += `<div style="padding:8px 10px;border-top:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;justify-content:center">
+    <button onclick="toggleAIChat();setTimeout(function(){var i=document.getElementById('ai-chat-text');if(i){i.value='${sym} ${decision} 시그널 나왔는데 진입해도 될까?';sendAIChat();}},200)" style="padding:5px 12px;background:linear-gradient(135deg,var(--amber),#c2410c);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;font-size:10px">빌리언에게 확인</button>
+    <button onclick="execTerminalCmd('QUANT ${sym}')" style="padding:5px 12px;background:transparent;border:1px solid var(--border);color:var(--ink2);border-radius:6px;cursor:pointer;font-size:10px">퀀트 시그널</button>
+  </div>`;
+
   showOverlay(`BILLION AI · ${decision} ${sym}`, html);
 }
 
