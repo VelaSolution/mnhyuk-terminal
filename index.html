@@ -9265,7 +9265,7 @@ async function aiChat(message){
   if(bs) bs.innerHTML='<span style="color:var(--amber)">AI THINKING...</span>';
   const t0 = Date.now();
   try{
-    const ctx = JSON.stringify(collectTerminalContext());
+    const ctx = contextToText(collectTerminalContext());
     const res = await fetch("/api/chat",{
       method:"POST", headers:{"Content-Type":"application/json"},
       body:JSON.stringify({messages:[{role:'user',content:message}], context:ctx}),
@@ -17377,6 +17377,43 @@ function collectTerminalContext(){
   return ctx;
 }
 
+// ── 컨텍스트를 읽기 좋은 텍스트로 변환 ──
+function contextToText(ctx){
+  var lines = [];
+  lines.push('[터미널 상태] 심볼:'+ctx.currentSymbol+' TF:'+ctx.timeframe);
+  if(ctx.prices){
+    var priceLines = [];
+    for(var sym in ctx.prices){
+      var p = ctx.prices[sym];
+      priceLines.push(sym+' $'+p.price+' ('+p.change24h+')');
+    }
+    if(priceLines.length) lines.push('[시세] '+priceLines.join(' / '));
+  }
+  if(ctx.fearGreed) lines.push('[공포탐욕] '+ctx.fearGreed);
+  if(ctx.regime) lines.push('[레짐] '+ctx.regime);
+  if(ctx.fund){
+    var f = ctx.fund;
+    lines.push('[펀드] 자본:'+f.capital+' 수익률:'+f.return+' 승률:'+f.winRate+' 거래:'+f.trades+'건 헬스:'+f.health+' MDD:'+f.mdd);
+  }
+  if(ctx.positions && ctx.positions.length > 0){
+    lines.push('[보유 포지션]');
+    ctx.positions.forEach(function(p){
+      lines.push('  '+p.direction+' '+p.symbol+' 진입:$'+p.entry+' 현재:$'+p.current+' PnL:$'+(p.pnl||0).toFixed(2)+' SL:$'+(p.sl||'?')+' TP:$'+(p.tp||'?'));
+    });
+  }
+  if(ctx.recentTrades && ctx.recentTrades.length > 0){
+    lines.push('[최근 거래]');
+    ctx.recentTrades.forEach(function(t){
+      lines.push('  '+t.direction+' '+t.symbol+' PnL:$'+(t.pnl||0).toFixed(2)+' 사유:'+t.reason);
+    });
+  }
+  if(ctx.lastSignal) lines.push('[AI 시그널] '+ctx.lastSignal.decision+' '+ctx.lastSignal.symbol+' 신뢰도:'+ctx.lastSignal.confidence);
+  if(ctx.fundingRate) lines.push('[펀딩레이트] '+ctx.fundingRate);
+  if(ctx.consecutiveLosses) lines.push('[연패] '+ctx.consecutiveLosses+'연패');
+  if(ctx.circuitBreaker) lines.push('[서킷브레이커] 발동 중');
+  return lines.join('\n');
+}
+
 // ── 컨텍스트 바 업데이트 ──
 function updateChatContextBar(){
   var bar = document.getElementById('ai-chat-ctx');
@@ -18143,7 +18180,7 @@ async function sendAIChat(){
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         messages: compactHistory(_aiChatHistory),
-        context: JSON.stringify(ctx)
+        context: contextToText(ctx)
       }),
       signal: AbortSignal.timeout(60000)
     });
