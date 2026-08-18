@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       fetch('https://api.exchangerate-api.com/v4/latest/USD', {signal: AbortSignal.timeout(5000)}).then(r=>r.json()),
       fetch(`${TT}/api/rss?feed=coindesk`, {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
       fetch('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT', {signal: AbortSignal.timeout(5000)}).then(r=>r.json()),
-      fetch('https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT', {signal: AbortSignal.timeout(5000)}).then(r=>r.json()),
+      fetch('https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT', {signal: AbortSignal.timeout(5000)}).then(r=>r.json()).catch(()=>({})),
     ]);
 
     const paper = paperRes.status === 'fulfilled' ? paperRes.value : {};
