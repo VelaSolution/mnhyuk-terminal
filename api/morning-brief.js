@@ -135,19 +135,27 @@ export default async function handler(req, res) {
       sources: 'Binance · CoinGecko · Alternative.me · FCS API · BILLION AI Engine',
     };
 
-    // 템플릿 HTML 읽기
-    const fs = require('fs');
-    const path = require('path');
+    // 템플릿을 자체 호스트에서 가져오기
     let template = '';
     try {
-      template = fs.readFileSync(path.join(process.cwd(), 'public', 'morning-brief-template.html'), 'utf8');
-    } catch {
+      const host = req.headers.host || 'terminal.mot-era.com';
+      const proto = req.headers['x-forwarded-proto'] || 'https';
+      const tplRes = await fetch(`${proto}://${host}/morning-brief-template.html`, {signal: AbortSignal.timeout(5000)});
+      if (tplRes.ok) template = await tplRes.text();
+    } catch {}
+
+    if (!template) {
+      // 폴백: fs 시도
       try {
-        template = fs.readFileSync(path.join(process.cwd(), 'morning-brief-template.html'), 'utf8');
-      } catch {
-        // 인라인 폴백 — DATA만 JSON으로 반환
-        return res.json(DATA);
-      }
+        const fs = require('fs');
+        const path = require('path');
+        template = fs.readFileSync(path.join(process.cwd(), 'public', 'morning-brief-template.html'), 'utf8');
+      } catch {}
+    }
+
+    if (!template) {
+      // 최종 폴백: JSON만 반환
+      return res.json(DATA);
     }
 
     // DATA 객체를 템플릿에 주입
