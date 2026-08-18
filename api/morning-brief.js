@@ -12,9 +12,7 @@ export default async function handler(req, res) {
     const [paperRes, calRes, pricesRes, fngRes, globalRes] = await Promise.allSettled([
       fetch(`${TT}/api/paper/status`, {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
       fetch(`${TT}/api/calendar`, {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
-      Promise.all(['BTCUSDT','ETHUSDT','SOLUSDT','DOGEUSDT','AVAXUSDT','LINKUSDT','SUIUSDT','BNBUSDT','XRPUSDT','ADAUSDT'].map(s =>
-        fetch('https://fapi.binance.com/fapi/v1/ticker/24hr?symbol='+s, {signal: AbortSignal.timeout(8000)}).then(r=>r.json()).catch(()=>null)
-      )).then(arr => arr.filter(Boolean)),
+      fetch(`${TT}/api/tape`, {signal: AbortSignal.timeout(8000)}).then(r=>r.json()).catch(() => []),
       fetch('https://api.alternative.me/fng/?limit=1', {signal: AbortSignal.timeout(5000)}).then(r=>r.json()),
       fetch('https://api.coingecko.com/api/v3/global', {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
     ]);
@@ -25,11 +23,13 @@ export default async function handler(req, res) {
     const fng = fngRes.status === 'fulfilled' ? fngRes.value : {};
     const global = globalRes.status === 'fulfilled' ? globalRes.value : {};
 
-    // 가격 추출
+    // 가격 추출 (tape 형식: {sym, price, changePct} 또는 Binance 형식: {symbol, lastPrice, priceChangePercent})
     const getPrice = (sym) => {
-      const t = allPrices.find(x => x.symbol === sym + 'USDT');
-      if (!t) return { price: '—', chg: null };
-      return { price: '$' + parseFloat(t.lastPrice).toLocaleString('en-US', {maximumFractionDigits: t.lastPrice > 100 ? 0 : 2}), chg: parseFloat(t.priceChangePercent) };
+      let t = allPrices.find(x => x.sym === sym); // tape 형식
+      if (t) return { price: '$' + (t.price > 100 ? Math.round(t.price).toLocaleString() : t.price.toFixed(2)), chg: t.changePct, raw: t.price };
+      t = allPrices.find(x => x.symbol === sym + 'USDT'); // Binance 형식
+      if (t) return { price: '$' + parseFloat(t.lastPrice).toLocaleString('en-US', {maximumFractionDigits: t.lastPrice > 100 ? 0 : 2}), chg: parseFloat(t.priceChangePercent), raw: parseFloat(t.lastPrice) };
+      return { price: '—', chg: null, raw: 0 };
     };
 
     const btc = getPrice('BTC');
@@ -45,13 +45,15 @@ export default async function handler(req, res) {
     const btcDom = gd?.market_cap_percentage?.btc?.toFixed(1) || '—';
     const totalMcap = gd?.total_market_cap?.usd ? '$' + (gd.total_market_cap.usd / 1e12).toFixed(2) + 'T' : '—';
 
-    // 펀딩/OI
-    const btcTicker = allPrices.find(x => x.symbol === 'BTCUSDT') || {};
-    const totalVol = allPrices.reduce((s, t) => s + parseFloat(t.quoteVolume || 0), 0);
+    // 가격 raw
+    const btcPrice = btc.raw || 0;
+    const ethPrice = eth.raw || 0;
+    const btcChg = btc.chg || 0;
+    const btcTicker = allPrices.find(x => x.sym === 'BTC') || allPrices.find(x => x.symbol === 'BTCUSDT') || {};
+    const totalVol = 0; // tape에는 volume 없음
 
     // 스탠스 판단
     const fngNum = parseInt(fngVal) || 50;
-    const btcChg = btc.chg || 0;
     const stance = fngNum < 25 || btcChg < -3 ? 'RISK_OFF' : fngNum > 65 && btcChg > 2 ? 'RISK_ON' : 'NEUTRAL';
 
     // 날짜
@@ -80,14 +82,12 @@ export default async function handler(req, res) {
     const positions = (paper.positions || []).length + (paper.swingPositions || []).length;
 
     // BTC 레벨 계산
-    const btcPrice = parseFloat(btcTicker.lastPrice || 0);
-    const btcHigh = parseFloat(btcTicker.highPrice || 0);
-    const btcLow = parseFloat(btcTicker.lowPrice || 0);
+    const btcHigh = parseFloat(btcTicker.highPrice || btcTicker.high || btcPrice * 1.01 || 0);
+    const btcLow = parseFloat(btcTicker.lowPrice || btcTicker.low || btcPrice * 0.99 || 0);
     const r1 = Math.round(btcPrice * 1.015 / 100) * 100;
     const r2 = Math.round(btcPrice * 1.035 / 100) * 100;
     const s1 = Math.round(btcPrice * 0.985 / 100) * 100;
     const s2 = Math.round(btcPrice * 0.965 / 100) * 100;
-    const ethPrice = parseFloat(allPrices.find(x=>x.symbol==='ETHUSDT')?.lastPrice || 0);
     const er1 = Math.round(ethPrice * 1.02);
     const er2 = Math.round(ethPrice * 1.04);
     const es1 = Math.round(ethPrice * 0.98);
