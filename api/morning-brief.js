@@ -123,8 +123,8 @@ export default async function handler(req, res) {
         { k: 'ETH 김치프리미엄', v: '—', tone: 'fl', note: '' },
       ],
       news: [
-        ...topUp.slice(0,2).map(t => ({ dir: '+', t: `${t.symbol.replace('USDT','')} +${parseFloat(t.priceChangePercent).toFixed(1)}% 급등`, impact: `$${(parseFloat(t.quoteVolume)/1e6).toFixed(0)}M 거래량`, src: 'Binance' })),
-        ...topDn.slice(0,2).map(t => ({ dir: '-', t: `${t.symbol.replace('USDT','')} ${parseFloat(t.priceChangePercent).toFixed(1)}% 급락`, impact: `$${(parseFloat(t.quoteVolume)/1e6).toFixed(0)}M 거래량`, src: 'Binance' })),
+        ...topUp.filter(Boolean).slice(0,2).map(t => ({ dir: '+', t: `${(t.symbol||'').replace('USDT','')} +${parseFloat(t.priceChangePercent||0).toFixed(1)}% 급등`, impact: `$${(parseFloat(t.quoteVolume||0)/1e6).toFixed(0)}M 거래량`, src: 'Binance' })),
+        ...topDn.filter(Boolean).slice(0,2).map(t => ({ dir: '-', t: `${(t.symbol||'').replace('USDT','')} ${parseFloat(t.priceChangePercent||0).toFixed(1)}% 급락`, impact: `$${(parseFloat(t.quoteVolume||0)/1e6).toFixed(0)}M 거래량`, src: 'Binance' })),
       ],
       schedule: events,
       playbook: {
