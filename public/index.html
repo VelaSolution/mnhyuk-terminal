@@ -93,7 +93,7 @@
   /* ── Main grid ───────────────────────────────── */
   #main{
     flex:1 1 auto; display:grid; min-height:0;
-    grid-template-columns:220px minmax(0,1fr) 290px; gap:4px; background:var(--bg); padding:4px;
+    grid-template-columns:250px minmax(0,1fr) 280px; gap:4px; background:var(--bg); padding:4px;
     background-image:radial-gradient(circle at 1px 1px, rgba(255,255,255,.015) 1px, transparent 0);
     background-size:24px 24px;
   }
@@ -561,7 +561,7 @@
 
   /* responsive fallback */
   @media (max-width:1100px){
-    #rightcol{display:none;} #main{grid-template-columns:220px minmax(0,1fr);}
+    #rightcol{display:none;} #main{grid-template-columns:250px minmax(0,1fr);}
   }
   @media (max-width:860px){
     #leftcol{display:none;} #main{grid-template-columns:1fr;}
@@ -1787,7 +1787,8 @@
   </div>
 </div>
 
-<script src="https://s3.tradingview.com/tv.js" onerror="console.warn('TradingView widget library failed to load')"></script>
+<script src="https://s3.tradingview.com/tv.js" onerror="console.warn('tv.js failed')"></script>
+<script src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" onerror="console.warn('tv embed failed')"></script>
 <script>
 
 /* ═══════════════ GLOBAL CONFIG ═══════════════ */
@@ -9277,42 +9278,39 @@ try {
     if(S.tvMode){
       c.style.display="block";
       $("tvbtn").classList.remove("off"); $("tvbtn").style.color="var(--amber)";
-      const tvOvl=$("ai-tv-overlay"); if(tvOvl && AI_OVL && AI_OVL.data) tvOvl.classList.add("on");
-      /* 완전 정리 */
+      const tvOvl=$("ai-tv-overlay"); if(tvOvl && typeof AI_OVL!=='undefined' && AI_OVL && AI_OVL.data) tvOvl.classList.add("on");
       if(tvWidget){ try{ tvWidget.remove(); }catch(e){} tvWidget=null; }
       c.innerHTML="";
       const tvSym = "BINANCE:"+pair(S.sym)+".P";
       const tvInt = tvInterval();
-      /* TradingView widget (tv.js) 방식 시도 */
-      setTimeout(()=>{
-        if(!S.tvMode) return;
-        if(typeof TradingView!=="undefined" && TradingView.widget){
-          try {
-            tvWidget=new TradingView.widget({
-              container_id:"tv-container",
-              symbol:tvSym,
-              interval:tvInt,
-              theme:"dark",
-              style:"1",
-              locale:"kr",
-              toolbar_bg:"#050505",
-              hide_side_toolbar:false,
-              allow_symbol_change:true,
-              save_image:false,
-              autosize:true,
-              backgroundColor:"#050505",
-              gridColor:"#161616",
-              withdateranges:true,
-            });
-            return;
-          } catch(e){ console.warn('[TV] widget failed:', e); }
-        }
-        /* 폴백: iframe embed */
-        c.innerHTML=`<iframe src="https://www.tradingview.com/widgetembed/?symbol=${encodeURIComponent(tvSym)}&interval=${tvInt}&theme=dark&style=1&locale=kr&hide_side_toolbar=0&allow_symbol_change=1&save_image=0&backgroundColor=%23050505&gridColor=%23161616" style="width:100%;height:100%;border:none;"></iframe>`;
-      }, 100);
+      // TradingView Advanced Chart — iframe 방식 (가장 안정적)
+      c.innerHTML='<div class="tradingview-widget-container" style="width:100%;height:100%"><div class="tradingview-widget-container__widget" style="width:100%;height:100%"></div></div>';
+      const widgetDiv = c.querySelector('.tradingview-widget-container__widget');
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+      script.async = true;
+      script.textContent = JSON.stringify({
+        symbol: tvSym,
+        interval: tvInt,
+        timezone: "Asia/Seoul",
+        theme: "dark",
+        style: "1",
+        locale: "kr",
+        backgroundColor: "rgba(5,5,5,1)",
+        gridColor: "rgba(30,30,30,1)",
+        allow_symbol_change: true,
+        hide_side_toolbar: false,
+        calendar: false,
+        support_host: "https://www.tradingview.com",
+        width: "100%",
+        height: "100%"
+      });
+      c.querySelector('.tradingview-widget-container').appendChild(script);
     } else {
       c.style.display="none";
-      if(tvWidget){ try{ tvWidget.remove(); }catch(e){} tvWidget=null; c.innerHTML=""; }
+      if(tvWidget){ try{ tvWidget.remove(); }catch(e){} tvWidget=null; }
+      c.innerHTML="";
       $("tvbtn").style.color="";
       const tvOvl=$("ai-tv-overlay"); if(tvOvl) tvOvl.classList.remove("on");
     }
