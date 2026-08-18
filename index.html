@@ -1943,7 +1943,7 @@ document.addEventListener('keydown', function(e){
 function authSuccess(user){
   _authUser = user;
   document.getElementById("auth-loading").classList.add("hidden");
-  document.getElementById("auth-gate").classList.add("hidden");
+  document.getElementById("auth-gate").style.display = "none";
   document.getElementById("app").style.display = "";
 
   // Show user in topbar
