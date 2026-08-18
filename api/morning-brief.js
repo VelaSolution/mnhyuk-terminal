@@ -8,11 +8,13 @@ export default async function handler(req, res) {
   const TT = process.env.TRADING_TEAM_URL || 'http://158.247.252.39:8000';
 
   try {
-    // 병렬로 데이터 수집
+    // 병렬로 데이터 수집 (VPS 프록시 경유)
     const [paperRes, calRes, pricesRes, fngRes, globalRes] = await Promise.allSettled([
       fetch(`${TT}/api/paper/status`, {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
       fetch(`${TT}/api/calendar`, {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
-      fetch('https://fapi.binance.com/fapi/v1/ticker/24hr', {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
+      Promise.all(['BTCUSDT','ETHUSDT','SOLUSDT','DOGEUSDT','AVAXUSDT','LINKUSDT','SUIUSDT','BNBUSDT','XRPUSDT','ADAUSDT'].map(s =>
+        fetch('https://fapi.binance.com/fapi/v1/ticker/24hr?symbol='+s, {signal: AbortSignal.timeout(8000)}).then(r=>r.json()).catch(()=>null)
+      )).then(arr => arr.filter(Boolean)),
       fetch('https://api.alternative.me/fng/?limit=1', {signal: AbortSignal.timeout(5000)}).then(r=>r.json()),
       fetch('https://api.coingecko.com/api/v3/global', {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
     ]);
