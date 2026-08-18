@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MORNING BRIEF // MOTIF QUANT DESK</title>
+<style>
+:root{
+  --paper:#ffffff; --panel:#ffffff; --ink:#17170f; --mut:#8b8778;
+  --line:#d9d5c7; --red:#c2371f; --grn:#1f7a3f; --amb:#b07f22; --blu:#3b6ea5;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+  font-size:10.5px; line-height:1.5; padding:12px 0 30px;
+}
+#stage{width:210mm;margin:0 auto;transform-origin:top center}
+.page{width:210mm;min-height:297mm;background:var(--panel);
+  border:1px solid #d8d8d8;box-shadow:0 3px 16px rgba(23,23,15,.14);
+  padding:10mm;margin:0 auto;display:flex;flex-direction:column}
+
+/* ---------- shared ---------- */
+.lb{font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:var(--mut)}
+.up{color:var(--grn)} .dn{color:var(--red)} .am{color:var(--amb)} .fl{color:var(--mut)}
+.p{border:1px solid var(--line);margin-top:8px;break-inside:avoid}
+.ph{display:flex;align-items:baseline;gap:6px;padding:5px 9px;border-bottom:1px solid var(--line);
+  font-size:8.5px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;background:#fff}
+.ph .dm{font-size:8px}
+.ph .ann{margin-left:auto;color:var(--mut);font-weight:400;font-size:8px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* ---------- header ---------- */
+.hd{display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px 14px;padding-bottom:8px;border-bottom:2px solid var(--ink)}
+.hd h1{font-size:18px;letter-spacing:.02em;font-weight:800;line-height:1.1}
+.hd h1 i{font-style:normal;color:var(--blu)}
+.hd .meta{margin-left:auto;text-align:right}
+.hd .date{font-size:13px;font-weight:800}
+.stance{border:1.5px solid;padding:2px 10px;font-weight:800;font-size:11px;letter-spacing:.08em}
+.stance.RISK_ON{border-color:var(--grn);color:var(--grn)}
+.stance.NEUTRAL{border-color:var(--amb);color:var(--amb)}
+.stance.RISK_OFF{border-color:var(--red);color:var(--red)}
+
+/* ---------- tldr ---------- */
+.tldr{border:1px dashed var(--ink);margin-top:8px;padding:7px 10px;font-size:11.5px;font-weight:700}
+.tldr .lb{display:block;margin-bottom:2px}
+
+/* ---------- tables ---------- */
+table{width:100%;border-collapse:collapse}
+td{padding:3.5px 9px;border-bottom:1px dashed var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.k{color:var(--mut);width:36%;font-size:9px;letter-spacing:.03em}
+td.v{font-weight:800;white-space:nowrap}
+td.c{text-align:right;font-weight:700;white-space:nowrap}
+td.n{color:var(--mut);font-size:8.5px;text-align:right}
+
+/* ---------- levels strip ---------- */
+.lvs{display:grid;grid-template-columns:1fr 1fr}
+.lvs>div{padding:6px 9px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.lvs>div:first-child{border-right:1px dashed var(--line)}
+.lvs .sym{font-weight:800;font-size:12px;min-width:32px}
+.lvs .g{font-size:10.5px}
+.lvs .g .lb{margin-right:4px}
+.lvs .g b{font-weight:800}
+
+/* ---------- krw strip ---------- */
+.krw{display:grid;grid-template-columns:1fr 1fr 1fr}
+.krw>div{padding:6px 9px;border-right:1px dashed var(--line)}
+.krw>div:last-child{border-right:0}
+.krw .lb{display:block}
+.krw b{font-size:12px;font-weight:800}
+.krw .nn{display:block;color:var(--mut);font-size:8.5px;margin-top:1px}
+
+/* ---------- news wire ---------- */
+.hl td.d{width:20px;font-weight:800;text-align:center}
+.hl .im{font-weight:700}
+.hl .src{color:var(--mut);font-size:8.5px}
+
+/* ---------- schedule ---------- */
+.cal td.dd{width:56px;font-weight:800;white-space:nowrap}
+.cal td.dd.today{color:var(--blu)}
+.cal td.t{width:46px;color:var(--blu);font-weight:700;white-space:nowrap;font-size:9px}
+.cal .nn{color:var(--mut);font-size:8.5px}
+.imp{letter-spacing:1px;font-size:8px}
+
+/* ---------- playbook ---------- */
+.pb{display:grid;grid-template-columns:1fr 1fr 1fr}
+.pb>div{padding:7px 9px;border-right:1px dashed var(--line)}
+.pb>div:last-child{border-right:0}
+.pb .t{font-weight:800;font-size:9px;letter-spacing:.08em;margin-bottom:4px;text-transform:uppercase}
+.pb .f{margin-bottom:4px}
+.pb .f .lb{display:block}
+.pb ul{list-style:none}
+.pb li{padding-left:10px;position:relative;margin-bottom:2px}
+.pb li::before{content:"×";position:absolute;left:0;color:var(--red);font-weight:800}
+
+/* ---------- footer ---------- */
+.ft{margin-top:auto;padding-top:6px;border-top:2px solid var(--ink);display:flex;flex-wrap:wrap;gap:4px 14px;
+  font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+.ft .r{margin-left:auto}
+
+/* ---------- print ---------- */
+.printbtn{position:fixed;right:14px;bottom:14px;border:1px solid var(--ink);background:var(--ink);color:#f2f0e9;
+  padding:8px 16px;font:700 10px/1 inherit;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;z-index:9}
+@page{size:A4;margin:9mm}
+@media print{
+  body{background:#fff;padding:0;font-size:9.8px;line-height:1.42}
+  td{padding:3px 8px}
+  .tldr{padding:6px 9px}
+  .nw{padding:6px 9px}
+  #stage{width:auto;transform:none!important;margin:0!important}
+  .page{width:auto;min-height:277mm;padding:0;border:0;box-shadow:none;margin:0}
+  .printbtn{display:none}
+  .p{margin-top:6px}
+}
+</style>
+</head>
+<body>
+<div id="stage">
+<div class="page">
+
+  <div class="hd">
+    <div>
+      <div class="lb">Daily market report · auto-generated</div>
+      <h1>MORNING BRIEF <i>// MOTIF QUANT DESK</i></h1>
+    </div>
+    <div class="meta">
+      <div class="date" id="mDate">—</div>
+      <div class="lb" id="mSub">—</div>
+    </div>
+    <div class="stance" id="mStance">—</div>
+  </div>
+
+  <div class="tldr"><span class="lb">한줄 요약 · TL;DR</span><span id="mTldr">—</span></div>
+
+  <div class="row2">
+    <div class="p">
+      <div class="ph"><span class="dm">◆</span> 야간 시황 · Overnight<span class="ann">전일 대비</span></div>
+      <table id="tOvernight"></table>
+    </div>
+    <div class="p">
+      <div class="ph"><span class="dm">◆</span> 파생 · 수급<span class="ann">08:00 snapshot</span></div>
+      <table id="tMetrics"></table>
+    </div>
+  </div>
+
+  <div class="p">
+    <div class="ph"><span class="dm">◆</span> 주요 레벨 · Key Levels<span class="ann">가까운 순 · R 저항 / S 지지</span></div>
+    <div class="lvs" id="tLevels"></div>
+  </div>
+
+  <div class="p">
+    <div class="ph"><span class="dm">◆</span> 국내 · KRW Desk<span class="ann">업비트 기준</span></div>
+    <div class="krw" id="tKrw"></div>
+  </div>
+
+  <div class="p">
+    <div class="ph"><span class="dm">◆</span> 뉴스 · Wire<span class="ann">+호재 −악재 ○중립 · → 영향</span></div>
+    <table class="hl" id="tNews"></table>
+  </div>
+
+  <div class="p">
+    <div class="ph"><span class="dm">◆</span> 일정 · 오늘 + 이번 주<span class="ann">KST · ●=중요도</span></div>
+    <table class="cal" id="tCal"></table>
+  </div>
+
+  <div class="p">
+    <div class="ph"><span class="dm">◆</span> 오늘 플랜 · Playbook<span class="ann">트리거 → 대응</span></div>
+    <div class="pb" id="tPb"></div>
+  </div>
+
+  <div class="ft">
+    <span id="mSrc">—</span>
+    <span class="r">research snapshot · verify before acting</span>
+  </div>
+
+</div>
+</div>
+<button class="printbtn" onclick="print()">Print · A4</button>
+
+<script>
+/* ============================================================
+   에이전트는 아래 DATA 객체만 오늘 값으로 교체해서 파일을 출력한다.
+   렌더링 코드는 수정 금지. A4 한 장 유지가 최우선.
+   - 분량 상한 (초과 금지): overnight 7 · metrics 7 · krw 3 · news 6 ·
+     schedule 7 · notrade 3.  note/impact는 짧은 어구로.
+   - 값 모르면 null 또는 배열에서 제외 (자동 "—" 처리)
+   - chg: 숫자(%) → 색/부호 자동.  tone: "up"|"dn"|"am"|"fl"
+   - stance: "RISK_ON" | "NEUTRAL" | "RISK_OFF"
+   - imp: 1~3 (중요도)   dir: "+" | "-" | "o"
+   - schedule: 오늘 일정은 d:"오늘", 이번 주는 d:"토 8/22" 형식.
+     오늘 → 임박 순으로 정렬해서 채울 것.
+   ============================================================ */
+const DATA = {
+  meta: {
+    date: "2026-08-18 (화)",
+    issue: 1,
+    snapshot: "08:30 KST",
+    by: "claude research",
+    stance: "NEUTRAL",
+    tldr: "약세장 8개월차, BTC 64K 재탈환 시도. 호르무즈 휴전 만료(유가↑) vs 9월 인상 확률 후퇴가 맞서는 구간 — 목 03:00 의사록 전까지 방향성 없음. 65K 돌파 / 63K 이탈만 대응."
+  },
+
+  overnight: [
+    { k:"BTC/USDT", v:"$64,230", chg:+1.8,  note:"64K 재탈환 · ATH 대비 -49%" },
+    { k:"ETH/USDT", v:"$1,906",  chg:+1.2,  note:"주간 -1.8% · 저점 1,873" },
+    { k:"나스닥",    v:"26,645",  chg:-0.32, note:"인텔 -4% 주도" },
+    { k:"WTI 유가",  v:"$83대",   chg:null,  note:"호르무즈 재긴장 반등" },
+    { k:"미 10Y",   v:"4.70%",   chg:+0.04, note:"19개월 고점권" },
+    { k:"달러인덱스", v:"99.4",    chg:null,  note:"6월 이후 최저" },
+    { k:"EUR/USD",  v:"1.1575",  chg:null,  note:"3일 연속 상승" }
+  ],
+
+  metrics: [
+    { k:"BTC 펀딩 (8h)",  v:"+0.0014%", tone:"fl", note:"연 1.5% · 과열 없음" },
+    { k:"OI",             v:"$47.8B",   tone:"am", note:"거래량 대비 과대 — 출구 좁음" },
+    { k:"청산 (24h)",     v:"$33M",     tone:"fl", note:"극도로 조용" },
+    { k:"Fear & Greed",   v:"31 · 공포", tone:"dn", note:"제공처별 31~45 혼재" },
+    { k:"ETF 순유입 (8/14)", v:"-$56M",  tone:"dn", note:"YTD -$5.4B · 유출 둔화 중" },
+    { k:"9월 인상 확률",   v:"~52%",     tone:"am", note:"GS는 \"가능성 매우 낮다\"" },
+    { k:"ETH/BTC",        v:"0.0299",   tone:"fl", note:"한 달 +2.4% · 상대강도 회복" }
+  ],
+
+  levels: {
+    btc: { sym:"BTC", r:["65,000","66,500"], s:["63,000","61,700"] },
+    eth: { sym:"ETH", r:["1,950","1,985"],  s:["1,870","1,820"] }
+  },
+
+  krw: [
+    { k:"원/달러", v:"≈1,413", tone:"fl", note:"52주 1,372~1,562" },
+    { k:"업비트 BTC 환산", v:"≈₩9,075만", tone:"fl", note:"64,230 × 1,413 · 김프 미반영" },
+    { k:"BTC 김치프리미엄", v:"—", tone:"fl", note:"실시간: kimpga.com 확인" }
+  ],
+
+  news: [
+    { dir:"-", t:"호르무즈 60일 휴전 만료 — 해협 통항 사실상 중단", impact:"여름 내내 상단 눌러온 유가 리스크 재점화", src:"CoinDesk" },
+    { dir:"+", t:"골드만 \"9월 금리 인상 가능성 매우 낮다\"", impact:"고용 부진發 — 리스크자산 숨통", src:"CoinDesk" },
+    { dir:"+", t:"골드만삭스, BTC ETF 운용사 NEOS $2.25B 인수", impact:"제도권 구조적 수요 확대 신호", src:"Forbes" },
+    { dir:"+", t:"비트마인(톰 리), ETH 공급량 4.8% 보유 — 9,926 ETH 추가", impact:"ETH 수급 하방 지지", src:"CoinDesk" },
+    { dir:"-", t:"XRP, 사상 처음 $1 하회", impact:"알트 약세 심화 — 자금 메이저 쏠림", src:"Forbes" },
+    { dir:"-", t:"콜드카드 지갑 코드 버그 — 누적 $100M 해킹 피해", impact:"하드월렛 펌웨어 업데이트 확인", src:"CoinDesk" }
+  ],
+
+  schedule: [
+    { d:"오늘", t:"—",     e:"주요 지표 없음 — 유가·중동 헤드라인 장세", imp:2 },
+    { d:"주중", t:"—",     e:"미 소매 실적: WMT·TGT·HD·LOW", imp:1 },
+    { d:"목 8/20", t:"03:00", e:"FOMC 7월 의사록 (7/28-29 회의)", imp:3 },
+    { d:"목 8/20", t:"21:30", e:"미 신규 실업수당 청구", imp:1 },
+    { d:"금 8/21", t:"17:00", e:"BTC·ETH 주간 옵션 만기 (Deribit)", imp:1 },
+    { d:"목 8/27", t:"—",    e:"잭슨홀 심포지엄 개막 (~29일)", imp:3 },
+    { d:"금 8/28", t:"밤",   e:"워시 의장 첫 기조연설 — 9/16 FOMC 힌트", imp:3 }
+  ],
+
+  playbook: {
+    up:   { trigger:"65,000 4H 종가 돌파 + OI 동반 증가", plan:"리테스트 확인 후 진입 · 1차 66.5K · 손절 64.2K" },
+    down: { trigger:"63,000 이탈 + 유가 급등 헤드라인 동반", plan:"반등 실패 확인 후 진입 · 1차 61.7K · 손절 63.8K" },
+    notrade: [
+      "목 03:00 의사록 전후 ±30분 진입 금지",
+      "63K–65K 박스 내부 추격 금지",
+      "유가 ±3% 급변 시 신규 진입 보류"
+    ]
+  },
+
+  sources: "CoinDesk · CNBC · CoinGlass · CoinGecko · TradingEconomics · Investing.com · WalletPilot"
+};
+
+/* ---------- render (에이전트는 아래 수정 불필요) ---------- */
+(function(){
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"—").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const chgCell=c=>{
+  if(c===null||c===undefined||isNaN(c))return '<td class="c fl">—</td>';
+  const cls=c>0?"up":c<0?"dn":"fl";
+  const s=(c>0?"▲ +":c<0?"▼ ":"")+c.toFixed(Math.abs(c)<1?2:1)+"%";
+  return '<td class="c '+cls+'">'+s+'</td>';
+};
+const tone=t=>({up:"up",dn:"dn",am:"am",fl:"fl"}[t]||"");
+const dirCls=d=>d==="+"?"up":d==="-"?"dn":"fl";
+const dirSym=d=>d==="+"?"+":d==="-"?"−":"○";
+const impDots=i=>"●".repeat(i||1)+"○".repeat(Math.max(0,3-(i||1)));
+
+const m=DATA.meta||{};
+$("mDate").textContent=m.date||"—";
+$("mSub").textContent="Issue #"+(m.issue??"—")+" · snapshot "+(m.snapshot||"—")+" · by "+(m.by||"agent");
+const st=$("mStance");
+st.textContent=(m.stance||"NEUTRAL").replace("_","-");
+st.className="stance "+(m.stance||"NEUTRAL");
+$("mTldr").textContent=m.tldr||"—";
+$("mSrc").textContent="sources · "+(DATA.sources||"—");
+
+$("tOvernight").innerHTML=(DATA.overnight||[]).map(r=>
+  '<tr><td class="k">'+esc(r.k)+'</td><td class="v">'+esc(r.v)+'</td>'+chgCell(r.chg)+'<td class="n">'+esc(r.note)+'</td></tr>').join("");
+
+$("tMetrics").innerHTML=(DATA.metrics||[]).map(r=>
+  '<tr><td class="k">'+esc(r.k)+'</td><td class="v '+tone(r.tone)+'">'+esc(r.v)+'</td><td class="n">'+esc(r.note)+'</td></tr>').join("");
+
+const lv=DATA.levels||{};
+$("tLevels").innerHTML=[lv.btc,lv.eth].filter(Boolean).map(x=>
+  '<div><span class="sym">'+esc(x.sym)+'</span>'+
+  '<span class="g"><span class="lb">R</span><b class="dn">'+(x.r||[]).map(esc).join(" · ")+'</b></span>'+
+  '<span class="g"><span class="lb">S</span><b class="up">'+(x.s||[]).map(esc).join(" · ")+'</b></span></div>').join("");
+
+$("tKrw").innerHTML=(DATA.krw||[]).map(r=>
+  '<div><span class="lb">'+esc(r.k)+'</span><b class="'+tone(r.tone)+'">'+esc(r.v)+'</b><span class="nn">'+esc(r.note)+'</span></div>').join("");
+
+$("tNews").innerHTML=(DATA.news||[]).map(r=>
+  '<tr><td class="d '+dirCls(r.dir)+'">'+dirSym(r.dir)+'</td>'+
+  '<td>'+esc(r.t)+' <span class="im '+dirCls(r.dir)+'">→ '+esc(r.impact)+'</span> <span class="src">· '+esc(r.src)+'</span></td></tr>').join("");
+
+$("tCal").innerHTML=(DATA.schedule||[]).map(r=>
+  '<tr><td class="dd'+(r.d==="오늘"?" today":"")+'">'+esc(r.d)+'</td><td class="t">'+esc(r.t)+'</td>'+
+  '<td>'+esc(r.e)+'</td><td class="c imp">'+impDots(r.imp)+'</td></tr>').join("");
+
+const pb=DATA.playbook||{};
+const f=(l,v)=>'<div class="f"><span class="lb">'+l+'</span>'+esc(v)+'</div>';
+$("tPb").innerHTML=
+  '<div><div class="t up">▲ 상방</div>'+f("Trigger",pb.up&&pb.up.trigger)+f("대응",pb.up&&pb.up.plan)+'</div>'+
+  '<div><div class="t dn">▼ 하방</div>'+f("Trigger",pb.down&&pb.down.trigger)+f("대응",pb.down&&pb.down.plan)+'</div>'+
+  '<div><div class="t am">■ 노트레이드</div><ul>'+((pb.notrade||[]).map(x=>'<li>'+esc(x)+'</li>').join(""))+'</ul></div>';
+
+/* ---------- A4 화면 프리뷰 스케일 ---------- */
+const stage=$("stage");
+function fitA4(){
+  stage.style.transform="";stage.style.marginBottom="";
+  const pw=stage.offsetWidth;
+  const vw=document.documentElement.clientWidth-12;
+  if(vw>=pw)return;
+  const s=vw/pw,h=stage.offsetHeight;
+  stage.style.transform="scale("+s+")";
+  stage.style.marginBottom=(-h*(1-s))+"px";
+}
+fitA4();
+addEventListener("resize",fitA4);
+addEventListener("beforeprint",()=>{stage.style.transform="";stage.style.marginBottom=""});
+addEventListener("afterprint",fitA4);
+})();
+</script>
+</body>
+</html>
