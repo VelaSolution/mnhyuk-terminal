@@ -1829,21 +1829,24 @@ const server = http.createServer(async (req, res) => {
       const FCS_KEY = process.env.FCS_API_KEY || '';
       if (!FCS_KEY) return sendJson(res, 500, { source: 'none', events: [], error: 'FCS_API_KEY 미설정' });
       try {
-        const fcsRes = await fetch(`https://api-v4.fcsapi.com/forex/economy_cal?access_key=${FCS_KEY}`, {
+        // 이번주 + 다음주 (14일)
+        const now = new Date();
+        const from = now.toISOString().slice(0,10);
+        const toDate = new Date(now.getTime() + 14*86400000).toISOString().slice(0,10);
+        const fcsRes = await fetch(`https://api-v4.fcsapi.com/forex/economy_cal?from=${from}&to=${toDate}&access_key=${FCS_KEY}`, {
           signal: AbortSignal.timeout(10000)
         });
         if (!fcsRes.ok) throw new Error('FCS API 응답 실패: ' + fcsRes.status);
         const fcsData = await fcsRes.json();
         const rawEvents = fcsData.response || fcsData.data || [];
         if (!Array.isArray(rawEvents) || !rawEvents.length) throw new Error('FCS 데이터 없음');
-        // 주요국 필터: US, UK, EU, CA, AU, CH(중국), JP, NZD, CHF
+        // 주요국 필터 + importance 1,2,3 (Low+Medium+High)
         const majorCurrencies = new Set(['USD','GBP','EUR','CAD','AUD','CNY','JPY','NZD','CHF']);
         const events = rawEvents
           .filter(e => {
             const cur = e.currency || e.country || '';
-            const imp = e.importance || '';
-            // 주요국 High+Medium만
-            return majorCurrencies.has(cur) && (imp === '3' || imp === '2' || imp === 'High' || imp === 'Medium');
+            const imp = String(e.importance || '0');
+            return majorCurrencies.has(cur) && (imp === '1' || imp === '2' || imp === '3');
           })
           .map(e => ({
             title: e.title || e.event || '',
