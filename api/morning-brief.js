@@ -9,7 +9,7 @@ export default async function handler(req, res) {
 
   try {
     // 병렬 데이터 수집
-    const [paperRes, calRes, tapeRes, fngRes, globalRes, upbitRes, krwRes, newsRes, fundingRes] = await Promise.allSettled([
+    const [paperRes, calRes, tapeRes, fngRes, globalRes, upbitRes, krwRes, newsRes, fundingRes, oiRes] = await Promise.allSettled([
       fetch(`${TT}/api/paper/status`, {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
       fetch(`${TT}/api/calendar`, {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
       fetch(`${TT}/api/tape`, {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
@@ -17,8 +17,9 @@ export default async function handler(req, res) {
       fetch('https://api.coingecko.com/api/v3/global', {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
       fetch('https://api.upbit.com/v1/ticker?markets=KRW-BTC,KRW-ETH', {signal: AbortSignal.timeout(5000)}).then(r=>r.json()),
       fetch('https://api.exchangerate-api.com/v4/latest/USD', {signal: AbortSignal.timeout(5000)}).then(r=>r.json()),
-      fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN&limit=6', {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
+      fetch(`${TT}/api/rss?feed=coindesk`, {signal: AbortSignal.timeout(8000)}).then(r=>r.json()),
       fetch('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT', {signal: AbortSignal.timeout(5000)}).then(r=>r.json()),
+      fetch('https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT', {signal: AbortSignal.timeout(5000)}).then(r=>r.json()),
     ]);
 
     const paper = paperRes.status === 'fulfilled' ? paperRes.value : {};
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
     const krwData = krwRes.status === 'fulfilled' ? krwRes.value : {};
     const newsData = newsRes.status === 'fulfilled' ? newsRes.value : {};
     const funding = fundingRes.status === 'fulfilled' ? fundingRes.value : {};
+    const oiData = oiRes.status === 'fulfilled' ? oiRes.value : {};
 
     // 가격 (tape 형식)
     const tp = (sym) => tape.find(x => x.sym === sym) || {};
@@ -119,20 +121,20 @@ export default async function handler(req, res) {
       return { d: dayLabel, t: time, e: e.title || '', imp: e.impact === 'High' ? 3 : e.impact === 'Medium' ? 2 : 1 };
     });
 
-    // 뉴스 (CryptoCompare)
-    const rawNews = Array.isArray(newsData?.Data) ? newsData.Data : [];
-    const newsItems = rawNews.slice(0, 6).map(n => {
+    // 뉴스 (VPS RSS — CoinDesk)
+    const rssItems = Array.isArray(newsData?.items) ? newsData.items : [];
+    const newsItems = rssItems.slice(0, 6).map(n => {
       const title = n.title || '';
-      const bullish = /surge|soar|rally|bull|approve|adopt|etf|inflow|record/i.test(title);
-      const bearish = /crash|plunge|dump|bear|hack|ban|lawsuit|outflow|warning/i.test(title);
+      const bullish = /surge|soar|rally|bull|approve|adopt|etf|inflow|record|partnership|launch|milestone/i.test(title);
+      const bearish = /crash|plunge|dump|bear|hack|ban|lawsuit|outflow|warning|sink|fall|drop|risk/i.test(title);
       const dir = bullish ? '+' : bearish ? '-' : 'o';
-      const src = (n.source_info && n.source_info.name) || n.source || 'CryptoCompare';
-      return { dir, t: title.slice(0, 60), impact: (n.body || '').slice(0, 40), src };
+      return { dir, t: title.slice(0, 60), impact: '', src: n.source || 'CoinDesk' };
     });
 
     // TL;DR
     const moodWord = fngNum < 25 ? '극심한 공포' : fngNum < 40 ? '공포' : fngNum < 55 ? '중립' : fngNum < 70 ? '탐욕' : '극심한 탐욕';
-    const tldr = `BTC ${fmtP(btcRaw)} (${btcChg>=0?'+':''}${btcChg.toFixed(1)}%) · FNG ${fngVal} (${moodWord}) · 김프 ${kimchiBtc} · 펀드 $${Math.round(capital)} (${returnPct>=0?'+':''}${returnPct.toFixed(1)}%)`;
+    const oiStr = oiData.openInterest ? '$' + (parseFloat(oiData.openInterest) * btcRaw / 1e9).toFixed(1) + 'B' : '';
+    const tldr = `BTC ${fmtP(btcRaw)} (${btcChg>=0?'+':''}${btcChg.toFixed(1)}%) · FNG ${fngVal} (${moodWord})${oiStr ? ' · OI ' + oiStr : ''} · 펀드 $${Math.round(capital)} (${returnPct>=0?'+':''}${returnPct.toFixed(1)}%)`;
 
     const DATA = {
       meta: { date: dateStr, issue: Math.floor((now - new Date('2026-01-01')) / 86400000), snapshot: timeStr, by: 'BILLION AI', stance, tldr },
@@ -160,8 +162,8 @@ export default async function handler(req, res) {
       },
       krw: [
         { k: '원/달러', v: krwStr, tone: 'fl', note: '' },
-        { k: '업비트 BTC', v: upBtcStr, tone: 'fl', note: `김프 ${kimchiBtc}` },
-        { k: 'BTC 김치프리미엄', v: kimchiBtc, tone: kimchiBtc.startsWith('+') ? 'up' : kimchiBtc.startsWith('-') ? 'dn' : 'fl', note: `ETH 김프 ${kimchiEth}` },
+        { k: '업비트 BTC', v: upBtcStr, tone: 'fl', note: '' },
+        { k: 'BTC OI', v: oiData.openInterest ? '$' + (parseFloat(oiData.openInterest) * btcRaw / 1e9).toFixed(1) + 'B' : '—', tone: 'am', note: '' },
       ],
       news: newsItems.length > 0 ? newsItems : [
         { dir: 'o', t: '뉴스 수집 실패 — 수동 확인 필요', impact: '', src: '—' },
