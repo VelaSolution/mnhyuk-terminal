@@ -19,7 +19,7 @@ export default async function handler(req, res) {
 
     const paper = paperRes.status === 'fulfilled' ? paperRes.value : {};
     const cal = calRes.status === 'fulfilled' ? calRes.value : {};
-    const allPrices = pricesRes.status === 'fulfilled' ? pricesRes.value : [];
+    const allPrices = pricesRes.status === 'fulfilled' && Array.isArray(pricesRes.value) ? pricesRes.value : [];
     const fng = fngRes.status === 'fulfilled' ? fngRes.value : {};
     const global = globalRes.status === 'fulfilled' ? globalRes.value : {};
 
