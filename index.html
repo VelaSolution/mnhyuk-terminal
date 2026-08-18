@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BILLION AI TERMINAL</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23e8590c'/%3E%3Cstop offset='1' stop-color='%23ff8a3d'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='6' fill='%23050505'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='system-ui' font-weight='900' font-size='18' fill='url(%23g)'%3EB%3C/text%3E%3C/svg%3E">
 <style>
   @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
   :root{
@@ -687,8 +688,15 @@
   #rightcol .ptitle{padding:3px 6px; font-size:var(--fs-sm);}
   #rightcol .pbody{font-size:var(--fs-sm); font-variant-numeric:tabular-nums;}
 
-/* ── Auth Gate (removed) ── */
-#auth-gate{display:none !important;}
+/* ── Auth Gate ─────────────────────────────── */
+#auth-gate{
+  position:fixed; inset:0; z-index:9999;
+  background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column;
+}
+#auth-gate .pin-digit:focus{border-color:var(--amber);box-shadow:0 0 0 2px rgba(232,89,12,0.2);outline:none;}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 #auth-box{
   width:360px; background:var(--panel);
   border:1px solid var(--border); padding:0;
@@ -740,7 +748,13 @@
   color:var(--ink3); font-size:var(--fs-xs); text-align:center;
   line-height:1.5;
 }
-#auth-loading{display:none !important;}
+#auth-loading{
+  position:fixed; inset:0; z-index:10000;
+  background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:12px;
+}
+#auth-loading.hidden{display:none;}
 #logout-btn{
   cursor:pointer; color:var(--ink3); font-size:var(--fs-sm);
   padding:2px 8px; border:1px solid var(--border);
@@ -1006,22 +1020,39 @@
 </head>
 <body>
 
-<!-- Auth Loading (disabled) -->
-<div id="auth-loading" class="hidden"></div>
+<!-- Auth Loading -->
+<div id="auth-loading" style="position:fixed;inset:0;z-index:10000;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;">
+  <svg width="32" height="32" viewBox="0 0 32 32"><defs><linearGradient id="alg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8590c"/><stop offset="1" stop-color="#ff8a3d"/></linearGradient></defs><rect width="32" height="32" rx="6" fill="#111"/><text x="16" y="22" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="17" fill="url(#alg)">B</text></svg>
+  <div style="color:var(--ink3);font-size:var(--fs-sm);letter-spacing:2px">AUTHENTICATING</div>
+</div>
 
-<!-- Auth Gate (disabled) -->
-<div id="auth-gate" class="hidden">
+<!-- Auth Gate -->
+<div id="auth-gate" style="display:none;">
   <div id="auth-box">
     <div class="ah">
-      <span class="logo">BILLION</span>
+      <svg width="24" height="24" viewBox="0 0 32 32" style="vertical-align:-4px;margin-right:6px"><defs><linearGradient id="ablg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8590c"/><stop offset="1" stop-color="#ff8a3d"/></linearGradient></defs><rect width="32" height="32" rx="6" fill="#111"/><rect x="1" y="1" width="30" height="30" rx="5" fill="none" stroke="url(#ablg)" stroke-width="1.5"/><text x="16" y="22.5" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="17" fill="url(#ablg)">B</text></svg><span class="logo">BILLION</span>
       <small>AI HEDGE FUND OS</small>
     </div>
     <div class="abody">
-      <label>EMAIL</label>
-      <input type="email" id="auth-email" placeholder="your@email.com" autocomplete="email">
-      <label>PASSWORD</label>
-      <input type="password" id="auth-pass" placeholder="••••••••" autocomplete="current-password">
-      <button id="auth-btn" onclick="authSubmit()">LOGIN</button>
+      <!-- PIN 로그인 -->
+      <div id="auth-pin-section">
+        <label>PIN CODE</label>
+        <div style="display:flex;gap:6px;justify-content:center;margin:12px 0">
+          <input type="password" maxlength="1" class="pin-digit" data-pin="0" style="width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border-radius:8px;background:#111;border:1px solid var(--border);color:var(--ink);" oninput="pinNext(this,1)" autofocus>
+          <input type="password" maxlength="1" class="pin-digit" data-pin="1" style="width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border-radius:8px;background:#111;border:1px solid var(--border);color:var(--ink);" oninput="pinNext(this,2)">
+          <input type="password" maxlength="1" class="pin-digit" data-pin="2" style="width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border-radius:8px;background:#111;border:1px solid var(--border);color:var(--ink);" oninput="pinNext(this,3)">
+          <input type="password" maxlength="1" class="pin-digit" data-pin="3" style="width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border-radius:8px;background:#111;border:1px solid var(--border);color:var(--ink);" oninput="pinNext(this,4)">
+          <input type="password" maxlength="1" class="pin-digit" data-pin="4" style="width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border-radius:8px;background:#111;border:1px solid var(--border);color:var(--ink);" oninput="pinNext(this,5)">
+          <input type="password" maxlength="1" class="pin-digit" data-pin="5" style="width:44px;height:52px;text-align:center;font-size:22px;font-weight:800;border-radius:8px;background:#111;border:1px solid var(--border);color:var(--ink);" oninput="pinSubmit()">
+        </div>
+      </div>
+      <!-- Google Authenticator (2FA) -->
+      <div id="auth-2fa-section" style="display:none">
+        <label>GOOGLE AUTHENTICATOR CODE</label>
+        <input type="text" id="auth-2fa" placeholder="6자리 코드" maxlength="6" style="text-align:center;font-size:22px;font-weight:800;letter-spacing:8px;padding:12px;border-radius:8px;" autocomplete="one-time-code" inputmode="numeric">
+        <button id="auth-2fa-btn" onclick="verify2FA()" style="width:100%;margin-top:12px;padding:12px;background:var(--amber);border:none;border-radius:6px;color:#fff;font-weight:700;font-size:var(--fs-md);letter-spacing:1px;cursor:pointer;">VERIFY</button>
+      </div>
+      <button id="auth-btn" onclick="authSubmit()" style="display:none">LOGIN</button>
       <div id="auth-error"></div>
       <div id="auth-switch" onclick="authToggleMode()">계정이 없으신가요? 회원가입</div>
     </div>
@@ -1032,10 +1063,10 @@
   </div>
 </div>
 
-<div id="app">
+<div id="app" style="display:none">
 
   <div id="topbar">
-    <div id="brand">BILLION<span style="color:var(--ink2)"> AI</span> <small>HEDGE FUND OS v3</small></div>
+    <div id="brand"><svg width="20" height="20" viewBox="0 0 32 32" style="vertical-align:-3px;margin-right:6px"><defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e8590c"/><stop offset="1" stop-color="#ff8a3d"/></linearGradient></defs><rect width="32" height="32" rx="6" fill="#111"/><rect x="1" y="1" width="30" height="30" rx="5" fill="none" stroke="url(#bg)" stroke-width="1.5"/><text x="16" y="22.5" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="17" fill="url(#bg)">B</text></svg>BILLION<span style="color:var(--ink2)"> AI</span> <small>HEDGE FUND OS</small></div>
     <div id="cmdwrap"><span>&gt;</span><input id="cmd" placeholder="명령 입력… (HELP = 전체 목록, ↑↓ = 히스토리)" autocomplete="off" spellcheck="false"><span class="cmd-hint">⌘K</span>
     <div id="cmdsug"></div></div>
     <div id="clocks">
@@ -1517,10 +1548,10 @@
   <div id="kb-hint"></div>
 
   <!-- AI Chat Popup -->
-  <button id="ai-chat-toggle" onclick="toggleAIChat()" title="BILLION AI 채팅">AI</button>
+  <button id="ai-chat-toggle" onclick="toggleAIChat()" title="BILLION AI 채팅"><svg width="22" height="22" viewBox="0 0 32 32"><defs><linearGradient id="aig" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ffd4b8"/></linearGradient></defs><text x="16" y="22" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="17" fill="url(#aig)">B</text></svg></button>
   <div id="ai-chat">
     <div id="ai-chat-head">
-      <span class="title">BILLION AI</span>
+      <span class="title"><svg width="16" height="16" viewBox="0 0 32 32" style="vertical-align:-2px;margin-right:4px"><rect width="32" height="32" rx="6" fill="#1a1205"/><text x="16" y="22" text-anchor="middle" font-family="system-ui" font-weight="900" font-size="17" fill="#e8590c">B</text></svg>BILLION AI</span>
       <span class="close" onclick="toggleAIChat()">✕</span>
     </div>
     <div id="ai-chat-msgs">
@@ -1834,23 +1865,80 @@ let _authUser = null;
 let _authMode = "login"; // "login" | "signup"
 let _booted = false;
 
+// PIN 코드 (환경변수 또는 하드코딩)
+var _PIN_CODE = '141106';
+var _2FA_ENABLED = false; // Google Authenticator 활성화 여부
+
 async function authInit(){
-  // 인증 스킵 — 바로 접속
+  // 세션 체크
   try {
-    document.getElementById("auth-loading").classList.add("hidden");
-    document.getElementById("auth-gate")?.classList.add("hidden");
-    document.getElementById("app").style.display = "";
-    _authUser = { id: 'local', email: 'admin@billion.ai', created_at: new Date().toISOString() };
-    const badge = document.getElementById("user-badge");
-    if(badge) badge.textContent = 'ADMIN';
-    boot();
-  } catch(e) {
-    console.warn("Auth disabled:", e.message);
-    document.getElementById("auth-loading").classList.add("hidden");
-    document.getElementById("app").style.display = "";
-    boot();
+    if(sessionStorage.getItem('billion_auth') === 'ok'){
+      authSuccess({id:'session',email:'admin@billion.ai',created_at:new Date().toISOString()});
+      return;
+    }
+  } catch(e){}
+  // PIN 로그인 화면 표시
+  document.getElementById("auth-loading").classList.add("hidden");
+  document.getElementById("auth-gate").style.display = "";
+  var firstPin = document.querySelector('.pin-digit[data-pin="0"]');
+  if(firstPin) setTimeout(function(){ firstPin.focus(); }, 100);
+}
+
+function pinNext(el, nextIdx){
+  if(el.value.length === 1){
+    var next = document.querySelector('.pin-digit[data-pin="'+nextIdx+'"]');
+    if(next) next.focus();
   }
 }
+
+function pinSubmit(){
+  var digits = document.querySelectorAll('.pin-digit');
+  var pin = '';
+  digits.forEach(function(d){ pin += d.value; });
+  if(pin.length < 6) return;
+
+  if(pin === _PIN_CODE){
+    if(_2FA_ENABLED){
+      // 2FA 단계로
+      document.getElementById('auth-pin-section').style.display = 'none';
+      document.getElementById('auth-2fa-section').style.display = '';
+      var tfaInput = document.getElementById('auth-2fa');
+      if(tfaInput) tfaInput.focus();
+    } else {
+      // 바로 로그인
+      try { sessionStorage.setItem('billion_auth','ok'); } catch(e){}
+      authSuccess({id:'pin',email:'admin@billion.ai',created_at:new Date().toISOString()});
+    }
+  } else {
+    // 틀림 — 흔들기 + 초기화
+    var box = document.getElementById('auth-box');
+    if(box){ box.style.animation='shake .3s'; setTimeout(function(){ box.style.animation=''; },300); }
+    digits.forEach(function(d){ d.value=''; });
+    digits[0].focus();
+    var errEl = document.getElementById('auth-error');
+    if(errEl){ errEl.textContent = 'PIN이 올바르지 않습니다'; setTimeout(function(){ errEl.textContent=''; },2000); }
+  }
+}
+
+function verify2FA(){
+  var code = document.getElementById('auth-2fa').value.trim();
+  if(code.length !== 6){ return; }
+  // TODO: 실제 TOTP 검증은 서버에서 해야 함
+  // 지금은 클라이언트에서 통과
+  try { sessionStorage.setItem('billion_auth','ok'); } catch(e){}
+  authSuccess({id:'2fa',email:'admin@billion.ai',created_at:new Date().toISOString()});
+}
+
+// PIN 입력에서 백스페이스 처리
+document.addEventListener('keydown', function(e){
+  if(e.target.classList.contains('pin-digit') && e.key === 'Backspace' && !e.target.value){
+    var idx = parseInt(e.target.dataset.pin);
+    if(idx > 0){
+      var prev = document.querySelector('.pin-digit[data-pin="'+(idx-1)+'"]');
+      if(prev){ prev.focus(); prev.value=''; }
+    }
+  }
+});
 
 function authSuccess(user){
   _authUser = user;
