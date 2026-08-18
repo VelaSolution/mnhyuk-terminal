@@ -606,6 +606,46 @@
   .ai-fb-btn:hover{border-color:var(--amber); color:var(--amber);}
   .ai-fb-btn.active{border-color:var(--amber); color:var(--amber); background:rgba(232,89,12,0.1);}
 
+  /* ── Pinned messages ── */
+  .ai-msg.pinned{border-left:3px solid var(--amber) !important; background:rgba(232,89,12,0.04) !important;}
+  .ai-msg .msg-pin{
+    position:absolute; top:6px; right:28px; padding:2px 5px; font-size:8px;
+    background:transparent; border:1px solid rgba(255,255,255,0.08);
+    border-radius:4px; color:var(--ink3); cursor:pointer; opacity:0; transition:all .2s;
+  }
+  .ai-msg.ai:hover .msg-pin{opacity:1;}
+  .ai-msg .msg-pin:hover{border-color:var(--amber); color:var(--amber);}
+  .ai-msg .msg-pin.active{opacity:1; border-color:var(--amber); color:var(--amber); background:rgba(232,89,12,0.1);}
+
+  /* ── Quick re-ask ── */
+  .ai-reask{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;}
+  .ai-reask button{
+    padding:3px 8px;font-size:8px;background:rgba(255,255,255,0.03);
+    border:1px solid rgba(255,255,255,0.08);color:var(--ink3);
+    border-radius:4px;cursor:pointer;transition:all .15s;
+  }
+  .ai-reask button:hover{border-color:var(--amber);color:var(--amber);}
+
+  /* ── Mini mode ── */
+  #ai-chat.mini{width:320px !important; height:48px !important; overflow:hidden; border-radius:12px !important;}
+  #ai-chat.mini #ai-chat-head{padding:10px 14px;}
+  #ai-chat.mini #ai-chat-ctx,
+  #ai-chat.mini #ai-chat-search,
+  #ai-chat.mini #ai-chat-presets,
+  #ai-chat.mini #ai-chat-msgs,
+  #ai-chat.mini #ai-chat-input,
+  #ai-chat.mini #ai-scroll-bottom{display:none !important;}
+
+  /* ── Event notification in chat ── */
+  .ai-msg.event{
+    align-self:center; color:var(--ink2); font-size:9px; padding:6px 12px;
+    background:linear-gradient(90deg,transparent,rgba(232,89,12,0.04),transparent);
+    border:none; border-radius:8px; display:flex; align-items:center; gap:6px;
+    max-width:95%; letter-spacing:.3px;
+  }
+  .ai-msg.event .ev-icon{font-size:12px;}
+  .ai-msg.event .ev-time{color:var(--ink3); font-size:8px;}
+
   /* ── Chat search ── */
   #ai-chat-search{
     display:none; padding:6px 12px; border-bottom:1px solid rgba(255,255,255,0.04);
@@ -1806,6 +1846,7 @@
         <span class="status on" id="ai-conn-status">LIVE</span>
       </span>
       <span class="hdr-actions">
+        <button class="export-btn" onclick="toggleChatMini()" title="미니 모드" id="ai-mini-btn">MINI</button>
         <button class="export-btn" onclick="toggleChatSearch()" title="대화 검색 (Ctrl+F)">SEARCH</button>
         <button class="export-btn" onclick="exportChat()" title="대화 내보내기">EXPORT</button>
         <button class="clear-btn" onclick="clearAIChat()" title="대화 초기화">CLEAR</button>
@@ -17426,6 +17467,22 @@ function addChatMsg(role, text){
     fbDiv.className = 'ai-feedback';
     fbDiv.innerHTML = '<button class="ai-fb-btn" onclick="aiFeedback(this,\'good\')" title="좋은 답변">👍</button><button class="ai-fb-btn" onclick="aiFeedback(this,\'bad\')" title="개선 필요">👎</button>';
     div.appendChild(fbDiv);
+    // 핀 버튼
+    var pinBtn = document.createElement('span');
+    pinBtn.className = 'msg-pin';
+    pinBtn.textContent = 'PIN';
+    pinBtn.onclick = function(e){
+      e.stopPropagation();
+      div.classList.toggle('pinned');
+      pinBtn.classList.toggle('active');
+      pinBtn.textContent = div.classList.contains('pinned') ? 'PINNED' : 'PIN';
+    };
+    div.appendChild(pinBtn);
+    // 빠른 재질문 버튼
+    var reaskDiv = document.createElement('div');
+    reaskDiv.className = 'ai-reask';
+    reaskDiv.innerHTML = '<button onclick="quickReask(\'더 자세히 설명해줘\')">더 자세히</button><button onclick="quickReask(\'반대 의견은?\')">반대 의견</button><button onclick="quickReask(\'구체적인 숫자로 알려줘\')">숫자로</button>';
+    div.appendChild(reaskDiv);
     // 타임스탬프
     var timeSpan = document.createElement('span');
     timeSpan.className = 'msg-time';
@@ -17889,6 +17946,52 @@ function exportChat(){
   URL.revokeObjectURL(a.href);
   addChatMsg('sys', '대화 내보내기 완료 ('+_aiChatHistory.length+'건)');
 }
+
+function quickReask(text){
+  var inp = document.getElementById('ai-chat-text');
+  if(inp){ inp.value = text; sendAIChat(); }
+}
+
+// ── 미니 모드 토글 ──
+function toggleChatMini(){
+  var chat = document.getElementById('ai-chat');
+  var btn = document.getElementById('ai-mini-btn');
+  if(!chat) return;
+  if(chat.classList.contains('mini')){
+    chat.classList.remove('mini');
+    if(btn) btn.textContent = 'MINI';
+  } else {
+    chat.classList.add('mini');
+    if(btn) btn.textContent = 'EXPAND';
+  }
+}
+
+// ── 터미널 이벤트 → 채팅 연동 ──
+function addChatEvent(icon, text){
+  var msgs = document.getElementById('ai-chat-msgs');
+  if(!msgs) return;
+  var div = document.createElement('div');
+  div.className = 'ai-msg event';
+  var now = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  div.innerHTML = '<span class="ev-icon">'+icon+'</span><span>'+text+'</span><span class="ev-time">'+now+'</span>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// 글로벌 이벤트 훅 — 분석 완료, 주문 등을 채팅에 표시
+var _origPushLog = typeof pushLog === 'function' ? pushLog : null;
+setTimeout(function(){
+  if(typeof window.pushLog === 'function'){
+    var orig = window.pushLog;
+    window.pushLog = function(msg){
+      orig(msg);
+      // 주요 이벤트만 채팅에 표시
+      if(/시그널|분석 완료|포지션|주문|BILLION|AI:/i.test(msg)){
+        addChatEvent('📡', msg.replace(/^(AI|BILLION):\s*/i,''));
+      }
+    };
+  }
+}, 3000);
 
 function execTerminalCmd(cmd){
   var cmdInput = document.getElementById('cmd');
@@ -18391,6 +18494,12 @@ document.addEventListener('DOMContentLoaded', function(){
     // 슬래시 메뉴 트리거 (input 이벤트)
     chatInp.addEventListener('input', function(){
       updateSlashMenu(chatInp.value);
+    });
+    chatInp.addEventListener('blur', function(){
+      setTimeout(function(){
+        var menu = document.getElementById('ai-slash-menu');
+        if(menu) menu.classList.remove('on');
+      }, 200);
     });
   }
   // 세션 복원 + 초기화

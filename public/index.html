@@ -17947,6 +17947,52 @@ function exportChat(){
   addChatMsg('sys', '대화 내보내기 완료 ('+_aiChatHistory.length+'건)');
 }
 
+function quickReask(text){
+  var inp = document.getElementById('ai-chat-text');
+  if(inp){ inp.value = text; sendAIChat(); }
+}
+
+// ── 미니 모드 토글 ──
+function toggleChatMini(){
+  var chat = document.getElementById('ai-chat');
+  var btn = document.getElementById('ai-mini-btn');
+  if(!chat) return;
+  if(chat.classList.contains('mini')){
+    chat.classList.remove('mini');
+    if(btn) btn.textContent = 'MINI';
+  } else {
+    chat.classList.add('mini');
+    if(btn) btn.textContent = 'EXPAND';
+  }
+}
+
+// ── 터미널 이벤트 → 채팅 연동 ──
+function addChatEvent(icon, text){
+  var msgs = document.getElementById('ai-chat-msgs');
+  if(!msgs) return;
+  var div = document.createElement('div');
+  div.className = 'ai-msg event';
+  var now = new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
+  div.innerHTML = '<span class="ev-icon">'+icon+'</span><span>'+text+'</span><span class="ev-time">'+now+'</span>';
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+// 글로벌 이벤트 훅 — 분석 완료, 주문 등을 채팅에 표시
+var _origPushLog = typeof pushLog === 'function' ? pushLog : null;
+setTimeout(function(){
+  if(typeof window.pushLog === 'function'){
+    var orig = window.pushLog;
+    window.pushLog = function(msg){
+      orig(msg);
+      // 주요 이벤트만 채팅에 표시
+      if(/시그널|분석 완료|포지션|주문|BILLION|AI:/i.test(msg)){
+        addChatEvent('📡', msg.replace(/^(AI|BILLION):\s*/i,''));
+      }
+    };
+  }
+}, 3000);
+
 function execTerminalCmd(cmd){
   var cmdInput = document.getElementById('cmd');
   if(!cmdInput) return;
@@ -18448,6 +18494,12 @@ document.addEventListener('DOMContentLoaded', function(){
     // 슬래시 메뉴 트리거 (input 이벤트)
     chatInp.addEventListener('input', function(){
       updateSlashMenu(chatInp.value);
+    });
+    chatInp.addEventListener('blur', function(){
+      setTimeout(function(){
+        var menu = document.getElementById('ai-slash-menu');
+        if(menu) menu.classList.remove('on');
+      }, 200);
     });
   }
   // 세션 복원 + 초기화

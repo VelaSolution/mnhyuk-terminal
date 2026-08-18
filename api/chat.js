@@ -1,4 +1,4 @@
-const BILLION_URL = process.env.BILLION_URL || 'http://localhost:3847';
+const BILLION_URL = process.env.BILLION_URL || 'https://agent.mot-era.com';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

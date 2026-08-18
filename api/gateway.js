@@ -9,7 +9,7 @@
 const GATEWAY_SECRET = process.env.GATEWAY_SECRET || 'motera-billion-bridge-2026';
 const TRADING_TEAM_URL = process.env.TRADING_TEAM_URL || 'http://localhost:8000';
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
-const BILLION_URL = process.env.BILLION_URL || 'http://localhost:3847';
+const BILLION_URL = process.env.BILLION_URL || 'https://agent.mot-era.com';
 
 // 간단한 인메모리 상태
 let terminalState = {
@@ -282,7 +282,7 @@ export default async function handler(req, res) {
         // 모든 주요 이벤트를 Billion에 재전달 (decision, completed, paper, error, started)
         const forwardTypes = ['trading:decision', 'trading:completed', 'trading:started', 'trading:error', 'paper:trade_opened', 'paper:trade_closed'];
         if (forwardTypes.includes(eventType)) {
-          const BILLION_URL = process.env.BILLION_URL || 'http://localhost:3847';
+          const BILLION_URL = process.env.BILLION_URL || 'https://agent.mot-era.com';
           try {
             await fetchWithTimeout(`${BILLION_URL}/api/motera`, {
               method: 'POST',
