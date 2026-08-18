@@ -1820,6 +1820,97 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // ── /api/brief/data — Morning Brief용 통합 데이터 (Binance 서버사이드) ──
+    if (req.method === 'GET' && pathname === '/api/brief/data') {
+      try {
+        const status = paperTrader.getStatus();
+        const prices = {};
+
+        // Fetch from Binance (server-side, no CORS)
+        const symbols = ['BTCUSDT','ETHUSDT','SOLUSDT'];
+        for (const sym of symbols) {
+          try {
+            const r = await fetch('https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=' + sym, {signal: AbortSignal.timeout(5000)});
+            if (r.ok) prices[sym] = await r.json();
+          } catch {}
+        }
+
+        // Funding
+        let funding = null;
+        try {
+          const r = await fetch('https://fapi.binance.com/fapi/v1/premiumIndex?symbol=BTCUSDT', {signal: AbortSignal.timeout(5000)});
+          if (r.ok) funding = await r.json();
+        } catch {}
+
+        // OI
+        let oi = null;
+        try {
+          const r = await fetch('https://fapi.binance.com/fapi/v1/openInterest?symbol=BTCUSDT', {signal: AbortSignal.timeout(5000)});
+          if (r.ok) oi = await r.json();
+        } catch {}
+
+        // Long/Short ratio
+        let lsr = null;
+        try {
+          const r = await fetch('https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=BTCUSDT&period=1h&limit=1', {signal: AbortSignal.timeout(5000)});
+          if (r.ok) { const d = await r.json(); lsr = Array.isArray(d) && d[0] ? d[0] : null; }
+        } catch {}
+
+        return sendJson(res, 200, {
+          prices,
+          funding,
+          oi,
+          lsr,
+          capital: status.capital,
+          returnPct: status.returnPct,
+          winRate: status.winRate,
+          totalTrades: status.totalTrades,
+          positions: (status.positions||[]).length + (status.swingPositions||[]).length,
+          regime: status.marketRegime?.regime || 'NORMAL',
+          strategyMode: status.strategyMode,
+          running: status.running,
+          timestamp: new Date().toISOString(),
+        });
+      } catch (e) {
+        return sendJson(res, 500, { error: e.message });
+      }
+    }
+
+    // ── /api/news/latest — RSS 뉴스 집계 ──
+    if (req.method === 'GET' && pathname === '/api/news/latest') {
+      try {
+        const feeds = ['coindesk', 'cointelegraph', 'theblock'];
+        const allItems = [];
+        for (const feed of feeds) {
+          try {
+            const FEEDS = {
+              coindesk: 'https://www.coindesk.com/arc/outboundfeeds/rss/',
+              cointelegraph: 'https://cointelegraph.com/rss',
+              theblock: 'https://www.theblock.co/rss.xml',
+            };
+            const r = await fetch(FEEDS[feed], { headers: {'User-Agent':'Mozilla/5.0'}, signal: AbortSignal.timeout(6000) });
+            const text = await r.text();
+            const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+            let match;
+            while ((match = itemRegex.exec(text)) !== null && allItems.length < 20) {
+              const xml = match[1];
+              const title = (xml.match(/<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/) || [])[1] || '';
+              const link = (xml.match(/<link>(.*?)<\/link>/) || [])[1] || '';
+              const pubDate = (xml.match(/<pubDate>(.*?)<\/pubDate>/) || [])[1] || '';
+              if (title && link) allItems.push({
+                title: title.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>'),
+                url: link, ts: pubDate ? Date.parse(pubDate) : Date.now(), source: feed.toUpperCase()
+              });
+            }
+          } catch {}
+        }
+        allItems.sort((a,b) => b.ts - a.ts);
+        return sendJson(res, 200, { items: allItems.slice(0, 15), timestamp: new Date().toISOString() });
+      } catch (e) {
+        return sendJson(res, 500, { error: e.message });
+      }
+    }
+
     // ── /api/calendar — 경제 캘린더 (FCS v4 전용, 캐시 6시간) ──
     if (req.method === 'GET' && pathname === '/api/calendar') {
       const calCache = global.__calCache || {};
