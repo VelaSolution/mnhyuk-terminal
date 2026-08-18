@@ -508,8 +508,12 @@
     background:linear-gradient(135deg, #e8590c, #c2410c);
     box-shadow:0 2px 8px rgba(232,89,12,0.4);
     font-family:system-ui; font-weight:900; font-size:16px; color:#fff; letter-spacing:0;
-    flex-shrink:0;
+    flex-shrink:0; transition:all .3s;
   }
+  #ai-chat.thinking .logo-mark{animation:logoPulse 1.5s ease infinite;}
+  @keyframes logoPulse{0%,100%{box-shadow:0 2px 8px rgba(232,89,12,0.4)}50%{box-shadow:0 2px 16px rgba(232,89,12,0.8),0 0 24px rgba(232,89,12,0.3)}}
+  #ai-chat.thinking .logo-text .sub{animation:subBlink 1.5s ease infinite;}
+  @keyframes subBlink{0%,100%{opacity:1}50%{opacity:.4}}
   #ai-chat-head .logo-text{display:flex; flex-direction:column; gap:0;}
   #ai-chat-head .logo-text .name{font-size:13px; font-weight:800; letter-spacing:1.5px; color:var(--ink); line-height:1;}
   #ai-chat-head .logo-text .sub{font-size:8px; font-weight:400; color:var(--ink3); letter-spacing:.5px; line-height:1; margin-top:2px;}
@@ -684,6 +688,14 @@
     font-weight:500; letter-spacing:.3px;
   }
   .ai-preset:hover{border-color:rgba(232,89,12,0.3);color:var(--amber);background:rgba(232,89,12,0.05);}
+
+  /* ── Elapsed timer ── */
+  #ai-elapsed{
+    display:none; font-size:8px; color:var(--ink3); padding:2px 8px;
+    background:rgba(232,89,12,0.06); border-radius:8px; font-family:var(--mono);
+    letter-spacing:.5px; font-weight:600;
+  }
+  #ai-chat.thinking #ai-elapsed{display:inline-block;}
 
   /* ── Scroll-to-bottom ── */
   #ai-scroll-bottom{
@@ -1844,6 +1856,7 @@
           <span class="sub">AI PERSONAL SECRETARY</span>
         </span>
         <span class="status on" id="ai-conn-status">LIVE</span>
+        <span id="ai-elapsed">0.0s</span>
       </span>
       <span class="hdr-actions">
         <button class="export-btn" onclick="toggleChatMini()" title="미니 모드" id="ai-mini-btn">MINI</button>
@@ -17398,7 +17411,11 @@ function updateDynamicPresets(){
   presets.push({text:'펀드 성과 분석해줘', label:'펀드 진단'});
   presets.push({text:'오늘 매크로 이벤트랑 대응 전략 알려줘', label:'오늘 전략'});
 
-  presetEl.innerHTML = presets.map(function(p){
+  // 마켓 상태 기반 동적 프리셋 우선 삽입
+  var marketPresets = getMarketAwarePresets();
+  if(marketPresets.length > 0) presets = marketPresets.concat(presets);
+
+  presetEl.innerHTML = presets.slice(0, 8).map(function(p){
     return '<button class="ai-preset" onclick="aiPreset(\''+p.text.replace(/'/g,"\\'")+'\')">'+p.label+'</button>';
   }).join('');
 }
@@ -17422,8 +17439,7 @@ function toggleAIChat(){
     if(btn) btn.style.display = 'none';
     updateChatContextBar();
     updateDynamicPresets();
-    var unread = document.getElementById('ai-unread');
-    if(unread) unread.style.display = 'none';
+    resetUnread();
     var inp = document.getElementById('ai-chat-text');
     if(inp) setTimeout(function(){ inp.focus(); }, 100);
   }
@@ -17947,6 +17963,91 @@ function exportChat(){
   addChatMsg('sys', '대화 내보내기 완료 ('+_aiChatHistory.length+'건)');
 }
 
+// ── Thinking 상태 (로고 펄스 + 타이머) ──
+var _thinkingTimer = null;
+function startThinking(){
+  var chat = document.getElementById('ai-chat');
+  if(chat) chat.classList.add('thinking');
+  var subEl = document.querySelector('#ai-chat-head .logo-text .sub');
+  if(subEl) subEl.setAttribute('data-orig', subEl.textContent);
+  if(subEl) subEl.textContent = 'THINKING...';
+  // 경과 시간 카운터
+  _thinkingTimer = setInterval(function(){
+    var el = document.getElementById('ai-elapsed');
+    if(el && _aiChatStartTime){
+      el.textContent = ((Date.now()-_aiChatStartTime)/1000).toFixed(1)+'s';
+    }
+  }, 100);
+}
+function stopThinking(){
+  var chat = document.getElementById('ai-chat');
+  if(chat) chat.classList.remove('thinking');
+  var subEl = document.querySelector('#ai-chat-head .logo-text .sub');
+  if(subEl){
+    var orig = subEl.getAttribute('data-orig') || 'AI PERSONAL SECRETARY';
+    subEl.textContent = orig;
+  }
+  if(_thinkingTimer){ clearInterval(_thinkingTimer); _thinkingTimer = null; }
+}
+
+// ── 마켓 상태 기반 동적 프리셋 (강화) ──
+function getMarketAwarePresets(){
+  if(typeof S === 'undefined') return [];
+  var sym = S.sym;
+  var presets = [];
+  // F&G 극단치
+  if(S.fng && S.fng.v <= 20){
+    presets.push({text:'공포 극단인데 매수 기회야?', label:'극단 공포 분석'});
+  } else if(S.fng && S.fng.v >= 80){
+    presets.push({text:'탐욕 극단인데 위험하지 않아?', label:'극단 탐욕 경고'});
+  }
+  // 현재 심볼 변동률 체크
+  if(S.quotes && S.quotes[sym]){
+    var pct = S.quotes[sym].pct;
+    if(pct > 5) presets.push({text:sym+' 오늘 '+pct.toFixed(1)+'% 올랐는데 더 가?', label:sym+' 급등 분석'});
+    else if(pct < -5) presets.push({text:sym+' 오늘 '+pct.toFixed(1)+'% 빠졌는데 반등 가능?', label:sym+' 급락 분석'});
+  }
+  // 포지션 보유 시
+  if(typeof PAPER_CACHE !== 'undefined' && PAPER_CACHE.data){
+    var allPos = (PAPER_CACHE.data.positions||[]).concat(PAPER_CACHE.data.swingPositions||[]);
+    allPos.forEach(function(p){
+      if(p.unrealizedPnl > 50) presets.push({text:p.symbol+' '+p.direction+' 수익 $'+p.unrealizedPnl.toFixed(0)+' 익절 타이밍이야?', label:p.symbol+' 익절?'});
+      if(p.unrealizedPnl < -20) presets.push({text:p.symbol+' '+p.direction+' 손실 $'+Math.abs(p.unrealizedPnl).toFixed(0)+' 손절해야 해?', label:p.symbol+' 손절?'});
+    });
+    if(PAPER_CACHE.data.circuitBreakerActive){
+      presets.push({text:'서킷브레이커 발동됐는데 어떻게 해?', label:'서킷브레이커 대응'});
+    }
+  }
+  return presets.slice(0, 3);
+}
+
+// ── 캐시된 마지막 응답 (오프라인 fallback) ──
+var _lastAIResponses = {};
+function cacheResponse(query, response){
+  _lastAIResponses[query.slice(0,50)] = {text:response, ts:Date.now()};
+  // 최대 20개 유지
+  var keys = Object.keys(_lastAIResponses);
+  if(keys.length > 20) delete _lastAIResponses[keys[0]];
+}
+function getCachedResponse(query){
+  var cached = _lastAIResponses[query.slice(0,50)];
+  if(cached && Date.now() - cached.ts < 300000) return cached.text; // 5분 이내
+  return null;
+}
+
+// ── Unread 배지 카운터 ──
+var _unreadCount = 0;
+function incrementUnread(){
+  _unreadCount++;
+  var unread = document.getElementById('ai-unread');
+  if(unread){ unread.style.display = 'flex'; unread.textContent = _unreadCount > 9 ? '9+' : String(_unreadCount); }
+}
+function resetUnread(){
+  _unreadCount = 0;
+  var unread = document.getElementById('ai-unread');
+  if(unread) unread.style.display = 'none';
+}
+
 function quickReask(text){
   var inp = document.getElementById('ai-chat-text');
   if(inp){ inp.value = text; sendAIChat(); }
@@ -18026,6 +18127,7 @@ async function sendAIChat(){
   if(sendBtn){ sendBtn.disabled = true; sendBtn.textContent = '...'; }
   showTypingIndicator();
   updateChatContextBar();
+  startThinking();
 
   try {
     var ctx = collectTerminalContext();
@@ -18079,11 +18181,13 @@ async function sendAIChat(){
       if(msgs){ msgs.appendChild(actDiv); msgs.scrollTop = msgs.scrollHeight; }
     }
 
-    // 채팅 닫혀있으면 unread 배지 + 데스크탑 알림
+    // 응답 캐시
+    cacheResponse(text, reply);
+
+    // 채팅 닫혀있으면 unread 배지 카운터 + 데스크탑 알림
     var chatEl = document.getElementById('ai-chat');
     if(chatEl && !chatEl.classList.contains('on')){
-      var unread = document.getElementById('ai-unread');
-      if(unread){ unread.style.display = 'flex'; unread.textContent = '!'; }
+      incrementUnread();
       sendDesktopNotif('BILLION AI', reply.slice(0, 80) + (reply.length > 80 ? '...' : ''));
     }
 
@@ -18111,7 +18215,14 @@ async function sendAIChat(){
 
   } catch(e) {
     removeTypingIndicator();
-    addChatMsg('sys', '연결 실패: ' + e.message);
+    // 캐시된 응답이 있으면 표시
+    var cached = getCachedResponse(text);
+    if(cached){
+      addChatMsg('sys', '오프라인 — 캐시된 응답 표시 중');
+      addChatMsg('ai', cached);
+    } else {
+      addChatMsg('sys', '연결 실패: ' + e.message);
+    }
     // 재시도 버튼
     var msgs3 = document.getElementById('ai-chat-msgs');
     if(msgs3){
@@ -18137,6 +18248,7 @@ async function sendAIChat(){
   }
 
   _aiChatBusy = false;
+  stopThinking();
   if(sendBtn){ sendBtn.disabled = false; sendBtn.textContent = '전송'; }
 }
 
